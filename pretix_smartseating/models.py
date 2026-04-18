@@ -321,17 +321,16 @@ def get_effective_status(
     subevent: SubEvent | None = None,
 ) -> str:
     if seat.is_technical_blocked:
-        return SeatState.Status.TECHNICAL
+        return str(SeatState.Status.TECHNICAL)
     if seat.is_blocked:
-        return SeatState.Status.BLOCKED
+        return str(SeatState.Status.BLOCKED)
     state = SeatState.objects.filter(event=event, subevent=subevent, seat=seat).first()
     if not state:
-        return SeatState.Status.AVAILABLE
+        return str(SeatState.Status.AVAILABLE)
     if state.status == SeatState.Status.HOLD and state.is_expired:
-        return SeatState.Status.AVAILABLE
+        return str(SeatState.Status.AVAILABLE)
     return state.status
 
 
 def state_filter_q(event: Event, subevent: SubEvent | None = None) -> Q:
     return Q(event=event, subevent=subevent)
-

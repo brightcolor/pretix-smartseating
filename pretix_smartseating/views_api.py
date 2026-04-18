@@ -38,7 +38,7 @@ def _subevent_from_payload(event_obj: Event, payload: dict) -> SubEvent | None:
     if subevent_id in ("", None):
         return None
     try:
-        subevent_int = int(subevent_id)
+        subevent_int = int(str(subevent_id))
     except (TypeError, ValueError) as exc:
         raise ValueError("Invalid subevent value.") from exc
     return get_object_or_404(SubEvent, event=event_obj, id=subevent_int)
