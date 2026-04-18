@@ -1,0 +1,38 @@
+{% extends "pretixcontrol/event/base.html" %}
+{% load static i18n %}
+
+{% block title %}{{ plan.name }} - {% trans "Seat Editor" %}{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static "pretix_smartseating/css/editor.css" %}">
+{% endblock %}
+
+{% block content %}
+<h1>{{ plan.name }}: {% trans "Seat Editor" %}</h1>
+<div class="smartseat-toolbar">
+  <button class="btn btn-default" data-action="add-row">{% trans "Add row" %}</button>
+  <button class="btn btn-default" data-action="bulk-block">{% trans "Block selected" %}</button>
+  <button class="btn btn-default" data-action="bulk-unblock">{% trans "Unblock selected" %}</button>
+  <button class="btn btn-default" data-action="undo">{% trans "Undo" %}</button>
+  <button class="btn btn-default" data-action="redo">{% trans "Redo" %}</button>
+  <button class="btn btn-primary" data-action="save">{% trans "Save" %}</button>
+  <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export JSON" %}</a>
+  <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_import" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Import JSON" %}</a>
+</div>
+
+<div id="smartseat-editor"
+     data-save-url="{% url "plugins:pretix_smartseating:control.plan_save_layout" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}"
+     data-export-url="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}"
+     data-csrf="{{ csrf_token }}"
+     data-width="{{ plan.width }}"
+     data-height="{{ plan.height }}">
+</div>
+<p class="help-block">
+  {% trans "Tip: Shift+Click supports multiselect. Mouse wheel zooms, drag pans." %}
+</p>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static "pretix_smartseating/js/editor.js" %}"></script>
+{% endblock %}
+

@@ -1,0 +1,5 @@
+recursive-include pretix_smartseating/templates *
+recursive-include pretix_smartseating/static *
+recursive-include pretix_smartseating/locale *
+include README.md LICENSE CHANGELOG.md
+

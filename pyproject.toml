@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pretix-smartseating"
+version = "0.1.0"
+description = "Production-ready reserved seating plugin for pretix with editor and auto-seat logic."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Smart Seating Contributors" }
+]
+keywords = ["pretix", "plugin", "seating", "ticketing", "django"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Framework :: Django",
+  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Developers"
+]
+dependencies = [
+  "Django>=4.2",
+  "pretix>=2025.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-django>=4.8",
+  "ruff>=0.6",
+  "mypy>=1.10",
+]
+
+[project.entry-points."pretix.plugin"]
+pretix_smartseating = "pretix_smartseating:PretixPluginMeta"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["pretix_smartseating*"]
+
+[tool.pytest.ini_options]
+python_files = ["tests.py", "test_*.py"]
+addopts = "-q -p no:cacheprovider"
+testpaths = ["tests"]
+norecursedirs = [".*", "build", "dist", "pytest-cache-files-*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true

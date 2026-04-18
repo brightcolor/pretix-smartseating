@@ -1,0 +1,33 @@
+{% load i18n static %}
+<div class="smartseat-shop"
+     data-plan-url="{% url "plugins:pretix_smartseating:api.plan" organizer=event.organizer.slug event=event.slug %}"
+     data-availability-url="{% url "plugins:pretix_smartseating:api.availability" organizer=event.organizer.slug event=event.slug %}"
+     data-autoseat-url="{% url "plugins:pretix_smartseating:api.autoseat" organizer=event.organizer.slug event=event.slug %}"
+     data-hold-url="{% url "plugins:pretix_smartseating:api.hold" organizer=event.organizer.slug event=event.slug %}"
+     data-release-url="{% url "plugins:pretix_smartseating:api.release_hold" organizer=event.organizer.slug event=event.slug %}">
+  <div class="smartseat-shop-topbar">
+    <label>{% trans "Mode" %}</label>
+    <select data-field="mode">
+      <option value="manual">{% trans "Choose seats manually" %}</option>
+      <option value="strict_adjacent">{% trans "Auto: strict adjacent" %}</option>
+      <option value="nearby_row_flexible">{% trans "Auto: nearby rows" %}</option>
+      <option value="best_available">{% trans "Auto: best available" %}</option>
+    </select>
+    <label>{% trans "Quantity" %}</label>
+    <input data-field="quantity" type="number" min="1" max="20" value="2">
+    <button class="btn btn-primary" data-action="autoseat">{% trans "Find seats" %}</button>
+    <span data-role="summary"></span>
+  </div>
+  <div class="smartseat-legend">
+    <span class="dot free"></span> {% trans "Free" %}
+    <span class="dot hold"></span> {% trans "Reserved" %}
+    <span class="dot sold"></span> {% trans "Sold" %}
+    <span class="dot blocked"></span> {% trans "Blocked" %}
+    <span class="dot selected"></span> {% trans "Selected" %}
+  </div>
+  <div class="smartseat-svg-wrap">
+    <svg data-role="canvas" viewBox="-100 -100 1200 800" aria-label="{% trans "Seat map" %}"></svg>
+  </div>
+</div>
+<script src="{% static "pretix_smartseating/js/shop.js" %}"></script>
+

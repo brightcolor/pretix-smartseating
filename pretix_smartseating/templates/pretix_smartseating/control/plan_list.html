@@ -1,0 +1,41 @@
+{% extends "pretixcontrol/event/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Smart Seating" %}{% endblock %}
+
+{% block content %}
+<h1>{% trans "Smart Seating Plans" %}</h1>
+<p>
+  <a class="btn btn-primary" href="{% url "plugins:pretix_smartseating:control.plan_create" organizer=event.organizer.slug event=event.slug %}">
+    {% trans "Create plan" %}
+  </a>
+</p>
+
+<table class="table table-sm">
+  <thead>
+    <tr>
+      <th>{% trans "Plan" %}</th>
+      <th>{% trans "Dimensions" %}</th>
+      <th>{% trans "Updated" %}</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for plan in plans %}
+      <tr>
+        <td>{{ plan.name }}</td>
+        <td>{{ plan.width }} x {{ plan.height }}</td>
+        <td>{{ plan.updated_at }}</td>
+        <td>
+          <a href="{% url "plugins:pretix_smartseating:control.plan_editor" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">
+            {% trans "Edit" %}
+          </a>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4">{% trans "No plans yet." %}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+

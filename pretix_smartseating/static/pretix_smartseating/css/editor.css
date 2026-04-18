@@ -1,0 +1,77 @@
+.smartseat-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+#smartseat-editor {
+  border: 1px solid #d7d9dd;
+  background: linear-gradient(180deg, #f5f8fc, #f0f3f7);
+  min-height: 640px;
+  position: relative;
+}
+
+#smartseat-editor svg {
+  width: 100%;
+  height: 640px;
+  touch-action: none;
+}
+
+.smartseat-seat {
+  cursor: pointer;
+  stroke: #1b2736;
+  stroke-width: 1;
+}
+
+.smartseat-seat.selected {
+  stroke: #ff8f00;
+  stroke-width: 2;
+}
+
+.smartseat-shop {
+  border: 1px solid #d7d9dd;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.smartseat-shop-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.smartseat-legend {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.smartseat-legend .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.smartseat-legend .free { background: #1e9e56; }
+.smartseat-legend .hold { background: #ef8f18; }
+.smartseat-legend .sold { background: #d63939; }
+.smartseat-legend .blocked { background: #727b8b; }
+.smartseat-legend .selected { background: #0055cc; }
+
+.smartseat-svg-wrap {
+  overflow: auto;
+  border: 1px solid #d7d9dd;
+  border-radius: 6px;
+}
+
+.smartseat-svg-wrap svg {
+  width: 100%;
+  min-height: 420px;
+}
+

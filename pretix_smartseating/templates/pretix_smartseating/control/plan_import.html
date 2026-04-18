@@ -1,0 +1,14 @@
+{% extends "pretixcontrol/event/base.html" %}
+{% load bootstrap3 i18n %}
+
+{% block title %}{% trans "Import seating plan" %}{% endblock %}
+
+{% block content %}
+<h1>{% trans "Import seating plan" %}: {{ plan.name }}</h1>
+<form method="post">
+  {% csrf_token %}
+  {% bootstrap_form form %}
+  <button type="submit" class="btn btn-primary">{% trans "Import" %}</button>
+</form>
+{% endblock %}
+
