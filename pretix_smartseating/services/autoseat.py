@@ -27,7 +27,7 @@ class Candidate:
 
 
 def _contiguous_windows(row_seats: list[Any], quantity: int) -> list[list[Any]]:
-    windows: list[list[SeatDefinition]] = []
+    windows: list[list[Any]] = []
     if len(row_seats) < quantity:
         return windows
     for idx in range(len(row_seats) - quantity + 1):
@@ -85,7 +85,7 @@ def find_seats(available_seats: list[Any], opts: AutoSeatOptions) -> Candidate |
     if len(seats) < opts.quantity:
         return None
 
-    grouped: dict[tuple[str, str], list[SeatDefinition]] = {}
+    grouped: dict[tuple[str, str], list[Any]] = {}
     for seat in sorted(seats, key=lambda s: (s.block_label, s.row_index, s.seat_index)):
         grouped.setdefault((seat.block_label, seat.row_label), []).append(seat)
 
@@ -101,7 +101,7 @@ def find_seats(available_seats: list[Any], opts: AutoSeatOptions) -> Candidate |
         if strict:
             return strict
 
-        by_row_index: dict[int, list[SeatDefinition]] = {}
+        by_row_index: dict[int, list[Any]] = {}
         for seat in seats:
             by_row_index.setdefault(seat.row_index, []).append(seat)
 

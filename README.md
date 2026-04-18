@@ -93,6 +93,7 @@ python -m pretix rebuild
 ## Frontend-Verwendung
 
 - Einbindung über Template-Snippet [seat_selector.html](/C:/Users/<user>/Documents/pretix-smartseat/pretix_smartseating/templates/pretix_smartseating/shop/seat_selector.html)
+- Konkrete Theme-Override-Anleitung: [docs/THEME-INTEGRATION.md](docs/THEME-INTEGRATION.md)
 - Modi:
   - Manuell
   - Auto-Seat (strict/nearby/best)
@@ -164,4 +165,3 @@ pytest
 - Alle Hold-/Sale-Schritte müssen über die API mit atomaren Operationen laufen.
 - Direkte Schreibzugriffe ohne Berechtigungs- und Zustandsprüfung vermeiden.
 - Importdaten werden validiert (Duplikate, Kategorien, Bounds).
-
