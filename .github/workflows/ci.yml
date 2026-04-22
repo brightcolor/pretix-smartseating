@@ -2,7 +2,12 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
   pull_request:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   test:
@@ -22,4 +27,3 @@ jobs:
         run: mypy pretix_smartseating
       - name: Tests
         run: pytest
-
