@@ -5,6 +5,41 @@
   margin-bottom: 12px;
 }
 
+.smartseat-generator {
+  border: 1px solid #d7d9dd;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.smartseat-generator h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
+.smartseat-generator-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.smartseat-generator-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #2f3947;
+}
+
+.smartseat-generator-grid input,
+.smartseat-generator-grid select {
+  border: 1px solid #c7ccd6;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
 #smartseat-editor {
   border: 1px solid #d7d9dd;
   background: linear-gradient(180deg, #f5f8fc, #f0f3f7);
@@ -74,4 +109,3 @@
   width: 100%;
   min-height: 420px;
 }
-

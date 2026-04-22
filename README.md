@@ -7,6 +7,7 @@ Produktionsreifes pretix-Plugin für Saalpläne und reservierte Sitzplätze mit 
 - Backend-Sitzplanverwaltung pro Organizer/Event
 - Grafischer Editor (SVG) mit:
   - Sitzreihen-Generator
+  - Bogen- und Halbrund-Generator (Center/Radius/Winkel, mehrere Reihen auf einmal)
   - Multi-Select (Shift+Click)
   - Bulk-Block/Unblock
   - Undo/Redo
@@ -88,7 +89,9 @@ python -m pretix rebuild
 2. Navigation `Smart Seating`
 3. Plan erstellen
 4. Im Editor Reihen und Sitze erzeugen
-5. Speichern und optional JSON exportieren/importieren
+5. Für runde Reihung: `Generate arc row` oder `Generate semicircle rows` nutzen
+6. Radius/Winkel/Reihenabstand setzen und mit einem Klick generieren
+7. Speichern und optional JSON exportieren/importieren
 
 ## Frontend-Verwendung
 

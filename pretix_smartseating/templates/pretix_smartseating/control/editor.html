@@ -11,6 +11,8 @@
 <h1>{{ plan.name }}: {% trans "Seat Editor" %}</h1>
 <div class="smartseat-toolbar">
   <button class="btn btn-default" data-action="add-row">{% trans "Add row" %}</button>
+  <button class="btn btn-default" data-action="generate-arc">{% trans "Generate arc row" %}</button>
+  <button class="btn btn-default" data-action="generate-semicircle">{% trans "Generate semicircle rows" %}</button>
   <button class="btn btn-default" data-action="bulk-block">{% trans "Block selected" %}</button>
   <button class="btn btn-default" data-action="bulk-unblock">{% trans "Unblock selected" %}</button>
   <button class="btn btn-default" data-action="undo">{% trans "Undo" %}</button>
@@ -18,6 +20,38 @@
   <button class="btn btn-primary" data-action="save">{% trans "Save" %}</button>
   <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export JSON" %}</a>
   <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_import" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Import JSON" %}</a>
+</div>
+
+<div class="smartseat-generator card card-body">
+  <h3>{% trans "Curved Row Generator" %}</h3>
+  <div class="smartseat-generator-grid">
+    <label>{% trans "Block" %}<input data-field="gen-block" type="text" value="A"></label>
+    <label>{% trans "Start row label" %}<input data-field="gen-row-start" type="text" value="A"></label>
+    <label>{% trans "Rows" %}<input data-field="gen-rows" type="number" min="1" max="30" value="1"></label>
+    <label>{% trans "Seats per row" %}<input data-field="gen-seat-count" type="number" min="1" max="150" value="20"></label>
+    <label>{% trans "Center X" %}<input data-field="gen-center-x" type="number" value="{{ plan.width|floatformat:0|default:'900' }}"></label>
+    <label>{% trans "Center Y" %}<input data-field="gen-center-y" type="number" value="{{ plan.height|floatformat:0|default:'450' }}"></label>
+    <label>{% trans "Start radius" %}<input data-field="gen-radius-start" type="number" min="20" value="200"></label>
+    <label>{% trans "Row spacing" %}<input data-field="gen-row-spacing" type="number" min="5" value="26"></label>
+    <label>{% trans "Start angle (deg)" %}<input data-field="gen-angle-start" type="number" min="-360" max="360" value="-70"></label>
+    <label>{% trans "End angle (deg)" %}<input data-field="gen-angle-end" type="number" min="-360" max="360" value="70"></label>
+    <label>{% trans "Direction" %}
+      <select data-field="gen-direction">
+        <option value="ltr">{% trans "Left to right" %}</option>
+        <option value="rtl">{% trans "Right to left" %}</option>
+      </select>
+    </label>
+    <label>{% trans "Numbering" %}
+      <select data-field="gen-numbering">
+        <option value="sequential">{% trans "Sequential" %}</option>
+        <option value="odd_even">{% trans "Odd/Even split" %}</option>
+      </select>
+    </label>
+    <label>{% trans "Category" %}
+      <select data-field="gen-category"></select>
+    </label>
+  </div>
+  <p class="help-block">{% trans "Like modern ticketing tools: set center, radius and angle range, then generate one or multiple curved rows in one click." %}</p>
 </div>
 
 <div id="smartseat-editor"
@@ -35,4 +69,3 @@
 {% block scripts %}
   <script src="{% static "pretix_smartseating/js/editor.js" %}"></script>
 {% endblock %}
-
