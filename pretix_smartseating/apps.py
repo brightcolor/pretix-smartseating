@@ -9,7 +9,7 @@ class PluginApp(AppConfig):
     class PretixPluginMeta:
         name = _("Smart Seating")
         author = "Smart Seating Contributors"
-        version = "0.1.2"
+        version = "0.2.0"
         visible = True
         category = "FEATURE"
         description = _("Reserved seating with visual editor, seat holds and auto-seat allocation.")

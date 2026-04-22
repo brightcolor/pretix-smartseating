@@ -5,6 +5,21 @@
   margin-bottom: 12px;
 }
 
+.smartseat-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.smartseat-inline-form input[type="text"],
+.smartseat-inline-form input[type="file"] {
+  padding: 6px 8px;
+  border: 1px solid #c7ccd6;
+  border-radius: 6px;
+}
+
 .smartseat-generator {
   border: 1px solid #d7d9dd;
   border-radius: 8px;
@@ -38,6 +53,57 @@
   border: 1px solid #c7ccd6;
   border-radius: 6px;
   padding: 6px 8px;
+}
+
+.smartseat-templates {
+  border: 1px solid #d7d9dd;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.smartseat-template-row {
+  border: 1px solid #d7d9dd;
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: #fbfcfe;
+}
+
+.smartseat-template-head {
+  margin-bottom: 8px;
+}
+
+.smartseat-template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.smartseat-template-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.smartseat-template-grid input[type="number"],
+.smartseat-template-grid input[type="range"] {
+  width: 100%;
+}
+
+.smartseat-template-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.smartseat-template-actions button {
+  border: 1px solid #c7ccd6;
+  border-radius: 4px;
+  background: #fff;
+  padding: 4px 8px;
 }
 
 #smartseat-editor {

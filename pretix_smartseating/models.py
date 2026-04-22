@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -152,6 +153,34 @@ class SeatDefinition(models.Model):
 
     def __str__(self) -> str:
         return f"{self.block_label}-{self.row_label}-{self.seat_number}"
+
+
+class SeatingTemplateAsset(models.Model):
+    class SourceKind(models.TextChoices):
+        IMAGE = "image", _("Image")
+        PDF = "pdf", _("PDF")
+
+    plan = models.ForeignKey(SeatingPlan, on_delete=models.CASCADE, related_name="template_assets")
+    name = models.CharField(max_length=190)
+    source_kind = models.CharField(max_length=20, choices=SourceKind.choices, default=SourceKind.IMAGE)
+    source_mime = models.CharField(max_length=120, blank=True)
+    source_name = models.CharField(max_length=255, blank=True)
+    image = models.ImageField(upload_to="smartseating/templates/")
+    width = models.PositiveIntegerField(default=0)
+    height = models.PositiveIntegerField(default=0)
+    x = models.FloatField(default=0)
+    y = models.FloatField(default=0)
+    scale = models.FloatField(default=1.0, validators=[MinValueValidator(0.05), MaxValueValidator(20.0)])
+    rotation = models.FloatField(default=0.0)
+    opacity = models.FloatField(default=0.35, validators=[MinValueValidator(0.0), MaxValueValidator(1.0)])
+    z_index = models.IntegerField(default=0)
+    is_visible = models.BooleanField(default=True)
+    is_locked = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["z_index", "id"]
 
 
 class EventSeatPlanMapping(models.Model):

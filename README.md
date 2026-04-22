@@ -8,10 +8,17 @@ Produktionsreifes pretix-Plugin für Saalpläne und reservierte Sitzplätze mit 
 - Grafischer Editor (SVG) mit:
   - Sitzreihen-Generator
   - Bogen- und Halbrund-Generator (Center/Radius/Winkel, mehrere Reihen auf einmal)
+  - Hintergrund-Vorlagen (PNG/JPG/SVG/PDF) als Layer
+  - Layer-Controls (sichtbar, gesperrt, Position, Skalierung, Rotation, Opacity, Z-Index)
   - Multi-Select (Shift+Click)
+  - Delete/Duplicate für Auswahl + Tastatur-Shortcuts
   - Bulk-Block/Unblock
   - Undo/Redo
   - JSON Import/Export
+- Standort-Presets:
+  - Plan als Preset speichern
+  - neuen Event-Plan aus Preset erzeugen
+  - erzeugte Pläne bleiben voll editierbar
 - Shop-Sitzplatzauswahl:
   - interaktive Seatmap
   - klare Statusfarben (frei, hold, verkauft, blockiert)
@@ -91,7 +98,9 @@ python -m pretix rebuild
 4. Im Editor Reihen und Sitze erzeugen
 5. Für runde Reihung: `Generate arc row` oder `Generate semicircle rows` nutzen
 6. Radius/Winkel/Reihenabstand setzen und mit einem Klick generieren
-7. Speichern und optional JSON exportieren/importieren
+7. Optional: Bild/PDF als Hintergrundvorlage hochladen und Layer justieren
+8. Speichern und optional JSON exportieren/importieren
+9. Optional: Plan als Preset speichern, um ihn für weitere Events wiederzuverwenden
 
 ## Frontend-Verwendung
 

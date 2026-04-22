@@ -16,6 +16,11 @@ urlpatterns = [
         name="control.plan_create",
     ),
     path(
+        "control/event/<str:organizer>/<str:event>/smartseating/new-from-preset/",
+        views_control.plan_create_from_preset,
+        name="control.plan_create_from_preset",
+    ),
+    path(
         "control/event/<str:organizer>/<str:event>/smartseating/<int:plan_id>/",
         views_control.plan_editor,
         name="control.plan_editor",
@@ -26,6 +31,11 @@ urlpatterns = [
         name="control.plan_save_layout",
     ),
     path(
+        "control/event/<str:organizer>/<str:event>/smartseating/<int:plan_id>/save-as-preset/",
+        views_control.plan_save_as_preset,
+        name="control.plan_save_as_preset",
+    ),
+    path(
         "control/event/<str:organizer>/<str:event>/smartseating/<int:plan_id>/import/",
         views_control.plan_import,
         name="control.plan_import",
@@ -34,6 +44,26 @@ urlpatterns = [
         "control/event/<str:organizer>/<str:event>/smartseating/<int:plan_id>/export/",
         views_control.plan_export,
         name="control.plan_export",
+    ),
+    path(
+        "control/event/<str:organizer>/<str:event>/smartseating/<int:plan_id>/assets/",
+        views_control.plan_template_assets,
+        name="control.plan_template_assets",
+    ),
+    path(
+        "control/event/<str:organizer>/<str:event>/smartseating/<int:plan_id>/assets/upload/",
+        views_control.plan_template_asset_upload,
+        name="control.plan_template_asset_upload",
+    ),
+    path(
+        "control/event/<str:organizer>/<str:event>/smartseating/<int:plan_id>/assets/<int:asset_id>/update/",
+        views_control.plan_template_asset_update,
+        name="control.plan_template_asset_update",
+    ),
+    path(
+        "control/event/<str:organizer>/<str:event>/smartseating/<int:plan_id>/assets/<int:asset_id>/delete/",
+        views_control.plan_template_asset_delete,
+        name="control.plan_template_asset_delete",
     ),
     path("api/v1/<str:organizer>/<str:event>/seatplan/", views_api.api_plan, name="api.plan"),
     path(
@@ -54,4 +84,3 @@ urlpatterns = [
         name="api.confirm_sale",
     ),
 ]
-

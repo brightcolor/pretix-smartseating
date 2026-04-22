@@ -21,3 +21,9 @@ class EventSeatPlanMappingAdmin(admin.ModelAdmin):
     list_display = ("id", "event", "subevent", "plan", "hold_timeout_seconds", "updated_at")
     list_filter = ("event",)
 
+
+@admin.register(models.SeatingTemplateAsset)
+class SeatingTemplateAssetAdmin(admin.ModelAdmin):
+    list_display = ("id", "plan", "name", "source_kind", "z_index", "is_visible", "is_locked", "updated_at")
+    list_filter = ("source_kind", "is_visible", "is_locked")
+    search_fields = ("name", "source_name")

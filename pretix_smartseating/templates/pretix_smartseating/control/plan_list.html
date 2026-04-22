@@ -11,6 +11,29 @@
   </a>
 </p>
 
+<div class="panel panel-default">
+  <div class="panel-heading"><strong>{% trans "Create from Location Preset" %}</strong></div>
+  <div class="panel-body">
+    <form method="post" action="{% url "plugins:pretix_smartseating:control.plan_create_from_preset" organizer=event.organizer.slug event=event.slug %}">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>{% trans "Preset" %}</label>
+        <select class="form-control" name="preset_id" required>
+          <option value="">{% trans "Select preset" %}</option>
+          {% for preset in presets %}
+            <option value="{{ preset.id }}">{{ preset.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>{% trans "New plan name (optional)" %}</label>
+        <input class="form-control" type="text" name="name" placeholder="{% trans "Will default to preset name + event slug" %}">
+      </div>
+      <button class="btn btn-default" type="submit">{% trans "Create from preset" %}</button>
+    </form>
+  </div>
+</div>
+
 <table class="table table-sm">
   <thead>
     <tr>
@@ -38,4 +61,3 @@
   </tbody>
 </table>
 {% endblock %}
-

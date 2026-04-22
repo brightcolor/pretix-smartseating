@@ -13,6 +13,8 @@
   <button class="btn btn-default" data-action="add-row">{% trans "Add row" %}</button>
   <button class="btn btn-default" data-action="generate-arc">{% trans "Generate arc row" %}</button>
   <button class="btn btn-default" data-action="generate-semicircle">{% trans "Generate semicircle rows" %}</button>
+  <button class="btn btn-default" data-action="duplicate-selected">{% trans "Duplicate selected" %}</button>
+  <button class="btn btn-default" data-action="delete-selected">{% trans "Delete selected" %}</button>
   <button class="btn btn-default" data-action="bulk-block">{% trans "Block selected" %}</button>
   <button class="btn btn-default" data-action="bulk-unblock">{% trans "Unblock selected" %}</button>
   <button class="btn btn-default" data-action="undo">{% trans "Undo" %}</button>
@@ -21,6 +23,13 @@
   <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export JSON" %}</a>
   <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_import" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Import JSON" %}</a>
 </div>
+
+<form class="smartseat-inline-form" method="post" action="{% url "plugins:pretix_smartseating:control.plan_save_as_preset" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">
+  {% csrf_token %}
+  <label>{% trans "Save this location as preset:" %}</label>
+  <input type="text" name="name" placeholder="{% trans "Preset name" %}" required>
+  <button class="btn btn-default" type="submit">{% trans "Save preset" %}</button>
+</form>
 
 <div class="smartseat-generator card card-body">
   <h3>{% trans "Curved Row Generator" %}</h3>
@@ -54,9 +63,25 @@
   <p class="help-block">{% trans "Like modern ticketing tools: set center, radius and angle range, then generate one or multiple curved rows in one click." %}</p>
 </div>
 
+<div class="smartseat-templates card card-body">
+  <h3>{% trans "Background Template Layers" %}</h3>
+  <form class="smartseat-inline-form" id="smartseat-template-upload-form">
+    {% csrf_token %}
+    <input type="file" name="file" accept=".png,.jpg,.jpeg,.svg,.pdf" required>
+    <input type="text" name="name" placeholder="{% trans "Layer name (optional)" %}">
+    <button class="btn btn-default" type="submit">{% trans "Upload template" %}</button>
+  </form>
+  <div id="smartseat-template-list"></div>
+  <p class="help-block">{% trans "PDF uploads are automatically rasterized (first page) and can then be positioned and scaled like image layers." %}</p>
+</div>
+
 <div id="smartseat-editor"
      data-save-url="{% url "plugins:pretix_smartseating:control.plan_save_layout" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}"
      data-export-url="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}"
+     data-assets-url="{% url "plugins:pretix_smartseating:control.plan_template_assets" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}"
+     data-assets-upload-url="{% url "plugins:pretix_smartseating:control.plan_template_asset_upload" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}"
+     data-assets-update-url-template="{% url "plugins:pretix_smartseating:control.plan_template_asset_update" organizer=event.organizer.slug event=event.slug plan_id=plan.id asset_id=0 %}"
+     data-assets-delete-url-template="{% url "plugins:pretix_smartseating:control.plan_template_asset_delete" organizer=event.organizer.slug event=event.slug plan_id=plan.id asset_id=0 %}"
      data-csrf="{{ csrf_token }}"
      data-width="{{ plan.width }}"
      data-height="{{ plan.height }}">

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-04-22
+
+### Added
+- Background template layer system in the seat editor
+- Upload support for PNG/JPG/SVG and PDF templates
+- Automatic PDF rasterization (first page) for use as editor background
+- Layer controls for visibility, lock, position, scale, rotation, opacity and z-index
+- Preset workflow:
+  - save an existing plan as reusable location preset
+  - create a new event plan from preset
+  - cloned plans remain fully editable
+- Additional editor productivity actions: duplicate selected seats, delete selected seats, keyboard shortcuts
+
+### Changed
+- Curved row generation now respects grid snapping when enabled
+- Plan list separates active event plans from reusable presets
+
 ## [0.1.2] - 2026-04-18
 
 ### Fixed
