@@ -17,8 +17,6 @@
   <button class="btn btn-default" data-action="generate-semicircle">{% trans "Generate semicircle rows" %}</button>
   <button class="btn btn-default" data-action="duplicate-selected">{% trans "Duplicate selected" %}</button>
   <button class="btn btn-default" data-action="delete-selected">{% trans "Delete selected" %}</button>
-  <button class="btn btn-default" data-action="bulk-block">{% trans "Block selected" %}</button>
-  <button class="btn btn-default" data-action="bulk-unblock">{% trans "Unblock selected" %}</button>
   <button class="btn btn-default" data-action="undo">{% trans "Undo" %}</button>
   <button class="btn btn-default" data-action="redo">{% trans "Redo" %}</button>
   <button class="btn btn-primary" data-action="save">{% trans "Save" %}</button>
@@ -26,19 +24,56 @@
   <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export JSON" %}</a>
   <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_import" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Import JSON" %}</a>
 </div>
-<p class="help-block">{% trans "Mouse wheel zooms · drag canvas pans · double-click fits view · Shift+click = multiselect" %}</p>
+<p class="help-block">{% trans "Mouse wheel zooms · drag seats to move · drag empty canvas = rubber-band select · middle-mouse or Space+drag = pan · double-click fits view · Shift+click toggles" %}</p>
 
-{# ── Canvas ───────────────────────────────────────────────────────────────── #}
-<div id="smartseat-editor"
-     data-save-url="{% url "plugins:pretix_smartseating:control.plan_save_layout" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}"
-     data-export-url="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}"
-     data-assets-url="{% url "plugins:pretix_smartseating:control.plan_template_assets" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}"
-     data-assets-upload-url="{% url "plugins:pretix_smartseating:control.plan_template_asset_upload" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}"
-     data-assets-update-url-template="{% url "plugins:pretix_smartseating:control.plan_template_asset_update" organizer=event.organizer.slug event=event.slug plan_id=plan.id asset_id=0 %}"
-     data-assets-delete-url-template="{% url "plugins:pretix_smartseating:control.plan_template_asset_delete" organizer=event.organizer.slug event=event.slug plan_id=plan.id asset_id=0 %}"
-     data-csrf="{{ csrf_token }}"
-     data-width="{{ plan.width }}"
-     data-height="{{ plan.height }}">
+{# ── Workspace: canvas + inspector ───────────────────────────────────────── #}
+<div class="smartseat-workspace">
+  <div id="smartseat-editor"
+       data-save-url="{% url "plugins:pretix_smartseating:control.plan_save_layout" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}"
+       data-export-url="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}"
+       data-assets-url="{% url "plugins:pretix_smartseating:control.plan_template_assets" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}"
+       data-assets-upload-url="{% url "plugins:pretix_smartseating:control.plan_template_asset_upload" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}"
+       data-assets-update-url-template="{% url "plugins:pretix_smartseating:control.plan_template_asset_update" organizer=event.organizer.slug event=event.slug plan_id=plan.id asset_id=0 %}"
+       data-assets-delete-url-template="{% url "plugins:pretix_smartseating:control.plan_template_asset_delete" organizer=event.organizer.slug event=event.slug plan_id=plan.id asset_id=0 %}"
+       data-csrf="{{ csrf_token }}"
+       data-width="{{ plan.width }}"
+       data-height="{{ plan.height }}">
+  </div>
+
+  <aside class="smartseat-inspector">
+    {# ── Selection properties ── #}
+    <section class="smartseat-insp-section">
+      <h4>{% trans "Selection" %} <span class="smartseat-badge" data-role="sel-count">0</span></h4>
+      <p class="smartseat-insp-hint" data-role="sel-empty">{% trans "Select seats to edit their category and type." %}</p>
+      <div class="smartseat-insp-fields" data-role="sel-fields" hidden>
+        <label>{% trans "Category (price zone)" %}
+          <select data-field="insp-category" class="form-control input-sm"></select>
+        </label>
+        <label>{% trans "Seat type" %}
+          <select data-field="insp-seat-type" class="form-control input-sm">
+            <option value="">— {% trans "mixed / keep" %} —</option>
+            <option value="normal">{% trans "Normal" %}</option>
+            <option value="wheelchair">{% trans "Wheelchair" %}</option>
+            <option value="companion">{% trans "Companion" %}</option>
+            <option value="technical">{% trans "Technical" %}</option>
+            <option value="vip">{% trans "VIP" %}</option>
+          </select>
+        </label>
+        <label class="smartseat-check"><input type="checkbox" data-field="insp-accessible"> {% trans "Accessible / wheelchair" %}</label>
+        <label class="smartseat-check"><input type="checkbox" data-field="insp-companion"> {% trans "Companion seat" %}</label>
+        <label class="smartseat-check"><input type="checkbox" data-field="insp-blocked"> {% trans "Blocked (not sold)" %}</label>
+        <label class="smartseat-check"><input type="checkbox" data-field="insp-technical"> {% trans "Technical block" %}</label>
+      </div>
+    </section>
+
+    {# ── Category management ── #}
+    <section class="smartseat-insp-section">
+      <h4>{% trans "Categories (price zones)" %}</h4>
+      <div id="smartseat-category-list"></div>
+      <button type="button" class="btn btn-default btn-sm" data-action="add-category">+ {% trans "Add category" %}</button>
+      <p class="smartseat-insp-hint">{% trans "Each category maps to a product when you apply the plan to the event." %}</p>
+    </section>
+  </aside>
 </div>
 
 {# ── Row Generator (collapsed by default) ────────────────────────────────── #}
@@ -54,6 +89,7 @@
       <label>{% trans "Center Y" %}<input data-field="gen-center-y" type="number" value="{{ plan.height|floatformat:0|default:'450' }}"></label>
       <label>{% trans "Start radius" %}<input data-field="gen-radius-start" type="number" min="20" value="200"></label>
       <label>{% trans "Row spacing" %}<input data-field="gen-row-spacing" type="number" min="5" value="26"></label>
+      <label>{% trans "Seat spacing" %}<input data-field="gen-seat-spacing" type="number" min="5" value="28"></label>
       <label>{% trans "Start angle (deg)" %}<input data-field="gen-angle-start" type="number" min="-360" max="360" value="-70"></label>
       <label>{% trans "End angle (deg)" %}<input data-field="gen-angle-end" type="number" min="-360" max="360" value="70"></label>
       <label>{% trans "Direction" %}
@@ -101,6 +137,5 @@
   </form>
 </details>
 
-{# JS at end of content — there is no {% block scripts %} in pretixcontrol base #}
 <script src="{% static "pretix_smartseating/js/editor.js" %}"></script>
 {% endblock %}

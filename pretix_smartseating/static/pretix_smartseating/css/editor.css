@@ -169,9 +169,19 @@
   stroke-width: 1;
 }
 
+/* Visual seat-type cues (keep these BEFORE .selected so selection wins) */
+.smartseat-seat.accessible {
+  stroke: #0d6efd;
+  stroke-width: 2.5;
+}
+
+.smartseat-seat.companion {
+  stroke-dasharray: 2 2;
+}
+
 .smartseat-seat.selected {
   stroke: #ff8f00;
-  stroke-width: 2;
+  stroke-width: 3;
 }
 
 .smartseat-shop {
@@ -218,4 +228,103 @@
 .smartseat-svg-wrap svg {
   width: 100%;
   min-height: 420px;
+}
+
+/* ─── Workspace: canvas + inspector ──────────────────────────────────────── */
+.smartseat-workspace {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.smartseat-workspace #smartseat-editor {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.smartseat-inspector {
+  flex: 0 0 280px;
+  border: 1px solid #d7d9dd;
+  border-radius: 6px;
+  background: #fafbfc;
+  padding: 12px;
+  overflow-y: auto;
+  max-height: 640px;
+}
+
+.smartseat-insp-section { margin-bottom: 18px; }
+.smartseat-insp-section h4 { margin: 0 0 8px; font-size: 14px; }
+
+.smartseat-badge {
+  display: inline-block;
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: #0055cc;
+  color: #fff;
+  font-size: 12px;
+  text-align: center;
+}
+
+.smartseat-insp-hint { color: #6b7280; font-size: 12px; margin: 6px 0 0; }
+
+.smartseat-insp-fields label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.smartseat-insp-fields .form-control { margin-top: 2px; }
+
+.smartseat-check {
+  font-weight: 400 !important;
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Category rows */
+.smartseat-cat-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.smartseat-cat-row input[type="color"] {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid #c7ccd6;
+  flex: 0 0 auto;
+}
+
+.smartseat-cat-row input[type="text"] { flex: 1 1 auto; min-width: 0; }
+.smartseat-cat-row input[type="number"] { width: 56px; flex: 0 0 auto; }
+
+.smartseat-cat-code {
+  font-size: 10px;
+  color: #6b7280;
+  flex: 0 0 auto;
+  max-width: 70px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.smartseat-cat-row button[data-k="del"] {
+  border: 1px solid #e0a0a0;
+  background: #fff;
+  color: #c0392b;
+  border-radius: 4px;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  line-height: 1;
+}
+
+@media (max-width: 900px) {
+  .smartseat-workspace { flex-direction: column; }
+  .smartseat-inspector { flex-basis: auto; max-height: none; }
 }

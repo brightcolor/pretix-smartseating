@@ -276,6 +276,7 @@
         prev.forEach(applySelectionClass);
         applySelectionClass(pointerData.seat.external_id);
       }
+      refreshInspector();
       return;
     }
 
@@ -315,9 +316,17 @@
   const redoStack = [];
 
   const seatColor = (seat) => {
-    if (seat.is_blocked) return "#8892a2";
+    if (seat.is_blocked || seat.is_technical_blocked) return "#8892a2";
     const category = state.categories.find((entry) => entry.code === seat.category_code);
     return category?.color || "#3B82F6";
+  };
+
+  const seatClass = (seat) => {
+    const c = ["smartseat-seat"];
+    if (selected.has(seat.external_id)) c.push("selected");
+    if (seat.is_accessible || seat.seat_type === "wheelchair") c.push("accessible");
+    if (seat.is_companion || seat.seat_type === "companion") c.push("companion");
+    return c.join(" ");
   };
 
   const field = (name) => document.querySelector(`[data-field="${name}"]`);
@@ -416,6 +425,143 @@
     }
   };
 
+  // ─── Category management + selection inspector ─────────────────────────────
+  const CATEGORY_PALETTE = ["#3B82F6", "#ef4444", "#22c55e", "#a855f7", "#f59e0b", "#06b6d4", "#ec4899"];
+  const categoryListEl = document.getElementById("smartseat-category-list");
+
+  const slugify = (s) =>
+    (s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "cat";
+
+  const uniqueCategoryCode = (base) => {
+    const used = new Set(state.categories.map((c) => c.code));
+    let code = slugify(base);
+    let i = 2;
+    while (used.has(code)) code = `${slugify(base)}-${i++}`;
+    return code;
+  };
+
+  const populateInspectorCategorySelect = () => {
+    const sel = field("insp-category");
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = "";
+    const mixed = document.createElement("option");
+    mixed.value = "";
+    mixed.textContent = "— mixed / keep —";
+    sel.appendChild(mixed);
+    state.categories.forEach((c) => {
+      const o = document.createElement("option");
+      o.value = c.code;
+      o.textContent = `${c.name} (${c.code})`;
+      sel.appendChild(o);
+    });
+    sel.value = cur;
+  };
+
+  const refreshCategoryList = () => {
+    if (!categoryListEl) return;
+    categoryListEl.innerHTML = "";
+    if (!state.categories.length) {
+      categoryListEl.innerHTML = '<p class="smartseat-insp-hint">No categories yet.</p>';
+      return;
+    }
+    state.categories.forEach((cat) => {
+      const row = document.createElement("div");
+      row.className = "smartseat-cat-row";
+      const safeName = (cat.name || "").replace(/"/g, "&quot;");
+      row.innerHTML = `
+        <input type="color" data-k="color" value="${cat.color || "#3B82F6"}" title="Color">
+        <input type="text" data-k="name" value="${safeName}" placeholder="Name">
+        <input type="number" data-k="price_rank" value="${cat.price_rank ?? 100}" title="Price rank">
+        <code class="smartseat-cat-code">${cat.code}</code>
+        <button type="button" data-k="del" title="Delete category">&times;</button>
+      `;
+      row.querySelectorAll("input[data-k]").forEach((inp) => {
+        inp.addEventListener("change", () => {
+          const k = inp.getAttribute("data-k");
+          const target = state.categories.find((c) => c.code === cat.code);
+          if (!target) return;
+          if (k === "price_rank") target.price_rank = parseInt(inp.value, 10) || 0;
+          else target[k] = inp.value;
+          populateCategoryOptions();
+          populateInspectorCategorySelect();
+          draw();
+        });
+      });
+      row.querySelector('button[data-k="del"]').addEventListener("click", () => {
+        if (!confirm(`Delete category "${cat.name}"? Seats in it become uncategorized.`)) return;
+        saveSnapshot();
+        state.categories = state.categories.filter((c) => c.code !== cat.code);
+        state.seats.forEach((s) => {
+          if (s.category_code === cat.code) s.category_code = null;
+        });
+        populateCategoryOptions();
+        populateInspectorCategorySelect();
+        refreshCategoryList();
+        draw();
+      });
+      categoryListEl.appendChild(row);
+    });
+  };
+
+  const addCategory = () => {
+    saveSnapshot();
+    const name = `Category ${state.categories.length + 1}`;
+    state.categories.push({
+      code: uniqueCategoryCode(name),
+      name,
+      color: CATEGORY_PALETTE[state.categories.length % CATEGORY_PALETTE.length],
+      price_rank: 100,
+    });
+    populateCategoryOptions();
+    populateInspectorCategorySelect();
+    refreshCategoryList();
+  };
+
+  const refreshInspector = () => {
+    const fields = document.querySelector('[data-role="sel-fields"]');
+    const empty = document.querySelector('[data-role="sel-empty"]');
+    const count = document.querySelector('[data-role="sel-count"]');
+    if (count) count.textContent = String(selected.size);
+    if (!fields || !empty) return;
+    if (!selected.size) {
+      fields.hidden = true;
+      empty.hidden = false;
+      return;
+    }
+    fields.hidden = false;
+    empty.hidden = true;
+    const sel = state.seats.filter((s) => selected.has(s.external_id));
+    const common = (getter) => {
+      const vals = new Set(sel.map(getter));
+      return vals.size === 1 ? [...vals][0] : null;
+    };
+    const cat = common((s) => s.category_code || "");
+    const type = common((s) => s.seat_type || "normal");
+    field("insp-category").value = cat === null ? "" : cat;
+    field("insp-seat-type").value = type === null ? "" : type;
+    const setCheck = (name, getter) => {
+      const v = common(getter);
+      const el = field(name);
+      if (!el) return;
+      el.indeterminate = v === null;
+      el.checked = v === true;
+    };
+    setCheck("insp-accessible", (s) => !!s.is_accessible);
+    setCheck("insp-companion", (s) => !!s.is_companion);
+    setCheck("insp-blocked", (s) => !!s.is_blocked);
+    setCheck("insp-technical", (s) => !!s.is_technical_blocked);
+  };
+
+  const applyToSelection = (mutator) => {
+    if (!selected.size) return;
+    saveSnapshot();
+    state.seats.forEach((s) => {
+      if (selected.has(s.external_id)) mutator(s);
+    });
+    draw();
+  };
+
   const drawBackgroundAssets = () => {
     const sortedAssets = [...state.template_assets]
       .filter((asset) => asset.is_visible)
@@ -449,8 +595,9 @@
 
   const applySelectionClass = (externalId) => {
     const node = renderedNodes.get(externalId);
-    if (node) {
-      node.setAttribute("class", `smartseat-seat ${selected.has(externalId) ? "selected" : ""}`);
+    const seat = state.seats.find((s) => s.external_id === externalId);
+    if (node && seat) {
+      node.setAttribute("class", seatClass(seat));
     }
   };
 
@@ -498,7 +645,7 @@
       circle.setAttribute("cy", seat.y);
       circle.setAttribute("r", 8);
       circle.setAttribute("fill", seatColor(seat));
-      circle.setAttribute("class", `smartseat-seat ${selected.has(seat.external_id) ? "selected" : ""}`);
+      circle.setAttribute("class", seatClass(seat));
       circle.setAttribute("data-id", seat.external_id);
       // Seat clicks/drags are handled by the unified SVG pointer handler.
       svg.appendChild(circle);
@@ -515,6 +662,7 @@
     }
     // Keep rubber-band rect on top of all seats.
     svg.appendChild(rubberRect);
+    refreshInspector();
   };
 
   const refreshTemplatePanel = () => {
@@ -651,21 +799,25 @@
     const rowIndex = nextRowIndex();
     const rowLabel = buildRowLabel("A", rowIndex);
     const usedIds = existingExternalIds();
-    for (let i = 0; i < 20; i++) {
+    const seatCount = Math.max(1, Math.floor(parseNumber("gen-seat-count", 20)));
+    const seatSpacing = Math.max(5, parseNumber("gen-seat-spacing", 28));
+    const blockLabel = (field("gen-block")?.value || "A").trim() || "A";
+    const categoryCode = field("gen-category")?.value || state.categories[0]?.code || "standard";
+    for (let i = 0; i < seatCount; i++) {
       const seatNumber = i + 1;
-      const externalId = makeUniqueExternalId(`A-${rowLabel}-${seatNumber}`, usedIds);
+      const externalId = makeUniqueExternalId(`${blockLabel}-${rowLabel}-${seatNumber}`, usedIds);
       state.seats.push(
         createSeat({
           external_id: externalId,
-          block_label: "A",
+          block_label: blockLabel,
           row_label: rowLabel,
           seat_number: String(seatNumber),
           seat_index: i,
           row_index: rowIndex,
-          x: snap(120 + i * 28),
-          y: snap(100 + rowIndex * 28),
+          x: snap(120 + i * seatSpacing),
+          y: snap(100 + rowIndex * seatSpacing),
           rotation: 0,
-          category_code: field("gen-category")?.value || "standard",
+          category_code: categoryCode,
         })
       );
     }
@@ -735,13 +887,6 @@
     draw();
   };
 
-  const bulkBlock = (value) => {
-    if (!selected.size) return;
-    saveSnapshot();
-    state.seats = state.seats.map((seat) => (selected.has(seat.external_id) ? { ...seat, is_blocked: value } : seat));
-    draw();
-  };
-
   const deleteSelected = () => {
     if (!selected.size) return;
     saveSnapshot();
@@ -780,6 +925,8 @@
     state = JSON.parse(undoStack.pop());
     selected.clear();
     populateCategoryOptions();
+    populateInspectorCategorySelect();
+    refreshCategoryList();
     draw();
     refreshTemplatePanel();
   };
@@ -790,6 +937,8 @@
     state = JSON.parse(redoStack.pop());
     selected.clear();
     populateCategoryOptions();
+    populateInspectorCategorySelect();
+    refreshCategoryList();
     draw();
     refreshTemplatePanel();
   };
@@ -833,6 +982,8 @@
     field("gen-center-x").value = Math.round(state.bounds.width / 2);
     field("gen-center-y").value = Math.round(state.bounds.height / 2);
     populateCategoryOptions();
+    populateInspectorCategorySelect();
+    refreshCategoryList();
     await fetchTemplateAssets();
     resetView(); // fit the freshly loaded plan into the viewport (also draws)
   };
@@ -862,13 +1013,45 @@
       else if (action === "generate-semicircle") generateArcRows({ semicircle: true });
       else if (action === "duplicate-selected") duplicateSelected();
       else if (action === "delete-selected") deleteSelected();
-      else if (action === "bulk-block") bulkBlock(true);
-      else if (action === "bulk-unblock") bulkBlock(false);
       else if (action === "undo") undo();
       else if (action === "redo") redo();
       else if (action === "save") save();
     });
   });
+
+  // ─── Inspector wiring (category management + selection properties) ─────────
+  document.querySelector('[data-action="add-category"]')?.addEventListener("click", addCategory);
+
+  field("insp-category")?.addEventListener("change", (event) => {
+    const code = event.target.value;
+    if (code === "") return; // "mixed / keep" → leave as-is
+    applyToSelection((s) => {
+      s.category_code = code;
+    });
+  });
+
+  field("insp-seat-type")?.addEventListener("change", (event) => {
+    const type = event.target.value;
+    if (type === "") return;
+    applyToSelection((s) => {
+      s.seat_type = type;
+      if (type === "wheelchair") s.is_accessible = true;
+      if (type === "companion") s.is_companion = true;
+      if (type === "technical") s.is_technical_blocked = true;
+    });
+  });
+
+  const wireFlag = (fieldName, prop) => {
+    field(fieldName)?.addEventListener("change", (event) => {
+      applyToSelection((s) => {
+        s[prop] = event.target.checked;
+      });
+    });
+  };
+  wireFlag("insp-accessible", "is_accessible");
+  wireFlag("insp-companion", "is_companion");
+  wireFlag("insp-blocked", "is_blocked");
+  wireFlag("insp-technical", "is_technical_blocked");
 
   load();
 })();
