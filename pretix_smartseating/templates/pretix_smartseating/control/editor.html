@@ -8,19 +8,34 @@
 {% endblock %}
 
 {% block content %}
-<h1>{{ plan.name }}: {% trans "Seat Editor" %}</h1>
+<h1 class="smartseat-h1">{{ plan.name }}: {% trans "Seat Editor" %}</h1>
 
-{# ── Top action bar (document-level actions only) ─────────────────────────── #}
-<div class="smartseat-toolbar">
-  <button class="btn btn-default" data-action="undo">{% trans "Undo" %}</button>
-  <button class="btn btn-default" data-action="redo">{% trans "Redo" %}</button>
-  <button class="btn btn-primary" data-action="save">{% trans "Save" %}</button>
-  <a class="btn btn-success" href="{% url "plugins:pretix_smartseating:control.plan_apply" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Apply to event (sell seats)" %}</a>
-  <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export JSON" %}</a>
-  <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_export_native" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export pretix JSON" %}</a>
-  <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_import" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Import JSON" %}</a>
+{# ── Top toolbar: document actions + tools (above the canvas) ─────────────── #}
+<div class="smartseat-topbar">
+  <div class="smartseat-tb-group">
+    <button class="btn btn-primary btn-sm" data-action="save" title="{% trans "Save" %}">{% trans "Save" %}</button>
+    <a class="btn btn-success btn-sm" href="{% url "plugins:pretix_smartseating:control.plan_apply" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Apply to event" %}</a>
+  </div>
+  <div class="smartseat-tb-group">
+    <button class="btn btn-default btn-sm" data-action="undo" title="{% trans "Undo" %}">↶</button>
+    <button class="btn btn-default btn-sm" data-action="redo" title="{% trans "Redo" %}">↷</button>
+  </div>
+  <div class="smartseat-tb-group smartseat-tools">
+    <button type="button" class="smartseat-tool active" data-tool="select" title="{% trans "Select / move" %}">{% trans "Select" %}</button>
+    <button type="button" class="smartseat-tool" data-tool="row" title="{% trans "Add a row" %}">{% trans "Row" %}</button>
+    <button type="button" class="smartseat-tool" data-tool="block" title="{% trans "Add a rectangular block" %}">{% trans "Block" %}</button>
+    <button type="button" class="smartseat-tool" data-tool="arc" title="{% trans "Add an arc / semicircle" %}">{% trans "Arc" %}</button>
+    <button type="button" class="smartseat-tool" data-tool="stage" title="{% trans "Add stage / area" %}">{% trans "Stage" %}</button>
+    <button type="button" class="smartseat-tool" data-tool="round" title="{% trans "Add round area" %}">{% trans "Round" %}</button>
+    <button type="button" class="smartseat-tool" data-tool="label" title="{% trans "Add text label" %}">{% trans "Label" %}</button>
+  </div>
+  <div class="smartseat-tb-group">
+    <a class="btn btn-default btn-sm" href="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export" %}</a>
+    <a class="btn btn-default btn-sm" href="{% url "plugins:pretix_smartseating:control.plan_export_native" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export pretix" %}</a>
+    <a class="btn btn-default btn-sm" href="{% url "plugins:pretix_smartseating:control.plan_import" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Import" %}</a>
+  </div>
 </div>
-<p class="help-block">{% trans "Mouse wheel zooms · drag seats to move · drag empty canvas = select · middle-mouse or Space+drag = pan · double-click fits view" %}</p>
+<p class="help-block smartseat-hint">{% trans "Wheel zooms · drag seats to move · drag empty canvas = select · middle-mouse / Space+drag = pan · double-click fits" %}</p>
 
 {# ── Workspace: canvas + sidebar ──────────────────────────────────────────── #}
 <div class="smartseat-workspace">
@@ -37,23 +52,11 @@
   </div>
 
   <aside class="smartseat-inspector">
-    {# ── Tool palette ── #}
-    <section class="smartseat-insp-section">
-      <h4>{% trans "Tool" %}</h4>
-      <div class="smartseat-tools">
-        <button type="button" class="smartseat-tool active" data-tool="select">{% trans "Select" %}</button>
-        <button type="button" class="smartseat-tool" data-tool="row">{% trans "Row" %}</button>
-        <button type="button" class="smartseat-tool" data-tool="block">{% trans "Block" %}</button>
-        <button type="button" class="smartseat-tool" data-tool="arc">{% trans "Arc" %}</button>
-        <button type="button" class="smartseat-tool" data-tool="stage">{% trans "Stage" %}</button>
-        <button type="button" class="smartseat-tool" data-tool="round">{% trans "Round" %}</button>
-        <button type="button" class="smartseat-tool" data-tool="label">{% trans "Label" %}</button>
-      </div>
-    </section>
-
-    {# ── Tool settings (shown per active tool) ── #}
+    {# ── Active tool settings ── #}
     <section class="smartseat-insp-section smartseat-toolsettings">
+      <h4 data-role="tool-title">{% trans "Tool" %}</h4>
       <p class="smartseat-insp-hint" data-tools="select">{% trans "Click a seat to select. Drag on empty canvas to rubber-band select. Shift-click toggles." %}</p>
+      <p class="smartseat-insp-hint" data-tools="stage round label">{% trans "Click the button to add the element at the center of the view, then drag / resize it." %}</p>
 
       <div class="smartseat-gen-grid">
         <label data-tools="row block arc">{% trans "Block" %}<input data-field="gen-block" type="text" value="A"></label>
@@ -142,43 +145,51 @@
       </div>
     </section>
 
-    {# ── Selected area (stage / label) ── #}
+    {# ── Selected area ── #}
     <section class="smartseat-insp-section" data-role="area-section" hidden>
       <h4>{% trans "Area" %}</h4>
       <div id="smartseat-area-fields"></div>
       <button type="button" class="btn btn-danger btn-sm" data-action="delete-area">{% trans "Delete area" %}</button>
     </section>
 
-    {# ── Groups ── #}
+    {# ── Plan properties ── #}
     <section class="smartseat-insp-section">
-      <h4>{% trans "Groups" %}</h4>
-      <div id="smartseat-group-list"></div>
-      <p class="smartseat-insp-hint">{% trans "Select seats, then Group. Click a group to select it; drag to move it as one." %}</p>
+      <h4>{% trans "Plan" %}</h4>
+      <div class="smartseat-plan-grid">
+        <label>{% trans "Width" %}<input data-field="plan-width" type="number" min="100" value="{{ plan.width }}"></label>
+        <label>{% trans "Height" %}<input data-field="plan-height" type="number" min="100" value="{{ plan.height }}"></label>
+      </div>
+      <p class="smartseat-insp-hint">{% trans "Seats" %}: <strong data-role="seat-count">0</strong></p>
     </section>
 
-    {# ── Category management ── #}
+    {# ── Categories with seat counts ── #}
     <section class="smartseat-insp-section">
       <h4>{% trans "Categories (price zones)" %}</h4>
       <div id="smartseat-category-list"></div>
       <button type="button" class="btn btn-default btn-sm" data-action="add-category">+ {% trans "Add category" %}</button>
     </section>
+
+    {# ── Groups ── #}
+    <section class="smartseat-insp-section">
+      <h4>{% trans "Groups" %}</h4>
+      <div id="smartseat-group-list"></div>
+      <p class="smartseat-insp-hint">{% trans "Select seats, then Group. Click ◉ to select a group; drag to move it as one." %}</p>
+    </section>
+
+    {# ── Background picture ── #}
+    <section class="smartseat-insp-section">
+      <h4>{% trans "Background picture" %}</h4>
+      <form class="smartseat-bg-form" id="smartseat-template-upload-form">
+        {% csrf_token %}
+        <input type="file" name="file" accept=".png,.jpg,.jpeg,.svg,.pdf" required>
+        <input type="text" name="name" placeholder="{% trans "Layer name (optional)" %}">
+        <button class="btn btn-default btn-sm" type="submit">{% trans "Upload" %}</button>
+      </form>
+      <div id="smartseat-template-list"></div>
+      <p class="smartseat-insp-hint">{% trans "PNG/JPG/SVG/PDF. PDFs are rasterised. Helps placing seats; it is saved with the plan." %}</p>
+    </section>
   </aside>
 </div>
-
-{# ── Background Template Layers (collapsed, below canvas — rarely used) ────── #}
-<details class="smartseat-details">
-  <summary><strong>{% trans "Background Template Layers" %}</strong></summary>
-  <div class="smartseat-templates card card-body">
-    <form class="smartseat-inline-form" id="smartseat-template-upload-form">
-      {% csrf_token %}
-      <input type="file" name="file" accept=".png,.jpg,.jpeg,.svg,.pdf" required>
-      <input type="text" name="name" placeholder="{% trans "Layer name (optional)" %}">
-      <button class="btn btn-default" type="submit">{% trans "Upload template" %}</button>
-    </form>
-    <div id="smartseat-template-list"></div>
-    <p class="help-block">{% trans "PNG/JPG/SVG/PDF accepted. PDFs are rasterised automatically." %}</p>
-  </div>
-</details>
 
 <details class="smartseat-details">
   <summary><strong>{% trans "Save as Location Preset" %}</strong></summary>

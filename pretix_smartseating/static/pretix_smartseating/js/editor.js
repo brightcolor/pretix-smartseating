@@ -615,8 +615,12 @@
     }
     const header = document.createElement("div");
     header.className = "smartseat-cat-header";
-    header.innerHTML = "<span>Colour</span><span>Name</span><span>Sort</span><span></span>";
+    header.innerHTML = "<span>Colour</span><span>Name</span><span>#</span><span>Sort</span><span></span>";
     categoryListEl.appendChild(header);
+    const counts = {};
+    state.seats.forEach((s) => {
+      if (s.category_code) counts[s.category_code] = (counts[s.category_code] || 0) + 1;
+    });
     state.categories.forEach((cat) => {
       const row = document.createElement("div");
       row.className = "smartseat-cat-row";
@@ -624,6 +628,7 @@
       row.innerHTML = `
         <input type="color" data-k="color" value="${cat.color || "#3B82F6"}" title="Colour">
         <input type="text" data-k="name" value="${safeName}" placeholder="Name">
+        <span class="smartseat-cat-count" title="Seats in this category">${counts[cat.code] || 0}</span>
         <input type="number" data-k="price_rank" value="${cat.price_rank ?? 100}" title="Sort order (lower = first)">
         <button type="button" data-k="del" title="Delete category">&times;</button>
       `;
@@ -669,7 +674,13 @@
     refreshCategoryList();
   };
 
+  const refreshPlanInfo = () => {
+    const sc = document.querySelector('[data-role="seat-count"]');
+    if (sc) sc.textContent = String(state.seats.length);
+  };
+
   const refreshInspector = () => {
+    refreshPlanInfo();
     const fields = document.querySelector('[data-role="sel-fields"]');
     const empty = document.querySelector('[data-role="sel-empty"]');
     const count = document.querySelector('[data-role="sel-count"]');
@@ -841,6 +852,9 @@
       group.setAttribute("transform", `translate(${x} ${y}) rotate(${rotation}) scale(${scale})`);
       group.setAttribute("opacity", String(asset.opacity ?? 0.35));
       group.setAttribute("data-template-id", String(asset.id));
+      // Background layers must never swallow pointer events, otherwise the
+      // rubber-band / seat / area tools can't receive clicks over the image.
+      group.setAttribute("pointer-events", "none");
 
       const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
       image.setAttributeNS("http://www.w3.org/1999/xlink", "href", asset.image_url);
@@ -1444,6 +1458,8 @@
     }
     field("gen-center-x").value = Math.round(state.bounds.width / 2);
     field("gen-center-y").value = Math.round(state.bounds.height / 2);
+    if (field("plan-width")) field("plan-width").value = state.bounds.width;
+    if (field("plan-height")) field("plan-height").value = state.bounds.height;
     populateCategoryOptions();
     populateInspectorCategorySelect();
     refreshCategoryList();
@@ -1581,6 +1597,11 @@
   });
 
   // ─── Tool palette ──────────────────────────────────────────────────────────
+  const TOOL_TITLES = {
+    select: "Select / move", row: "Add row", block: "Add block",
+    arc: "Add arc / semicircle", stage: "Add stage / area",
+    round: "Add round area", label: "Add label",
+  };
   const setTool = (tool) => {
     document.querySelectorAll(".smartseat-tool").forEach((b) =>
       b.classList.toggle("active", b.getAttribute("data-tool") === tool));
@@ -1588,6 +1609,8 @@
       const tools = (el.getAttribute("data-tools") || "").split(/\s+/);
       el.hidden = !tools.includes(tool);
     });
+    const title = document.querySelector('[data-role="tool-title"]');
+    if (title) title.textContent = TOOL_TITLES[tool] || "Tool";
   };
   document.querySelectorAll(".smartseat-tool").forEach((b) => {
     b.addEventListener("click", () => setTool(b.getAttribute("data-tool")));
@@ -1624,6 +1647,18 @@
   wireFlag("insp-companion", "is_companion");
   wireFlag("insp-blocked", "is_blocked");
   wireFlag("insp-technical", "is_technical_blocked");
+
+  const wirePlanDim = (fieldName, key) => {
+    field(fieldName)?.addEventListener("change", (event) => {
+      const v = Math.max(100, parseInt(event.target.value, 10) || 0);
+      saveSnapshot();
+      state.plan[key] = v;
+      state.bounds[key] = v;
+      resetView();
+    });
+  };
+  wirePlanDim("plan-width", "width");
+  wirePlanDim("plan-height", "height");
 
   document.querySelectorAll("[data-align]").forEach((btn) => {
     btn.addEventListener("click", () => alignSelection(btn.getAttribute("data-align")));

@@ -491,3 +491,60 @@
   cursor: pointer;
 }
 .smartseat-group-count { font-size: 10px; color: #6b7280; flex: 0 0 auto; }
+
+/* ─── Top toolbar (seats.pretix.eu-style icon/segment bar) ───────────────── */
+.smartseat-h1 { margin-bottom: 10px; }
+.smartseat-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: #f6f7f9;
+  border: 1px solid #d7d9dd;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+.smartseat-tb-group {
+  display: flex;
+  gap: 4px;
+  padding-right: 8px;
+  margin-right: 2px;
+  border-right: 1px solid #dfe2e6;
+}
+.smartseat-tb-group:last-child { border-right: none; }
+.smartseat-topbar .smartseat-tool {
+  border: 1px solid #c7ccd6;
+  background: #fff;
+  border-radius: 5px;
+  padding: 5px 11px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.smartseat-topbar .smartseat-tool.active {
+  background: #0055cc;
+  border-color: #0055cc;
+  color: #fff;
+  font-weight: 600;
+}
+.smartseat-hint { margin: 0 0 10px; font-size: 11px; color: #6b7280; }
+
+/* Plan properties grid */
+.smartseat-plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.smartseat-plan-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; font-weight: 600; }
+.smartseat-plan-grid input { border: 1px solid #c7ccd6; border-radius: 4px; padding: 4px 6px; }
+
+/* Category seat-count column */
+.smartseat-cat-count {
+  flex: 0 0 34px;
+  text-align: right;
+  font-size: 11px;
+  color: #6b7280;
+}
+.smartseat-cat-header span:nth-child(3) { flex: 0 0 34px; text-align: right; }
+.smartseat-cat-header span:nth-child(4) { flex: 0 0 56px; }
+.smartseat-cat-header span:nth-child(5) { flex: 0 0 26px; }
+
+/* Background upload form in the sidebar */
+.smartseat-bg-form { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.smartseat-bg-form input[type="text"] { border: 1px solid #c7ccd6; border-radius: 4px; padding: 4px 6px; }
