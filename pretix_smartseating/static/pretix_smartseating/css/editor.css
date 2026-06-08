@@ -405,3 +405,17 @@
   cursor: pointer;
 }
 .smartseat-align-btns button:hover { background: #eef2ff; }
+
+/* Area resize handles */
+.smartseat-handle {
+  fill: #fff;
+  stroke: #ff8f00;
+  stroke-width: 1.5;
+  cursor: nwse-resize;
+}
+.smartseat-handle[data-handle="n"],
+.smartseat-handle[data-handle="s"] { cursor: ns-resize; }
+.smartseat-handle[data-handle="e"],
+.smartseat-handle[data-handle="w"] { cursor: ew-resize; }
+.smartseat-handle[data-handle="ne"],
+.smartseat-handle[data-handle="sw"] { cursor: nesw-resize; }

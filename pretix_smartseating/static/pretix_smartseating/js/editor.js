@@ -143,6 +143,25 @@
     if (event.button !== 0) return;
 
     const svgPt = clientToSvg(event.clientX, event.clientY);
+
+    // Resize handle of the selected area takes priority over everything.
+    const handleEl = event.target?.closest?.("[data-handle]");
+    if (handleEl && selectedArea !== null) {
+      const area = state.areas[selectedArea];
+      if (area) {
+        svg.setPointerCapture(event.pointerId);
+        pointerMode = "area-resize";
+        pointerData = {
+          dir: handleEl.getAttribute("data-handle"),
+          areaIndex: selectedArea,
+          start: svgPt,
+          orig: JSON.parse(JSON.stringify(area)),
+          snapshotted: false,
+        };
+        return;
+      }
+    }
+
     const seatId = event.target?.getAttribute("data-id");
 
     if (seatId) {
@@ -273,6 +292,50 @@
       if (pointerData.node) {
         pointerData.node.setAttribute("transform", `translate(${nx} ${ny}) rotate(${Number(area.rotation || 0)})`);
       }
+      return;
+    }
+
+    if (pointerMode === "area-resize") {
+      const area = state.areas[pointerData.areaIndex];
+      if (!area) return;
+      if (!pointerData.snapshotted) { saveSnapshot(); pointerData.snapshotted = true; }
+      const orig = pointerData.orig;
+      const cur = clientToSvg(event.clientX, event.clientY);
+      const th = (Number(orig.rotation || 0) * Math.PI) / 180;
+      const cos = Math.cos(th), sin = Math.sin(th);
+      const dir = pointerData.dir;
+      const MIN = 10;
+      if (area.shape === "rectangle") {
+        const dxw = cur.x - pointerData.start.x;
+        const dyw = cur.y - pointerData.start.y;
+        const ldx = cos * dxw + sin * dyw; // rotate delta into local frame R(-θ)
+        const ldy = -sin * dxw + cos * dyw;
+        let w = orig.rectangle.width, h = orig.rectangle.height, lox = 0, loy = 0;
+        if (dir.includes("w")) { w = orig.rectangle.width - ldx; lox = ldx; }
+        if (dir.includes("e")) { w = orig.rectangle.width + ldx; }
+        if (dir.includes("n")) { h = orig.rectangle.height - ldy; loy = ldy; }
+        if (dir.includes("s")) { h = orig.rectangle.height + ldy; }
+        w = Math.max(MIN, w); h = Math.max(MIN, h);
+        const wx = cos * lox - sin * loy; // local origin shift back to world R(θ)
+        const wy = sin * lox + cos * loy;
+        area.rectangle.width = w; area.rectangle.height = h;
+        area.position = { x: orig.position.x + wx, y: orig.position.y + wy };
+      } else {
+        // circle / ellipse: anchored at centre, radius follows the cursor.
+        const rcx = cur.x - orig.position.x, rcy = cur.y - orig.position.y;
+        const lx = Math.abs(cos * rcx + sin * rcy);
+        const ly = Math.abs(-sin * rcx + cos * rcy);
+        if (area.shape === "circle") {
+          const r = dir === "n" || dir === "s" ? ly : dir === "e" || dir === "w" ? lx : Math.max(lx, ly);
+          area.circle.radius = Math.max(MIN, r);
+        } else if (area.shape === "ellipse") {
+          let rx = orig.ellipse.radius.x, ry = orig.ellipse.radius.y;
+          if (dir.includes("e") || dir.includes("w")) rx = lx;
+          if (dir.includes("n") || dir.includes("s")) ry = ly;
+          area.ellipse.radius = { x: Math.max(MIN, rx), y: Math.max(MIN, ry) };
+        }
+      }
+      scheduleDraw();
     }
   });
 
@@ -370,6 +433,12 @@
       }
       selectedArea = pointerData.areaIndex;
       draw();
+      return;
+    }
+
+    if (pointerMode === "area-resize") {
+      pointerMode = null;
+      draw(); // sync inspector fields with the new size
       return;
     }
 
@@ -900,6 +969,58 @@
     (state.areas || []).forEach((area, index) => renderArea(area, index));
   };
 
+  // Resize handles for the selected area (rendered on top of seats).
+  const HANDLE_PX = 9;
+  const HANDLE_DIRS = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
+
+  const areaBBox = (area) => {
+    if (area.shape === "rectangle" && area.rectangle) {
+      return { x0: 0, y0: 0, w: area.rectangle.width || 0, h: area.rectangle.height || 0 };
+    }
+    if (area.shape === "circle" && area.circle) {
+      const r = area.circle.radius || 0;
+      return { x0: -r, y0: -r, w: 2 * r, h: 2 * r };
+    }
+    if (area.shape === "ellipse" && area.ellipse) {
+      const rx = area.ellipse.radius?.x || 0;
+      const ry = area.ellipse.radius?.y || 0;
+      return { x0: -rx, y0: -ry, w: 2 * rx, h: 2 * ry };
+    }
+    return null;
+  };
+
+  const handlePointLocal = (bbox, dir) => {
+    const mx = bbox.x0 + bbox.w / 2;
+    const my = bbox.y0 + bbox.h / 2;
+    const x = dir.includes("w") ? bbox.x0 : dir.includes("e") ? bbox.x0 + bbox.w : mx;
+    const y = dir.includes("n") ? bbox.y0 : dir.includes("s") ? bbox.y0 + bbox.h : my;
+    return { x, y };
+  };
+
+  const renderAreaHandles = (area, index) => {
+    const bbox = areaBBox(area);
+    if (!bbox) return; // text or unsupported shape -> no handles
+    const g = document.createElementNS(SVGNS, "g");
+    g.setAttribute(
+      "transform",
+      `translate(${Number(area.position?.x || 0)} ${Number(area.position?.y || 0)}) rotate(${Number(area.rotation || 0)})`
+    );
+    const hs = HANDLE_PX / (screenScale().sx || 1); // ~constant on-screen size
+    HANDLE_DIRS.forEach((dir) => {
+      const p = handlePointLocal(bbox, dir);
+      const rect = document.createElementNS(SVGNS, "rect");
+      rect.setAttribute("x", String(p.x - hs / 2));
+      rect.setAttribute("y", String(p.y - hs / 2));
+      rect.setAttribute("width", String(hs));
+      rect.setAttribute("height", String(hs));
+      rect.setAttribute("class", "smartseat-handle");
+      rect.setAttribute("data-handle", dir);
+      rect.setAttribute("data-area-index", String(index));
+      g.appendChild(rect);
+    });
+    svg.appendChild(g);
+  };
+
   const draw = () => {
     while (svg.firstChild) svg.removeChild(svg.firstChild);
     renderedNodes.clear();
@@ -945,7 +1066,11 @@
         svg.appendChild(label);
       }
     }
-    // Keep rubber-band rect on top of all seats.
+    // Resize handles for the selected area, on top of seats.
+    if (selectedArea !== null && state.areas[selectedArea]) {
+      renderAreaHandles(state.areas[selectedArea], selectedArea);
+    }
+    // Keep rubber-band rect on top of everything.
     svg.appendChild(rubberRect);
     refreshInspector();
     refreshAreaInspector();
