@@ -1,6 +1,7 @@
 /* Smart Seating — shop seat map */
 #smartseat-shop {
   margin: 0 0 16px;
+  position: relative; /* tooltip is absolutely positioned relative to this */
 }
 .smartseat-shop-legend {
   display: flex;
