@@ -306,6 +306,7 @@
 
   let state = {
     seats: [],
+    areas: [],
     template_assets: [],
     categories: [{ code: "standard", name: "Standard", color: "#3B82F6", price_rank: 100 }],
     bounds: { width, height },
@@ -996,6 +997,7 @@
       body: JSON.stringify({
         seats: state.seats,
         categories: state.categories,
+        areas: state.areas,
         plan: state.plan,
         bounds: state.bounds,
       }),
@@ -1018,6 +1020,7 @@
           plan: data.plan,
           categories: data.categories?.length ? data.categories : state.categories,
           seats: data.seats || [],
+          areas: data.areas || [],
           template_assets: [],
           bounds: { width: data.plan.width, height: data.plan.height },
         };

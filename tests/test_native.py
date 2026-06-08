@@ -215,6 +215,34 @@ def test_suggest_endpoint_rejects_bad_quantity(client, event):
 
 
 @pytest.mark.django_db
+def test_areas_import_export_roundtrip(local_plan):
+    from pretix_smartseating.services.import_export import export_plan, import_plan
+
+    areas = [
+        {"shape": "rectangle", "position": {"x": 10, "y": 5}, "rectangle": {"width": 200, "height": 40},
+         "color": "#222222"},
+        {"shape": "text", "position": {"x": 100, "y": 0}, "text": {"text": "Stage", "position": {"x": 0, "y": 0}}},
+    ]
+    payload = {
+        "plan": {"width": 1000, "height": 600},
+        "categories": [{"code": "stalls", "name": "Stalls"}],
+        "areas": areas,
+        "seats": [{
+            "external_id": "A-1-1", "block_label": "A", "row_label": "1", "seat_number": "1",
+            "category_code": "stalls", "x": 10, "y": 10,
+        }],
+        "bounds": {"width": 1000, "height": 600},
+    }
+    with scopes_disabled():
+        issues = import_plan(local_plan, payload, replace_existing=True)
+        assert issues == []
+        local_plan.refresh_from_db()
+        assert local_plan.area_shapes == areas
+        bundle = export_plan(local_plan)
+        assert bundle.areas == areas
+
+
+@pytest.mark.django_db
 def test_build_layout_rejects_duplicate_seat_guids(local_plan, monkeypatch):
     # Force two seats to share a guid -> pretix validator must reject.
     seats = list(local_plan.seats.all())

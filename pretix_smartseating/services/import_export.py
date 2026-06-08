@@ -15,6 +15,7 @@ class ExportBundle:
     categories: list[dict[str, Any]]
     seats: list[dict[str, Any]]
     metadata: dict[str, Any]
+    areas: list[dict[str, Any]]
 
 
 def export_plan(plan: SeatingPlan) -> ExportBundle:
@@ -65,6 +66,7 @@ def export_plan(plan: SeatingPlan) -> ExportBundle:
         categories=categories,
         seats=seats,
         metadata={"export_format": "pretix-smartseating-v1"},
+        areas=list(plan.area_shapes or []),
     )
 
 
@@ -84,7 +86,11 @@ def import_plan(
     target_plan.height = payload.get("plan", {}).get("height", target_plan.height)
     target_plan.grid_size = payload.get("plan", {}).get("grid_size", target_plan.grid_size)
     target_plan.snap_enabled = payload.get("plan", {}).get("snap_enabled", target_plan.snap_enabled)
-    target_plan.save(update_fields=["width", "height", "grid_size", "snap_enabled", "updated_at"])
+    if "areas" in payload and isinstance(payload["areas"], list):
+        target_plan.area_shapes = payload["areas"]
+    target_plan.save(
+        update_fields=["width", "height", "grid_size", "snap_enabled", "area_shapes", "updated_at"]
+    )
 
     if replace_existing:
         target_plan.seats.all().delete()
