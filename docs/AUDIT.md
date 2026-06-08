@@ -344,6 +344,7 @@ verifiziert gegen lokal installiertes pretix 2026.3.1):
 - Mobile-first Selector-Widget: entfällt, da pretix-Core die Sitzauswahl rendert (Roadmap: optionales
   Zusatz-Widget).
 - Auto-Seat: als Service vorhanden, noch nicht an die native Sitzauswahl angebunden.
-- Editor-Performance für 10k+ Sitze: Viewport-Culling vorgesehen, aktuell ~2.000 Sitze flüssig.
+- Editor-Performance: Zielgröße realistisch ~5.000 Sitze (10k ist hier kein Anwendungsfall).
+  Viewport-Culling + Label-Begrenzung sind umgesetzt; in diesem Bereich flüssig.
 - Entfernte Alt-Modelle (`SeatState`/`SeatHold`/`SeatAuditLog`) — keine Daten-Migration nötig, da die
   alte Initial-Migration ohnehin nie anwendbar war.

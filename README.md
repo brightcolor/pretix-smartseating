@@ -96,9 +96,9 @@ DJANGO_SETTINGS_MODULE=pretix.testutils.settings python -m django check
   mobile-first Selector-Widget ist Roadmap.
 - Auto-Seat liefert Vorschläge über einen read-only Endpunkt; das Vorbelegen im pretix-Shop-Frontend
   ist noch nicht automatisch verdrahtet (Frontend-Hook ausstehend).
-- Editor-Performance: Viewport-Culling + Label-Begrenzung sind aktiv (gerendert wird nur der
-  sichtbare Ausschnitt), wodurch große Pläne navigierbar bleiben. Das initiale Laden des gesamten
-  Plan-JSON bleibt linear zur Sitzanzahl.
+- Editor-Performance: Ausgelegt auf realistische Größen bis **~5.000 Sitze**. Viewport-Culling +
+  Label-Begrenzung sind aktiv (gerendert wird nur der sichtbare Ausschnitt); das initiale Laden des
+  Plan-JSON bleibt linear zur Sitzanzahl, ist in diesem Bereich aber unkritisch.
 
 ## Dokumentation
 
