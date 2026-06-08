@@ -151,3 +151,5 @@
   .smartseat-shop-status { order: 2; flex-basis: 100%; }
   .smartseat-shop-bestwrap { order: 1; }
 }
+
+.smartseat-shop-swatch { vertical-align: -2px; }

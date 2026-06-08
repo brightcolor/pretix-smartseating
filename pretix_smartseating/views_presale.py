@@ -148,11 +148,19 @@ def api_seatmap(request: HttpRequest, organizer: str, event: str) -> JsonRespons
                 products[s.product_id] = {
                     "id": s.product_id, "name": info["name"], "price": info["price"], "color": colour,
                 }
+            row = s.row_label or s.row_name or ""
+            num = s.seat_label or s.seat_number or ""
+            parts = []
+            if row:
+                parts.append("Reihe %s" % row)
+            if num:
+                parts.append("Platz %s" % num)
+            label = ", ".join(parts) or str(s)
             seats.append({
                 "guid": s.seat_guid,
                 "x": s.x if s.x is not None else 0,
                 "y": s.y if s.y is not None else 0,
-                "label": str(s),
+                "label": label,
                 "product": s.product_id,
                 "price": info["price"],
                 "color": colour,

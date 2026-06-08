@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5] - 2026-06-08
+
+### Fixed
+- Shop seat labels/tooltips now read **"Reihe X, Platz Y"** (built from the
+  seat's row + number) instead of pretix' default string.
+- Price-zone legend dots are now **coloured**: they were inline-styled `<span>`
+  swatches, which pretix' Content-Security-Policy blocked; replaced with inline
+  SVG circles (the `fill` attribute is CSP-safe, like the seats themselves).
+
 ## [0.5.4] - 2026-06-08
 
 ### Added

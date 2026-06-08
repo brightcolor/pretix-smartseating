@@ -32,6 +32,20 @@
     return (isNaN(n) ? p : n.toFixed(2)) + (cur ? " " + cur : "");
   }
 
+  // CSP-safe colour swatch: an inline SVG (fill is an attribute, not an inline
+  // style, so it isn't blocked by pretix' Content-Security-Policy).
+  function swatch(color) {
+    var s = document.createElementNS(SVGNS, "svg");
+    s.setAttribute("width", "13"); s.setAttribute("height", "13");
+    s.setAttribute("class", "smartseat-shop-swatch");
+    var c = document.createElementNS(SVGNS, "circle");
+    c.setAttribute("cx", "6.5"); c.setAttribute("cy", "6.5"); c.setAttribute("r", "6");
+    c.setAttribute("fill", color || "#3B82F6");
+    c.setAttribute("stroke", "#1b2736"); c.setAttribute("stroke-width", "1");
+    s.appendChild(c);
+    return s;
+  }
+
   function init() {
     var host = document.getElementById("smartseat-shop");
     if (!host) return;
@@ -204,7 +218,7 @@
       priceLegend.innerHTML = "";
       (data.products || []).forEach(function (p) {
         priceLegend.appendChild(el("span", { class: "smartseat-shop-price" }, [
-          el("span", { class: "smartseat-shop-dot", style: "background:" + (p.color || "#3B82F6") }),
+          swatch(p.color || "#3B82F6"),
           document.createTextNode(" " + (p.name || t("Seat")) + " — " + fmtPrice(p.price, currency)),
         ]));
       });
