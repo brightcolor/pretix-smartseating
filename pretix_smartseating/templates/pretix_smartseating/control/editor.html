@@ -3,7 +3,7 @@
 
 {% block title %}{{ plan.name }} - {% trans "Seat Editor" %}{% endblock %}
 
-{% block extra_head %}
+{% block custom_header %}
   <link rel="stylesheet" href="{% static "pretix_smartseating/css/editor.css" %}">
 {% endblock %}
 
@@ -26,7 +26,7 @@
   <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export JSON" %}</a>
   <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_import" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Import JSON" %}</a>
 </div>
-<p class="help-block">{% trans "Scroll down for Row Generator, Background Templates and Save-as-Preset." %} {% trans "Tip: Mouse wheel zooms, drag empty canvas pans, double-click fits the view." %}</p>
+<p class="help-block">{% trans "Mouse wheel zooms · drag canvas pans · double-click fits view · Shift+click = multiselect" %}</p>
 
 {# ── Canvas ───────────────────────────────────────────────────────────────── #}
 <div id="smartseat-editor"
@@ -72,7 +72,7 @@
         <select data-field="gen-category"></select>
       </label>
     </div>
-    <p class="help-block">{% trans "Like modern ticketing tools: set center, radius and angle range, then generate one or multiple curved rows in one click." %}</p>
+    <p class="help-block">{% trans "Set center, radius and angle range, then click Generate arc row or Generate semicircle rows." %}</p>
   </div>
 </details>
 
@@ -87,7 +87,7 @@
       <button class="btn btn-default" type="submit">{% trans "Upload template" %}</button>
     </form>
     <div id="smartseat-template-list"></div>
-    <p class="help-block">{% trans "PDF uploads are automatically rasterized (first page) and can then be positioned and scaled like image layers." %}</p>
+    <p class="help-block">{% trans "PNG/JPG/SVG/PDF accepted. PDFs are rasterised automatically." %}</p>
   </div>
 </details>
 
@@ -101,8 +101,6 @@
   </form>
 </details>
 
-{% endblock %}
-
-{% block scripts %}
-  <script src="{% static "pretix_smartseating/js/editor.js" %}"></script>
+{# JS at end of content — there is no {% block scripts %} in pretixcontrol base #}
+<script src="{% static "pretix_smartseating/js/editor.js" %}"></script>
 {% endblock %}
