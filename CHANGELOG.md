@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-06-08
+
+### Added
+- **Shop seat map** — the missing piece that makes seats appear in the shop.
+  Open-source pretix has the seating data model but ships no shop renderer; it
+  only emits the `render_seating_plan` signal (normally handled by the
+  commercial seats.pretix.eu integration). This release provides that
+  renderer: a read-only seat-map endpoint built from pretix' native
+  availability (`Seat.annotated`), an interactive SVG picker (zoom/pan, ARIA,
+  category colours, legend) injected via `render_seating_plan`, and its own
+  submit button (core hides the add-to-cart button for seated-only events).
+  Selected seats are posted as `seat_<product>=<guid>` to pretix' own cart-add
+  endpoint, so checkout/holds/orders stay 100% native.
+
+### Fixed
+- Seat selection now renders in the shop frontend (previously the page was
+  empty because no `render_seating_plan` receiver existed).
+
 ## [0.4.0] - 2026-06-08
 
 Editor overhaul toward a seats.pretix.eu-style experience.

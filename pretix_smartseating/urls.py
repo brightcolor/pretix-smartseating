@@ -84,4 +84,9 @@ urlpatterns = [
         views_presale.api_suggest,
         name="presale.autoseat_suggest",
     ),
+    path(
+        "smartseating/<str:organizer>/<str:event>/seatmap/",
+        views_presale.api_seatmap,
+        name="presale.seatmap",
+    ),
 ]
