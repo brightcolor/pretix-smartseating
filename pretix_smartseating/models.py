@@ -157,11 +157,11 @@ class SeatDefinition(models.Model):
             models.Index(fields=["plan", "external_id"]),
         ]
         constraints = [
+            # The seat GUID (external_id) is the sole identity, matching pretix
+            # core. Visible labels (block/row/seat_number) are intentionally
+            # NOT unique: real plans (e.g. seats.pretix.eu) legitimately repeat
+            # them across row segments/zones.
             models.UniqueConstraint(fields=["plan", "external_id"], name="smartseat_unique_external_id"),
-            models.UniqueConstraint(
-                fields=["plan", "block_label", "row_label", "seat_number"],
-                name="smartseat_unique_visible_position",
-            ),
         ]
         ordering = ["block_label", "row_index", "seat_index"]
 

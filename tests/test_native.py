@@ -293,6 +293,29 @@ def test_areas_import_export_roundtrip(local_plan):
 
 
 @pytest.mark.django_db
+def test_import_allows_duplicate_visible_labels_with_unique_guids(local_plan):
+    """Real seats.pretix.eu plans repeat (zone/row/seat) labels across row
+    segments; only the seat GUID is unique. Import must not be blocked."""
+    from pretix_smartseating.services.import_export import import_plan
+
+    payload = {
+        "plan": {"width": 1000, "height": 600},
+        "categories": [{"code": "stalls", "name": "Stalls"}],
+        "seats": [
+            {"external_id": "guid-a", "block_label": "Ground floor", "row_label": "1",
+             "seat_number": "1", "category_code": "stalls", "x": 10, "y": 10},
+            {"external_id": "guid-b", "block_label": "Ground floor", "row_label": "1",
+             "seat_number": "1", "category_code": "stalls", "x": 200, "y": 10},
+        ],
+        "bounds": {"width": 1000, "height": 600},
+    }
+    with scopes_disabled():
+        issues = import_plan(local_plan, payload, replace_existing=True)
+        assert issues == []  # duplicate visible label is non-blocking
+        assert local_plan.seats.count() == 2
+
+
+@pytest.mark.django_db
 def test_groups_import_export_roundtrip(local_plan):
     from pretix_smartseating.services.import_export import export_plan, import_plan
 

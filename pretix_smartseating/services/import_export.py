@@ -80,9 +80,14 @@ def import_plan(
     replace_existing: bool = True,
     save_version: bool = True,
 ) -> list[dict[str, Any]]:
+    # Non-blocking advisories: duplicate visible labels (block/row/seat) are
+    # legitimate in real plans (seats.pretix.eu repeats them across segments);
+    # only the seat GUID must be unique. So they never block an import.
+    NON_BLOCKING = {"duplicate_visible_seat"}
     issues = [asdict(issue) for issue in validate_layout_payload(payload)]
-    if issues:
-        return issues
+    blocking = [i for i in issues if i.get("code") not in NON_BLOCKING]
+    if blocking:
+        return blocking
 
     target_plan.width = payload.get("plan", {}).get("width", target_plan.width)
     target_plan.height = payload.get("plan", {}).get("height", target_plan.height)
