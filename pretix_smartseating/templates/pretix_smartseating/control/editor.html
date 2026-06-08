@@ -70,6 +70,20 @@
         <label class="smartseat-check"><input type="checkbox" data-field="insp-companion"> {% trans "Companion seat" %}</label>
         <label class="smartseat-check"><input type="checkbox" data-field="insp-blocked"> {% trans "Blocked (not sold)" %}</label>
         <label class="smartseat-check"><input type="checkbox" data-field="insp-technical"> {% trans "Technical block" %}</label>
+
+        <div class="smartseat-align">
+          <span class="smartseat-insp-hint">{% trans "Align / distribute (2+ seats)" %}</span>
+          <div class="smartseat-align-btns">
+            <button type="button" data-align="left" title="{% trans "Align left" %}">⇤</button>
+            <button type="button" data-align="hcenter" title="{% trans "Center horizontally" %}">⇔</button>
+            <button type="button" data-align="right" title="{% trans "Align right" %}">⇥</button>
+            <button type="button" data-align="top" title="{% trans "Align top" %}">⤒</button>
+            <button type="button" data-align="vcenter" title="{% trans "Center vertically" %}">⇕</button>
+            <button type="button" data-align="bottom" title="{% trans "Align bottom" %}">⤓</button>
+            <button type="button" data-dist="h" title="{% trans "Distribute horizontally" %}">↔</button>
+            <button type="button" data-dist="v" title="{% trans "Distribute vertically" %}">↕</button>
+          </div>
+        </div>
       </div>
     </section>
 

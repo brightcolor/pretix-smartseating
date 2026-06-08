@@ -632,6 +632,40 @@
     draw();
   };
 
+  const alignSelection = (mode) => {
+    const sel = state.seats.filter((s) => selected.has(s.external_id));
+    if (sel.length < 2) return;
+    saveSnapshot();
+    const xs = sel.map((s) => s.x);
+    const ys = sel.map((s) => s.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const avgX = xs.reduce((a, b) => a + b, 0) / xs.length;
+    const avgY = ys.reduce((a, b) => a + b, 0) / ys.length;
+    sel.forEach((s) => {
+      if (mode === "left") s.x = minX;
+      else if (mode === "right") s.x = maxX;
+      else if (mode === "hcenter") s.x = avgX;
+      else if (mode === "top") s.y = minY;
+      else if (mode === "bottom") s.y = maxY;
+      else if (mode === "vcenter") s.y = avgY;
+    });
+    draw();
+  };
+
+  const distributeSelection = (axis) => {
+    const sel = state.seats.filter((s) => selected.has(s.external_id));
+    if (sel.length < 3) return;
+    saveSnapshot();
+    const key = axis === "h" ? "x" : "y";
+    sel.sort((a, b) => a[key] - b[key]);
+    const first = sel[0][key];
+    const last = sel[sel.length - 1][key];
+    const step = (last - first) / (sel.length - 1);
+    sel.forEach((s, i) => { s[key] = first + step * i; });
+    draw();
+  };
+
   // ─── Area inspector (edit the selected decorative area) ────────────────────
   const areaFieldsEl = document.getElementById("smartseat-area-fields");
 
@@ -1348,6 +1382,13 @@
   wireFlag("insp-companion", "is_companion");
   wireFlag("insp-blocked", "is_blocked");
   wireFlag("insp-technical", "is_technical_blocked");
+
+  document.querySelectorAll("[data-align]").forEach((btn) => {
+    btn.addEventListener("click", () => alignSelection(btn.getAttribute("data-align")));
+  });
+  document.querySelectorAll("[data-dist]").forEach((btn) => {
+    btn.addEventListener("click", () => distributeSelection(btn.getAttribute("data-dist")));
+  });
 
   load();
 })();

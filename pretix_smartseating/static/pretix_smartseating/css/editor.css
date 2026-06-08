@@ -385,3 +385,23 @@
   margin-left: 6px;
   vertical-align: middle;
 }
+
+/* Align / distribute toolbar inside the selection inspector */
+.smartseat-align { margin-top: 10px; border-top: 1px solid #eceef1; padding-top: 8px; }
+.smartseat-align-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.smartseat-align-btns button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #c7ccd6;
+  background: #fff;
+  border-radius: 4px;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.smartseat-align-btns button:hover { background: #eef2ff; }
