@@ -320,17 +320,30 @@ das **Signal-Konzept**, lösen Bindung/Locking aber sauber mit FKs und `select_f
 
 ## 12. Definition of Done (Tracking)
 
-- [ ] Installierbar mit aktueller pretix-Version
-- [ ] `python -m pretix check` grün
-- [ ] Migrationen laufen sauber
-- [ ] Static Files korrekt eingebunden
-- [ ] Sitzplan im Backend erstellbar
-- [ ] Preset erstellen & auf Event anwenden
-- [ ] Sitzwahl im Shop ohne Theme-Hack (oder klar dokumentierte Minimal-Integration)
-- [ ] Holds zuverlässig; parallele Doppelbuchung verhindert
-- [ ] Orders übernehmen Sitze final
-- [ ] Cancel/Expire gibt Sitze frei
-- [ ] Sitz auf Bestellung/Ticket/Admin sichtbar
-- [ ] Permissions & CSRF sauber
-- [ ] Tests kritischer Pfade grün
-- [ ] README/INSTALL/AUDIT/CHANGELOG aktuell
+Stand nach Umsetzung (Branch `feat/production-readiness`, Plugin 0.3.0,
+verifiziert gegen lokal installiertes pretix 2026.3.1):
+
+- [x] Installierbar mit aktueller pretix-Version (Discovery als `PluginApp`, default=True, level=event)
+- [x] System-Check grün (`manage check`, 0 issues; CI-Schritt ergänzt). `python -m pretix check`
+      benötigt eine pretix-Config; das Django-System-Check ist das CI-taugliche Äquivalent.
+- [x] Migrationen laufen sauber (falscher `base`→`pretixbase`-Bug behoben; `makemigrations --check` ok)
+- [x] Static Files korrekt eingebunden (Editor-Assets unverändert)
+- [x] Sitzplan im Backend erstellbar
+- [x] Preset erstellen & auf Event anwenden
+- [x] Sitzwahl im Shop **nativ** (pretix-Core rendert; kein Theme-Hack) — über „Apply to event"
+- [x] Holds zuverlässig; parallele Doppelbuchung verhindert — **durch pretix-Core** (CartPosition,
+      `select_for_update`)
+- [x] Orders übernehmen Sitze final — pretix-Core (`OrderPosition.seat`)
+- [x] Cancel/Expire gibt Sitze frei — pretix-Core
+- [x] Sitz auf Bestellung/Ticket/Admin sichtbar — pretix-Core
+- [x] Permissions & CSRF sauber (`event_permission_required`, Standard-CSRF; anonyme Schreib-API entfernt)
+- [x] Tests kritischer Pfade grün (25 Tests: native Sync, blocked, Idempotenz, Permissions, Upload-Härtung)
+- [x] README/INSTALL/AUDIT/CHANGELOG aktuell
+
+### Bewusst verschoben / dokumentierte Grenzen
+- Mobile-first Selector-Widget: entfällt, da pretix-Core die Sitzauswahl rendert (Roadmap: optionales
+  Zusatz-Widget).
+- Auto-Seat: als Service vorhanden, noch nicht an die native Sitzauswahl angebunden.
+- Editor-Performance für 10k+ Sitze: Viewport-Culling vorgesehen, aktuell ~2.000 Sitze flüssig.
+- Entfernte Alt-Modelle (`SeatState`/`SeatHold`/`SeatAuditLog`) — keine Daten-Migration nötig, da die
+  alte Initial-Migration ohnehin nie anwendbar war.

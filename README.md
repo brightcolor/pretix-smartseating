@@ -1,179 +1,106 @@
 # pretix-smartseating
 
-Produktionsreifes pretix-Plugin für Saalpläne und reservierte Sitzplätze mit visuellem Editor, Sitzplatzwahl im Shop, Hold/Locking und Auto-Seat-Algorithmen.
+pretix-Plugin für die **grafische Sitzplanverwaltung**. Der visuelle Editor erzeugt einen
+pretix-kompatiblen Sitzplan und veröffentlicht ihn in das **native pretix-Seating**. Damit
+übernimmt pretix selbst Verfügbarkeit, Sitz-Holds (über `CartPosition`), Locking, den kompletten
+Checkout, den Order-Lifecycle sowie die Anzeige des Sitzplatzes auf Ticket und in der Bestellung.
+
+> Architektur ab 0.3.0: Das Plugin **ersetzt nicht** den pretix-Checkout, sondern speist das
+> native Seating. Es gibt damit kein eigenes Hold-/Verkaufs-System und keine anonyme Schreib-API
+> mehr — pretix-Core ist die einzige Wahrheit für Verfügbarkeit und Verkauf.
 
 ## Features
 
-- Backend-Sitzplanverwaltung pro Organizer/Event
-- Grafischer Editor (SVG) mit:
-  - Sitzreihen-Generator
-  - Bogen- und Halbrund-Generator (Center/Radius/Winkel, mehrere Reihen auf einmal)
-  - Hintergrund-Vorlagen (PNG/JPG/SVG/PDF) als Layer
-  - Layer-Controls (sichtbar, gesperrt, Position, Skalierung, Rotation, Opacity, Z-Index)
-  - Multi-Select (Shift+Click)
-  - Delete/Duplicate für Auswahl + Tastatur-Shortcuts
-  - Bulk-Block/Unblock
-  - Undo/Redo
-  - JSON Import/Export
-- Standort-Presets:
-  - Plan als Preset speichern
-  - neuen Event-Plan aus Preset erzeugen
-  - erzeugte Pläne bleiben voll editierbar
-- Shop-Sitzplatzauswahl:
-  - interaktive Seatmap
-  - klare Statusfarben (frei, hold, verkauft, blockiert)
-  - periodischer Availability-Refresh
-  - Keyboard/ARIA-Basics
-- Auto-Seat-Modi:
-  - `strict_adjacent`
-  - `nearby_row_flexible`
-  - `best_available`
-- Sitz-Hold mit Ablaufzeit und Konfliktbehandlung
-- Audit-Log-Grundlage
-- API-Endpunkte für Plan, Verfügbarkeit, Holds, Auto-Seat
-- Tests für Validierung, Import/Export, Auto-Seat, API-Fehlerfälle
+- **Editor** (pro Organizer wiederverwendbar):
+  - Sitzreihen-Generator, Bogen-/Halbrund-Generator (Center/Radius/Winkel, mehrere Reihen)
+  - Hintergrund-Vorlagen (PNG/JPG/WEBP/GIF/SVG/PDF) als Layer mit Position/Skalierung/Rotation/Opacity
+  - Multi-Select (Shift+Click), Duplicate/Delete, Bulk-Block/Unblock, Undo/Redo
+  - Kategorien (Preiszonen) per Farbe, Sitztypen (normal, Rollstuhl, Begleitung, technisch, VIP)
+  - JSON Import/Export, Validierung gegen doppelte Sitze/Labels und fehlende Kategorien
+- **Standort-Presets**: Plan als Preset speichern und für weitere Events kopieren.
+- **Native Veröffentlichung**: „Apply to event" mappt jede Sitzkategorie auf ein pretix-Produkt
+  (Item) und erzeugt die `Seat`-Objekte – pro Event oder pro SubEvent.
+- **Auto-Seat-Heuristik** als Service (`strict_adjacent`, `nearby_row_flexible`, `best_available`).
 
-## Architekturüberblick
+## Wie der Verkauf funktioniert (nativ)
 
-- Backend: Django + pretix Plugin-API
-- Editor/Shop-Rendering: SVG
-- State im Editor: in-memory JSON, Snapshot-basierte Undo/Redo-Stacks
-- Datenhaltung: normalisierte Modelle + versioniertes Layout-JSON
+1. Plan im Editor bauen → **Save**.
+2. **Apply to event (sell seats)**: Sitzkategorien → Produkte mappen, optional SubEvent wählen.
+3. Das Plugin erzeugt einen nativen `pretixbase.SeatingPlan`, setzt `event.seating_plan`,
+   schreibt `SeatCategoryMapping` und ruft `generate_seats()` auf.
+4. Ab hier rendert **pretix** die Sitzauswahl im Shop, hält Sitze über `CartPosition.expires`,
+   sperrt parallele Zugriffe (`select_for_update`), überträgt sie bei Order-Abschluss und gibt sie
+   bei Cancel/Expire/Change frei. Der Sitz erscheint nativ auf Ticket, Bestellung und im Backend.
 
-Warum SVG:
-- präzise Seat-Interaktion, gute Accessibility und einfaches Selektionsverhalten.
-- Für sehr große Pläne ist Hybrid später vorgesehen (Viewport-Culling + optional Canvas-Layer).
-
-Konfliktvermeidung:
-- Sitz-Holds laufen über atomare Transaktionen und `select_for_update`.
-- Ablauf von Holds wird vor kritischen Schreiboperationen aktiv bereinigt.
-
-## Projektstruktur
-
-```text
-pretix_smartseating/
-  migrations/
-  services/
-  static/
-  templates/
-tests/
-docs/
-assets/screenshots/
-```
+Erneutes „Apply" ist idempotent: bestehende, bereits verkaufte Sitze sind geschützt
+(`SeatProtected`), neue/geänderte Sitze werden aktualisiert.
 
 ## Voraussetzungen
 
-- Python 3.10+
-- pretix 2025.1+
-- PostgreSQL (empfohlen für Produktion)
+- Python **3.11+**
+- pretix **2025.10+** (entwickelt/getestet gegen 2026.x, Django 5.2)
+- PostgreSQL für Produktion (für Seat-Locking dringend empfohlen)
 
 ## Installation
 
-Siehe [INSTALL.md](INSTALL.md).
-
-Kurz:
+Siehe [INSTALL.md](INSTALL.md). Kurz:
 
 ```bash
 pip install pretix-smartseating
-```
-
-Dann in pretix:
-
-```python
-INSTALLED_APPS += ["pretix_smartseating"]
-```
-
-Migrationen ausführen:
-
-```bash
-python -m pretix migrate
+python -m pretix migrate      # pretix-Core zuerst migrieren, dann das Plugin
 python -m pretix rebuild
 ```
 
+Das Plugin registriert sich über den `pretix.plugin`-Entry-Point automatisch und wird im Event
+unter **Einstellungen → Plugins** aktiviert.
+
 ## Backend-Verwendung
 
-1. Event öffnen
-2. Navigation `Smart Seating`
-3. Plan erstellen
-4. Im Editor Reihen und Sitze erzeugen
-5. Für runde Reihung: `Generate arc row` oder `Generate semicircle rows` nutzen
-6. Radius/Winkel/Reihenabstand setzen und mit einem Klick generieren
-7. Optional: Bild/PDF als Hintergrundvorlage hochladen und Layer justieren
-8. Speichern und optional JSON exportieren/importieren
-9. Optional: Plan als Preset speichern, um ihn für weitere Events wiederzuverwenden
+1. Event öffnen → Navigation **Smart Seating**.
+2. Plan erstellen oder aus Preset kopieren.
+3. Im Editor Reihen/Sitze erzeugen, Kategorien und Sitztypen setzen, optional Hintergrund hochladen.
+4. **Save**, danach **Apply to event** und Kategorien → Produkte mappen.
 
-## Frontend-Verwendung
+## Berechtigungen & Sicherheit
 
-- Einbindung über Template-Snippet [seat_selector.html](/C:/Users/<user>/Documents/pretix-smartseat/pretix_smartseating/templates/pretix_smartseating/shop/seat_selector.html)
-- Konkrete Theme-Override-Anleitung: [docs/THEME-INTEGRATION.md](docs/THEME-INTEGRATION.md)
-- Modi:
-  - Manuell
-  - Auto-Seat (strict/nearby/best)
+- Alle Backend-Views erfordern die Event-Berechtigung `can_change_event_settings`
+  (über `event_permission_required`), inkl. Mandantentrennung über `request.organizer`.
+- Datei-Uploads sind gehärtet: SVG wird mit `defusedxml` geparst (kein XXE/Entity-Bombing) und
+  von Script/Event-Handlern/`javascript:` bereinigt; Rasterbilder werden mit Pillow verifiziert und
+  gegen Decompression-Bombs begrenzt; Extension/MIME-Allowlist; JSON-Body-Limit.
 
-## Auto-Seat-Scoring (parametrierbar)
+## Auto-Seat-Scoring
 
-Gewichtete Kriterien:
-- Reihen-Kohärenz (gleiche Reihe Bonus)
-- direkte Nachbarschaft Bonus
-- Gruppenstreuung Malus (Distanz)
-- zentrale Lage Bonus (`prefer_center`)
-- vordere Lage Bonus (`prefer_front`)
-- gleicher Kategorie-Bereich Bonus
-- bevorzugte Blöcke Bonus
-
-## API-Endpunkte
-
-- `GET /api/v1/{organizer}/{event}/seatplan/`
-- `GET /api/v1/{organizer}/{event}/availability/`
-- `POST /api/v1/{organizer}/{event}/hold/`
-- `POST /api/v1/{organizer}/{event}/release-hold/`
-- `POST /api/v1/{organizer}/{event}/autoseat/`
-- `POST /api/v1/{organizer}/{event}/confirm-sale/`
-
-## Performance
-
-- DB-Indizes auf Sitzidentität, Statusabfragen und Hold-Expiry
-- periodische Hold-Bereinigung
-- Auto-Seat-Kandidatensuche mit heuristischer Begrenzung
-- vorgesehen: Viewport-Culling und serverseitige segmentierte Availability für sehr große Pläne
-
-## Accessibility
-
-- Tastaturauswahl im Shop (Enter/Space)
-- ARIA-Label je Sitz
-- farbliche Legende + klare Zustände
-
-## Entwicklung
-
-Siehe [docs/DEVELOPER-GUIDE.md](docs/DEVELOPER-GUIDE.md).
+Gewichtete Kriterien (Service `services/autoseat.py`): Reihen-Kohärenz, direkte Nachbarschaft,
+Gruppenstreuung, zentrale/vordere Lage (`prefer_center`/`prefer_front`), Kategorie-Bereich,
+bevorzugte Blöcke. Aktuell als Bibliotheksfunktion verfügbar (Frontend-Anbindung an die native
+Sitzauswahl ist Roadmap).
 
 ## Tests
 
 ```bash
-pytest
+pip install -e .[dev]
+pytest                # nutzt pretix.testutils.settings (DJANGO_SETTINGS_MODULE)
+ruff check . && mypy pretix_smartseating
+DJANGO_SETTINGS_MODULE=pretix.testutils.settings python -m django check
 ```
 
-## Release-Prozess
+## Bekannte Einschränkungen (0.3.0)
 
-- SemVer
-- Initiale Version: `0.1.0`
-- Changelog: Keep a Changelog in [CHANGELOG.md](CHANGELOG.md)
-- Tag-Beispiel: `v0.1.0`
+- Die Sitzauswahl im Shop wird von pretix-Core gerendert (seats.pretix.eu-Frontend); ein eigenes
+  mobile-first Selector-Widget ist Roadmap.
+- Auto-Seat ist als Service vorhanden, aber noch nicht an die native Sitzauswahl angebunden.
+- Sehr große Pläne (10k+ Sitze) im Editor: Viewport-Culling ist vorgesehen, derzeit dokumentierte
+  Grenze ~2.000 Sitze für flüssiges Editieren.
 
-## Roadmap
+## Dokumentation
 
-- Sichtlinien/Obstructions
-- CSV-Import mit Mapping-Profilen
-- erweiterter Canvas-Hybrid für 10k+ Sitze
-- fortgeschrittene Preiszonen und Quotenintegration
+- [INSTALL.md](INSTALL.md) · [docs/AUDIT.md](docs/AUDIT.md) ·
+  [docs/DEVELOPER-GUIDE.md](docs/DEVELOPER-GUIDE.md) · [CHANGELOG.md](CHANGELOG.md)
+- [docs/THEME-INTEGRATION.md](docs/THEME-INTEGRATION.md) (historisch; mit nativer Integration nicht
+  mehr erforderlich)
 
-## Bekannte Einschränkungen (0.1.0)
+## Lizenz
 
-- Editor ist in dieser Version bewusst fokussiert (Row-Generator + Bulk-Editing), noch ohne freie Polygonflächen.
-- Shop-Widget ist als Snippet implementiert und muss in das gewünschte Theme eingebunden werden.
-
-## Sicherheitshinweise
-
-- Alle Hold-/Sale-Schritte müssen über die API mit atomaren Operationen laufen.
-- Direkte Schreibzugriffe ohne Berechtigungs- und Zustandsprüfung vermeiden.
-- Importdaten werden validiert (Duplikate, Kategorien, Bounds).
+MIT. Konzepte für den Order-Lifecycle wurden vom Apache-2.0-Plugin
+`PierreArchambeau/seatplan` inspiriert (kein Code übernommen).

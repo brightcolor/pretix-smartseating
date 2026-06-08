@@ -20,6 +20,7 @@
   <button class="btn btn-default" data-action="undo">{% trans "Undo" %}</button>
   <button class="btn btn-default" data-action="redo">{% trans "Redo" %}</button>
   <button class="btn btn-primary" data-action="save">{% trans "Save" %}</button>
+  <a class="btn btn-success" href="{% url "plugins:pretix_smartseating:control.plan_apply" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Apply to event (sell seats)" %}</a>
   <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export JSON" %}</a>
   <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_import" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Import JSON" %}</a>
 </div>
