@@ -29,8 +29,8 @@ class PluginApp(PluginConfig):
         # mapped per event, so the event level is the correct activation scope.
         level = PLUGIN_LEVEL_EVENT
         compatibility = "pretix>=2025.10"
-        settings_links = []
-        navigation_links = []
+        settings_links: list = []
+        navigation_links: list = []
 
     def ready(self):
         from . import signals  # noqa: F401

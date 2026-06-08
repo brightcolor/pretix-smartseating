@@ -4,8 +4,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db import models, transaction
-from django.db.models import Q
+from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from pretix.base.models import Event, Organizer, SubEvent
@@ -27,6 +26,15 @@ class SeatingPlan(models.Model):
     grid_size = models.PositiveIntegerField(default=10)
     snap_enabled = models.BooleanField(default=True)
     is_template = models.BooleanField(default=False)
+    # Link to the native pretix seating plan generated from this editor plan.
+    # When set, pretix core owns checkout/holds/orders for the mapped event(s).
+    pretix_plan = models.OneToOneField(
+        "pretixbase.SeatingPlan",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -221,145 +229,3 @@ class EventSeatPlanMapping(models.Model):
 
     def get_hold_expiry(self):
         return timezone.now() + timedelta(seconds=self.hold_timeout_seconds)
-
-
-class SeatState(models.Model):
-    class Status(models.TextChoices):
-        AVAILABLE = "available", _("Available")
-        HOLD = "hold", _("Hold")
-        SOLD = "sold", _("Sold")
-        BLOCKED = "blocked", _("Blocked")
-        TECHNICAL = "technical", _("Technical")
-
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="smartseat_states")
-    subevent = models.ForeignKey(
-        SubEvent, null=True, blank=True, on_delete=models.CASCADE, related_name="smartseat_states"
-    )
-    seat = models.ForeignKey(SeatDefinition, on_delete=models.CASCADE, related_name="states")
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.AVAILABLE)
-    hold_token = models.UUIDField(null=True, blank=True)
-    expires_at = models.DateTimeField(null=True, blank=True)
-    order_code = models.CharField(max_length=120, blank=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["event", "subevent", "seat"], name="smartseat_unique_event_seat_state")
-        ]
-        indexes = [models.Index(fields=["event", "subevent", "status", "expires_at"])]
-
-    @property
-    def is_expired(self) -> bool:
-        return bool(self.expires_at and self.expires_at <= timezone.now())
-
-
-class SeatHold(models.Model):
-    token = models.UUIDField(default=uuid.uuid4, editable=False, db_index=True)
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="smartseat_holds")
-    subevent = models.ForeignKey(
-        SubEvent, null=True, blank=True, on_delete=models.CASCADE, related_name="smartseat_holds"
-    )
-    seat = models.ForeignKey(SeatDefinition, on_delete=models.CASCADE, related_name="holds")
-    acquired_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField(db_index=True)
-    customer_ref = models.CharField(max_length=190, blank=True)
-    reason = models.CharField(max_length=120, blank=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["event", "subevent", "seat", "token"],
-                name="smartseat_unique_hold_entry",
-            )
-        ]
-        indexes = [models.Index(fields=["event", "subevent", "seat", "expires_at"])]
-
-    @property
-    def is_active(self) -> bool:
-        return self.expires_at > timezone.now()
-
-
-class SeatAuditLog(models.Model):
-    class Action(models.TextChoices):
-        PLAN_UPDATED = "plan_updated", _("Plan updated")
-        BULK_EDIT = "bulk_edit", _("Bulk edit")
-        HOLD_CREATED = "hold_created", _("Hold created")
-        HOLD_RELEASED = "hold_released", _("Hold released")
-        AUTOSEAT_ASSIGNED = "autoseat_assigned", _("Auto seat assigned")
-        STATUS_CHANGED = "status_changed", _("Status changed")
-
-    event = models.ForeignKey(Event, null=True, blank=True, on_delete=models.CASCADE, related_name="smartseat_audit")
-    seat = models.ForeignKey(
-        SeatDefinition, null=True, blank=True, on_delete=models.SET_NULL, related_name="audit_entries"
-    )
-    actor = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
-    )
-    action = models.CharField(max_length=40, choices=Action.choices)
-    payload = models.JSONField(default=dict, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["-created_at"]
-
-
-def release_expired_states_for_event(event: Event, subevent: SubEvent | None = None) -> int:
-    now = timezone.now()
-    with transaction.atomic():
-        query = SeatState.objects.select_for_update().filter(
-            event=event,
-            subevent=subevent,
-            status=SeatState.Status.HOLD,
-            expires_at__lte=now,
-        )
-        affected = query.count()
-        query.update(
-            status=SeatState.Status.AVAILABLE,
-            hold_token=None,
-            expires_at=None,
-        )
-    return affected
-
-
-def purge_expired_holds(event: Event, subevent: SubEvent | None = None) -> int:
-    now = timezone.now()
-    query = SeatHold.objects.filter(event=event, subevent=subevent, expires_at__lte=now)
-    count = query.count()
-    query.delete()
-    return count
-
-
-def get_or_create_state(event: Event, subevent: SubEvent | None, seat: SeatDefinition) -> SeatState:
-    state, _ = SeatState.objects.get_or_create(
-        event=event,
-        subevent=subevent,
-        seat=seat,
-        defaults={"status": SeatState.Status.AVAILABLE},
-    )
-    if state.status == SeatState.Status.HOLD and state.is_expired:
-        state.status = SeatState.Status.AVAILABLE
-        state.hold_token = None
-        state.expires_at = None
-        state.save(update_fields=["status", "hold_token", "expires_at", "updated_at"])
-    return state
-
-
-def get_effective_status(
-    seat: SeatDefinition,
-    event: Event,
-    subevent: SubEvent | None = None,
-) -> str:
-    if seat.is_technical_blocked:
-        return str(SeatState.Status.TECHNICAL)
-    if seat.is_blocked:
-        return str(SeatState.Status.BLOCKED)
-    state = SeatState.objects.filter(event=event, subevent=subevent, seat=seat).first()
-    if not state:
-        return str(SeatState.Status.AVAILABLE)
-    if state.status == SeatState.Status.HOLD and state.is_expired:
-        return str(SeatState.Status.AVAILABLE)
-    return state.status
-
-
-def state_filter_q(event: Event, subevent: SubEvent | None = None) -> Q:
-    return Q(event=event, subevent=subevent)

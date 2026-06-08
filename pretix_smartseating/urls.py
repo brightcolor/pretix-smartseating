@@ -1,9 +1,12 @@
 from django.urls import path
 
-from pretix_smartseating import views_api, views_control
+from pretix_smartseating import views_control
 
 app_name = "pretix_smartseating"
 
+# All views live under the pretix control area, so the control permission
+# middleware sets request.event/organizer and enforces base access, while each
+# view additionally requires the can_change_event_settings permission.
 urlpatterns = [
     path(
         "control/event/<str:organizer>/<str:event>/smartseating/",
@@ -36,6 +39,11 @@ urlpatterns = [
         name="control.plan_save_as_preset",
     ),
     path(
+        "control/event/<str:organizer>/<str:event>/smartseating/<int:plan_id>/apply/",
+        views_control.plan_apply,
+        name="control.plan_apply",
+    ),
+    path(
         "control/event/<str:organizer>/<str:event>/smartseating/<int:plan_id>/import/",
         views_control.plan_import,
         name="control.plan_import",
@@ -64,23 +72,5 @@ urlpatterns = [
         "control/event/<str:organizer>/<str:event>/smartseating/<int:plan_id>/assets/<int:asset_id>/delete/",
         views_control.plan_template_asset_delete,
         name="control.plan_template_asset_delete",
-    ),
-    path("api/v1/<str:organizer>/<str:event>/seatplan/", views_api.api_plan, name="api.plan"),
-    path(
-        "api/v1/<str:organizer>/<str:event>/availability/",
-        views_api.api_availability,
-        name="api.availability",
-    ),
-    path("api/v1/<str:organizer>/<str:event>/hold/", views_api.api_hold, name="api.hold"),
-    path(
-        "api/v1/<str:organizer>/<str:event>/release-hold/",
-        views_api.api_release_hold,
-        name="api.release_hold",
-    ),
-    path("api/v1/<str:organizer>/<str:event>/autoseat/", views_api.api_autoseat, name="api.autoseat"),
-    path(
-        "api/v1/<str:organizer>/<str:event>/confirm-sale/",
-        views_api.api_confirm_sale,
-        name="api.confirm_sale",
     ),
 ]
