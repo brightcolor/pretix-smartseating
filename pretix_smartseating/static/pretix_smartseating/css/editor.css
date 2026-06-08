@@ -342,3 +342,46 @@
   border-top: 1px solid #eceef1;
   padding-top: 10px;
 }
+
+/* ─── Decorative areas ───────────────────────────────────────────────────── */
+.smartseat-toolbar-sep {
+  width: 1px;
+  align-self: stretch;
+  background: #d7d9dd;
+  margin: 0 2px;
+}
+
+.smartseat-area { cursor: move; }
+
+.smartseat-area.selected rect,
+.smartseat-area.selected ellipse,
+.smartseat-area.selected circle,
+.smartseat-area.selected polygon {
+  stroke: #ff8f00 !important;
+  stroke-width: 2.5 !important;
+  stroke-dasharray: 5 3;
+}
+.smartseat-area.selected text {
+  stroke: #ff8f00;
+  stroke-width: 0.6;
+}
+
+.smartseat-area-field {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.smartseat-area-field input[type="text"],
+.smartseat-area-field input[type="number"] {
+  width: 100%;
+  margin-top: 2px;
+  border: 1px solid #c7ccd6;
+  border-radius: 4px;
+  padding: 4px 6px;
+}
+.smartseat-area-field input[type="color"] {
+  margin-top: 2px;
+  margin-left: 6px;
+  vertical-align: middle;
+}

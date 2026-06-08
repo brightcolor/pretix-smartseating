@@ -150,6 +150,21 @@
       return;
     }
 
+    const areaEl = event.target?.closest?.("[data-area-index]");
+    if (areaEl) {
+      svg.setPointerCapture(event.pointerId);
+      pointerMode = "area-wait";
+      pointerData = {
+        areaIndex: parseInt(areaEl.getAttribute("data-area-index"), 10),
+        node: areaEl,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        startSvgX: svgPt.x,
+        startSvgY: svgPt.y,
+      };
+      return;
+    }
+
     if (event.target === svg) {
       // Empty canvas – start rubber-band.
       svg.setPointerCapture(event.pointerId);
@@ -227,6 +242,26 @@
           node.setAttribute("cy", orig.y + effDy);
         }
       }
+      return;
+    }
+
+    if (pointerMode === "area-wait" || pointerMode === "area-drag") {
+      const moved = Math.hypot(event.clientX - pointerData.startClientX, event.clientY - pointerData.startClientY);
+      if (moved < DRAG_THRESHOLD && pointerMode === "area-wait") return;
+      const area = state.areas[pointerData.areaIndex];
+      if (!area) return;
+      if (pointerMode === "area-wait") {
+        pointerData.orig = { x: Number(area.position?.x || 0), y: Number(area.position?.y || 0) };
+        svg.classList.add("smartseat-dragging");
+        pointerMode = "area-drag";
+      }
+      const cur = clientToSvg(event.clientX, event.clientY);
+      const nx = snap(pointerData.orig.x + (cur.x - pointerData.startSvgX));
+      const ny = snap(pointerData.orig.y + (cur.y - pointerData.startSvgY));
+      pointerData.pendingPos = { x: nx, y: ny };
+      if (pointerData.node) {
+        pointerData.node.setAttribute("transform", `translate(${nx} ${ny}) rotate(${Number(area.rotation || 0)})`);
+      }
     }
   });
 
@@ -246,7 +281,11 @@
       const moved = Math.hypot(event.clientX - pointerData.startClientX, event.clientY - pointerData.startClientY);
       if (moved < DRAG_THRESHOLD) {
         // Treated as a click on the canvas → clear selection.
-        if (selected.size) { selected = new Set(); scheduleDraw(); }
+        if (selected.size || selectedArea !== null) {
+          selected = new Set();
+          selectedArea = null;
+          scheduleDraw();
+        }
         return;
       }
       // Select seats inside the rectangle.
@@ -266,6 +305,10 @@
     if (pointerMode === "seat-wait") {
       // Pure click – update selection.
       pointerMode = null;
+      if (selectedArea !== null) {
+        selectedArea = null;
+        scheduleDraw();
+      }
       if (pointerData.shiftKey) {
         if (selected.has(pointerData.seat.external_id)) selected.delete(pointerData.seat.external_id);
         else selected.add(pointerData.seat.external_id);
@@ -297,6 +340,28 @@
       return;
     }
 
+    if (pointerMode === "area-wait") {
+      // Pure click → select this area (and clear seat selection).
+      pointerMode = null;
+      selectedArea = pointerData.areaIndex;
+      selected = new Set();
+      draw();
+      return;
+    }
+
+    if (pointerMode === "area-drag") {
+      pointerMode = null;
+      svg.classList.remove("smartseat-dragging");
+      const area = state.areas[pointerData.areaIndex];
+      if (area && pointerData.pendingPos) {
+        saveSnapshot();
+        area.position = pointerData.pendingPos;
+      }
+      selectedArea = pointerData.areaIndex;
+      draw();
+      return;
+    }
+
     pointerMode = null;
   };
 
@@ -313,6 +378,7 @@
     plan: { width, height, grid_size: 10, snap_enabled: true },
   };
   let selected = new Set();
+  let selectedArea = null; // index into state.areas, or null
   const undoStack = [];
   const redoStack = [];
 
@@ -566,6 +632,86 @@
     draw();
   };
 
+  // ─── Area inspector (edit the selected decorative area) ────────────────────
+  const areaFieldsEl = document.getElementById("smartseat-area-fields");
+
+  const numberField = (label, value, onChange, step) => {
+    const wrap = document.createElement("label");
+    wrap.className = "smartseat-area-field";
+    wrap.textContent = label;
+    const inp = document.createElement("input");
+    inp.type = "number";
+    if (step) inp.step = String(step);
+    inp.value = String(value);
+    inp.addEventListener("change", () => onChange(parseFloat(inp.value)));
+    wrap.appendChild(inp);
+    return wrap;
+  };
+
+  const colorField = (label, value, onChange) => {
+    const wrap = document.createElement("label");
+    wrap.className = "smartseat-area-field";
+    wrap.textContent = label;
+    const inp = document.createElement("input");
+    inp.type = "color";
+    inp.value = (value || "#cccccc").slice(0, 7);
+    inp.addEventListener("change", () => onChange(inp.value));
+    wrap.appendChild(inp);
+    return wrap;
+  };
+
+  const commitArea = () => {
+    saveSnapshot();
+    draw();
+  };
+
+  const refreshAreaInspector = () => {
+    const section = document.querySelector('[data-role="area-section"]');
+    if (!section || !areaFieldsEl) return;
+    const area = selectedArea !== null ? state.areas[selectedArea] : null;
+    if (!area) {
+      section.hidden = true;
+      areaFieldsEl.innerHTML = "";
+      return;
+    }
+    section.hidden = false;
+    areaFieldsEl.innerHTML = "";
+
+    const typeLine = document.createElement("p");
+    typeLine.className = "smartseat-insp-hint";
+    typeLine.textContent = "Type: " + area.shape;
+    areaFieldsEl.appendChild(typeLine);
+
+    if (area.shape === "text") {
+      const wrap = document.createElement("label");
+      wrap.className = "smartseat-area-field";
+      wrap.textContent = "Text";
+      const inp = document.createElement("input");
+      inp.type = "text";
+      inp.value = area.text?.text || "";
+      inp.addEventListener("change", () => { area.text.text = inp.value; commitArea(); });
+      wrap.appendChild(inp);
+      areaFieldsEl.appendChild(wrap);
+      areaFieldsEl.appendChild(numberField("Font size", area.text?.size || 16,
+        (v) => { area.text.size = v; commitArea(); }));
+      areaFieldsEl.appendChild(colorField("Text colour", area.text?.color,
+        (v) => { area.text.color = v; commitArea(); }));
+    } else {
+      areaFieldsEl.appendChild(colorField("Fill", area.color, (v) => { area.color = v; commitArea(); }));
+      areaFieldsEl.appendChild(colorField("Border", area.border_color, (v) => { area.border_color = v; commitArea(); }));
+      if (area.shape === "rectangle" && area.rectangle) {
+        areaFieldsEl.appendChild(numberField("Width", area.rectangle.width, (v) => { area.rectangle.width = v; commitArea(); }));
+        areaFieldsEl.appendChild(numberField("Height", area.rectangle.height, (v) => { area.rectangle.height = v; commitArea(); }));
+      } else if (area.shape === "circle" && area.circle) {
+        areaFieldsEl.appendChild(numberField("Radius", area.circle.radius, (v) => { area.circle.radius = v; commitArea(); }));
+      } else if (area.shape === "ellipse" && area.ellipse) {
+        areaFieldsEl.appendChild(numberField("Radius X", area.ellipse.radius.x, (v) => { area.ellipse.radius.x = v; commitArea(); }));
+        areaFieldsEl.appendChild(numberField("Radius Y", area.ellipse.radius.y, (v) => { area.ellipse.radius.y = v; commitArea(); }));
+      }
+    }
+    areaFieldsEl.appendChild(numberField("Rotation°", area.rotation || 0, (v) => { area.rotation = v; commitArea(); }, 1));
+  };
+
   const drawBackgroundAssets = () => {
     const sortedAssets = [...state.template_assets]
       .filter((asset) => asset.is_visible)
@@ -620,10 +766,100 @@
     }
   };
 
+  // ─── Decorative areas (stage / bar / aisles / text labels) ────────────────
+  const SVGNS = "http://www.w3.org/2000/svg";
+
+  const newArea = (shape) => {
+    const cx = view.x + view.w / 2;
+    const cy = view.y + view.h / 2;
+    const base = { shape, position: { x: snap(cx), y: snap(cy) }, rotation: 0 };
+    if (shape === "rectangle") {
+      return { ...base, color: "#cbd5e1", border_color: "#64748b", rectangle: { width: 200, height: 80 } };
+    }
+    if (shape === "ellipse") {
+      return { ...base, color: "#cbd5e1", border_color: "#64748b", ellipse: { radius: { x: 100, y: 60 } } };
+    }
+    if (shape === "circle") {
+      return { ...base, color: "#cbd5e1", border_color: "#64748b", circle: { radius: 80 } };
+    }
+    // text
+    return { ...base, text: { text: "Label", color: "#111827", size: 24, position: { x: 0, y: 0 } } };
+  };
+
+  const addArea = (shape) => {
+    saveSnapshot();
+    state.areas.push(newArea(shape));
+    selectedArea = state.areas.length - 1;
+    selected = new Set();
+    draw();
+  };
+
+  const deleteArea = (index) => {
+    if (index == null || !state.areas[index]) return;
+    saveSnapshot();
+    state.areas.splice(index, 1);
+    selectedArea = null;
+    draw();
+  };
+
+  const renderArea = (area, index) => {
+    const g = document.createElementNS(SVGNS, "g");
+    const px = Number(area.position?.x || 0);
+    const py = Number(area.position?.y || 0);
+    g.setAttribute("transform", `translate(${px} ${py}) rotate(${Number(area.rotation || 0)})`);
+    g.setAttribute("data-area-index", String(index));
+    g.setAttribute("class", `smartseat-area${index === selectedArea ? " selected" : ""}`);
+
+    const fill = area.color || "rgba(148,163,184,0.5)";
+    const stroke = area.border_color || "#64748b";
+    let shapeEl = null;
+    if (area.shape === "rectangle" && area.rectangle) {
+      shapeEl = document.createElementNS(SVGNS, "rect");
+      shapeEl.setAttribute("x", "0");
+      shapeEl.setAttribute("y", "0");
+      shapeEl.setAttribute("width", String(area.rectangle.width || 100));
+      shapeEl.setAttribute("height", String(area.rectangle.height || 50));
+    } else if (area.shape === "circle" && area.circle) {
+      shapeEl = document.createElementNS(SVGNS, "circle");
+      shapeEl.setAttribute("cx", "0");
+      shapeEl.setAttribute("cy", "0");
+      shapeEl.setAttribute("r", String(area.circle.radius || 50));
+    } else if (area.shape === "ellipse" && area.ellipse) {
+      shapeEl = document.createElementNS(SVGNS, "ellipse");
+      shapeEl.setAttribute("cx", "0");
+      shapeEl.setAttribute("cy", "0");
+      shapeEl.setAttribute("rx", String(area.ellipse.radius?.x || 80));
+      shapeEl.setAttribute("ry", String(area.ellipse.radius?.y || 50));
+    } else if (area.shape === "polygon" && area.polygon) {
+      shapeEl = document.createElementNS(SVGNS, "polygon");
+      shapeEl.setAttribute("points", (area.polygon.points || []).map((p) => `${p.x},${p.y}`).join(" "));
+    } else if (area.shape === "text" && area.text) {
+      shapeEl = document.createElementNS(SVGNS, "text");
+      shapeEl.setAttribute("x", String(area.text.position?.x || 0));
+      shapeEl.setAttribute("y", String(area.text.position?.y || 0));
+      shapeEl.setAttribute("font-size", String(area.text.size || 16));
+      shapeEl.setAttribute("fill", area.text.color || "#111827");
+      shapeEl.textContent = area.text.text || "";
+    }
+    if (!shapeEl) return;
+    if (area.shape !== "text") {
+      shapeEl.setAttribute("fill", fill);
+      shapeEl.setAttribute("stroke", stroke);
+      shapeEl.setAttribute("stroke-width", "1");
+    }
+    g.appendChild(shapeEl);
+    svg.appendChild(g);
+  };
+
+  const renderAreas = () => {
+    (state.areas || []).forEach((area, index) => renderArea(area, index));
+  };
+
   const draw = () => {
     while (svg.firstChild) svg.removeChild(svg.firstChild);
     renderedNodes.clear();
     drawBackgroundAssets();
+    renderAreas();
 
     // Viewport culling: only build DOM for seats inside the visible region.
     const marginX = view.w * 0.05;
@@ -667,6 +903,7 @@
     // Keep rubber-band rect on top of all seats.
     svg.appendChild(rubberRect);
     refreshInspector();
+    refreshAreaInspector();
   };
 
   const refreshTemplatePanel = () => {
@@ -971,6 +1208,7 @@
     redoStack.push(JSON.stringify(state));
     state = JSON.parse(undoStack.pop());
     selected.clear();
+    selectedArea = null;
     populateCategoryOptions();
     populateInspectorCategorySelect();
     refreshCategoryList();
@@ -983,6 +1221,7 @@
     undoStack.push(JSON.stringify(state));
     state = JSON.parse(redoStack.pop());
     selected.clear();
+    selectedArea = null;
     populateCategoryOptions();
     populateInspectorCategorySelect();
     refreshCategoryList();
@@ -1050,7 +1289,8 @@
     }
     if (event.key === "Delete" || event.key === "Backspace") {
       event.preventDefault();
-      deleteSelected();
+      if (selectedArea !== null) deleteArea(selectedArea);
+      else deleteSelected();
     }
   });
 
@@ -1061,6 +1301,9 @@
       else if (action === "generate-block") generateBlock();
       else if (action === "generate-arc") generateArcRows({ semicircle: false });
       else if (action === "generate-semicircle") generateArcRows({ semicircle: true });
+      else if (action === "add-stage") addArea("rectangle");
+      else if (action === "add-ellipse") addArea("ellipse");
+      else if (action === "add-label") addArea("text");
       else if (action === "duplicate-selected") duplicateSelected();
       else if (action === "delete-selected") deleteSelected();
       else if (action === "undo") undo();
@@ -1071,6 +1314,9 @@
 
   // ─── Inspector wiring (category management + selection properties) ─────────
   document.querySelector('[data-action="add-category"]')?.addEventListener("click", addCategory);
+  document.querySelector('[data-action="delete-area"]')?.addEventListener("click", () => {
+    if (selectedArea !== null) deleteArea(selectedArea);
+  });
 
   field("insp-category")?.addEventListener("change", (event) => {
     const code = event.target.value;

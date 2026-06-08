@@ -16,6 +16,11 @@
   <button class="btn btn-default" data-action="generate-block">{% trans "Generate block" %}</button>
   <button class="btn btn-default" data-action="generate-arc">{% trans "Generate arc row" %}</button>
   <button class="btn btn-default" data-action="generate-semicircle">{% trans "Generate semicircle rows" %}</button>
+  <span class="smartseat-toolbar-sep"></span>
+  <button class="btn btn-default" data-action="add-stage">{% trans "+ Stage/Area" %}</button>
+  <button class="btn btn-default" data-action="add-ellipse">{% trans "+ Round area" %}</button>
+  <button class="btn btn-default" data-action="add-label">{% trans "+ Label" %}</button>
+  <span class="smartseat-toolbar-sep"></span>
   <button class="btn btn-default" data-action="duplicate-selected">{% trans "Duplicate selected" %}</button>
   <button class="btn btn-default" data-action="delete-selected">{% trans "Delete selected" %}</button>
   <button class="btn btn-default" data-action="undo">{% trans "Undo" %}</button>
@@ -66,6 +71,13 @@
         <label class="smartseat-check"><input type="checkbox" data-field="insp-blocked"> {% trans "Blocked (not sold)" %}</label>
         <label class="smartseat-check"><input type="checkbox" data-field="insp-technical"> {% trans "Technical block" %}</label>
       </div>
+    </section>
+
+    {# ── Selected area (stage / label) ── #}
+    <section class="smartseat-insp-section" data-role="area-section" hidden>
+      <h4>{% trans "Area" %}</h4>
+      <div id="smartseat-area-fields"></div>
+      <button type="button" class="btn btn-danger btn-sm" data-action="delete-area">{% trans "Delete area" %}</button>
     </section>
 
     {# ── Category management ── #}
