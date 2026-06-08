@@ -41,13 +41,21 @@
     });
   };
 
+  // Exact screen->user mapping using the live CTM. This accounts for the
+  // viewBox AND preserveAspectRatio letterboxing, so the marquee, drag and
+  // zoom focus stay perfectly in sync with the cursor even when the SVG
+  // element's aspect ratio differs from the viewBox.
   const clientToSvg = (clientX, clientY) => {
-    const rect = svg.getBoundingClientRect();
-    if (!rect.width || !rect.height) return { x: view.x, y: view.y };
-    return {
-      x: view.x + ((clientX - rect.left) / rect.width) * view.w,
-      y: view.y + ((clientY - rect.top) / rect.height) * view.h,
-    };
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return { x: view.x, y: view.y };
+    const p = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse());
+    return { x: p.x, y: p.y };
+  };
+
+  // Screen pixels per user unit for the current zoom (constant during a pan).
+  const screenScale = () => {
+    const ctm = svg.getScreenCTM();
+    return { sx: ctm ? ctm.a : 1, sy: ctm ? ctm.d : 1 };
   };
 
   const resetView = () => {
@@ -123,7 +131,11 @@
     // Middle-mouse or Space+left → pan
     if (event.button === 1 || (event.button === 0 && spaceDown)) {
       pointerMode = "pan";
-      pointerData = { startX: event.clientX, startY: event.clientY, viewX: view.x, viewY: view.y };
+      const sc = screenScale();
+      pointerData = {
+        startX: event.clientX, startY: event.clientY,
+        viewX: view.x, viewY: view.y, sx: sc.sx, sy: sc.sy,
+      };
       svg.setPointerCapture(event.pointerId);
       svg.classList.add("smartseat-panning");
       return;
@@ -177,10 +189,9 @@
     if (!pointerMode) return;
 
     if (pointerMode === "pan") {
-      const rect = svg.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
-      const dx = ((event.clientX - pointerData.startX) / rect.width) * view.w;
-      const dy = ((event.clientY - pointerData.startY) / rect.height) * view.h;
+      // Convert the screen delta to user units via the scale captured at start.
+      const dx = (event.clientX - pointerData.startX) / (pointerData.sx || 1);
+      const dy = (event.clientY - pointerData.startY) / (pointerData.sy || 1);
       view.x = pointerData.viewX - dx;
       view.y = pointerData.viewY - dy;
       applyViewBox();
