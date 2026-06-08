@@ -17,6 +17,12 @@ Checkout, den Order-Lifecycle sowie die Anzeige des Sitzplatzes auf Ticket und i
   - Multi-Select (Shift+Click), Duplicate/Delete, Bulk-Block/Unblock, Undo/Redo
   - Pan/Zoom (Mausrad/Drag/Pinch, Doppelklick = einpassen) mit Viewport-Culling: nur sichtbare
     Sitze werden gerendert, Labels ab vielen sichtbaren Sitzen ausgeblendet → große Pläne bleiben flüssig
+  - Rechteck-Block-Generator + Bogen/Halbkreis-Generator
+  - Flächen & Beschriftungen (Bühne, Bar, runde Flächen, Textlabels) — wie seats.pretix.eu,
+    werden auch im Shop angezeigt
+  - Kategorie-/Preiszonen-Verwaltung im Editor; Sitz-Eigenschaften (Kategorie, Sitztyp) für die Auswahl
+  - Ausrichten & Verteilen mehrerer Sitze
+  - Import/Export im plugin-eigenen **und** im seats.pretix.eu-/pretix-nativen JSON-Format
   - Kategorien (Preiszonen) per Farbe, Sitztypen (normal, Rollstuhl, Begleitung, technisch, VIP)
   - JSON Import/Export, Validierung gegen doppelte Sitze/Labels und fehlende Kategorien
 - **Standort-Presets**: Plan als Preset speichern und für weitere Events kopieren.

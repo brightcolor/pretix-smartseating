@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Decorative areas & labels** in the editor (seats.pretix.eu-style): stage,
+  bar, round areas and text labels (rectangle/ellipse/text), draggable and
+  editable (fill/border colour, size, rotation, text). Stored in
+  `SeatingPlan.area_shapes`, round-tripped through save/import/export and
+  emitted into the native pretix layout, so they render in the shop too.
+- **seats.pretix.eu / native JSON import & export**: "Export pretix JSON"
+  download; the import page auto-detects and converts a pretix layout
+  (`zones` + `size`) via `native.layout_from_pretix`.
+- **Category management UI** (price zones): create/rename/recolour/sort/delete
+  categories; assign category + seat type (wheelchair/companion/technical/VIP)
+  to the current selection; internal codes hidden.
+- **Rectangular block generator** + per-seat-spacing in "Add row".
+- **Align & distribute** tools for multi-seat selections.
 - Editor pan/zoom (wheel/drag/pinch, double-click to fit) with **viewport
   culling**: only seats inside the visible region are rendered and per-seat
   labels are suppressed above a visibility threshold, so large plans stay
