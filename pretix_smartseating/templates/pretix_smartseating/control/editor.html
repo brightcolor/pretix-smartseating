@@ -13,6 +13,7 @@
 {# ── Toolbar ──────────────────────────────────────────────────────────────── #}
 <div class="smartseat-toolbar">
   <button class="btn btn-default" data-action="add-row">{% trans "Add row" %}</button>
+  <button class="btn btn-default" data-action="generate-block">{% trans "Generate block" %}</button>
   <button class="btn btn-default" data-action="generate-arc">{% trans "Generate arc row" %}</button>
   <button class="btn btn-default" data-action="generate-semicircle">{% trans "Generate semicircle rows" %}</button>
   <button class="btn btn-default" data-action="duplicate-selected">{% trans "Duplicate selected" %}</button>
@@ -78,35 +79,46 @@
 
 {# ── Row Generator (collapsed by default) ────────────────────────────────── #}
 <details class="smartseat-details">
-  <summary><strong>{% trans "Curved Row Generator" %}</strong></summary>
+  <summary><strong>{% trans "Row, Block &amp; Curve Generator" %}</strong></summary>
   <div class="smartseat-generator card card-body">
     <div class="smartseat-generator-grid">
       <label>{% trans "Block" %}<input data-field="gen-block" type="text" value="A"></label>
       <label>{% trans "Start row label" %}<input data-field="gen-row-start" type="text" value="A"></label>
-      <label>{% trans "Rows" %}<input data-field="gen-rows" type="number" min="1" max="30" value="1"></label>
+      <label>{% trans "Rows" %}<input data-field="gen-rows" type="number" min="1" max="60" value="5"></label>
       <label>{% trans "Seats per row" %}<input data-field="gen-seat-count" type="number" min="1" max="150" value="20"></label>
-      <label>{% trans "Center X" %}<input data-field="gen-center-x" type="number" value="{{ plan.width|floatformat:0|default:'900' }}"></label>
-      <label>{% trans "Center Y" %}<input data-field="gen-center-y" type="number" value="{{ plan.height|floatformat:0|default:'450' }}"></label>
-      <label>{% trans "Start radius" %}<input data-field="gen-radius-start" type="number" min="20" value="200"></label>
-      <label>{% trans "Row spacing" %}<input data-field="gen-row-spacing" type="number" min="5" value="26"></label>
+      <label>{% trans "Row spacing" %}<input data-field="gen-row-spacing" type="number" min="5" value="28"></label>
       <label>{% trans "Seat spacing" %}<input data-field="gen-seat-spacing" type="number" min="5" value="28"></label>
-      <label>{% trans "Start angle (deg)" %}<input data-field="gen-angle-start" type="number" min="-360" max="360" value="-70"></label>
-      <label>{% trans "End angle (deg)" %}<input data-field="gen-angle-end" type="number" min="-360" max="360" value="70"></label>
-      <label>{% trans "Direction" %}
-        <select data-field="gen-direction">
-          <option value="ltr">{% trans "Left to right" %}</option>
-          <option value="rtl">{% trans "Right to left" %}</option>
-        </select>
-      </label>
       <label>{% trans "Numbering" %}
         <select data-field="gen-numbering">
           <option value="sequential">{% trans "Sequential" %}</option>
           <option value="odd_even">{% trans "Odd/Even split" %}</option>
         </select>
       </label>
+      <label>{% trans "Direction" %}
+        <select data-field="gen-direction">
+          <option value="ltr">{% trans "Left to right" %}</option>
+          <option value="rtl">{% trans "Right to left" %}</option>
+        </select>
+      </label>
       <label>{% trans "Category" %}
         <select data-field="gen-category"></select>
       </label>
+    </div>
+
+    <h4 class="smartseat-gen-sub">{% trans "Rectangular block" %}</h4>
+    <div class="smartseat-generator-grid">
+      <label>{% trans "Start X (top-left)" %}<input data-field="gen-start-x" type="number" value="120"></label>
+      <label>{% trans "Start Y (top-left)" %}<input data-field="gen-start-y" type="number" value="100"></label>
+    </div>
+    <p class="help-block">{% trans "Uses Block, Rows, Seats per row, Row/Seat spacing, Numbering and Category above. Click \"Generate block\" in the toolbar." %}</p>
+
+    <h4 class="smartseat-gen-sub">{% trans "Arc / semicircle" %}</h4>
+    <div class="smartseat-generator-grid">
+      <label>{% trans "Center X" %}<input data-field="gen-center-x" type="number" value="{{ plan.width|floatformat:0|default:'900' }}"></label>
+      <label>{% trans "Center Y" %}<input data-field="gen-center-y" type="number" value="{{ plan.height|floatformat:0|default:'450' }}"></label>
+      <label>{% trans "Start radius" %}<input data-field="gen-radius-start" type="number" min="20" value="200"></label>
+      <label>{% trans "Start angle (deg)" %}<input data-field="gen-angle-start" type="number" min="-360" max="360" value="-70"></label>
+      <label>{% trans "End angle (deg)" %}<input data-field="gen-angle-end" type="number" min="-360" max="360" value="70"></label>
     </div>
     <p class="help-block">{% trans "Set center, radius and angle range, then click Generate arc row or Generate semicircle rows." %}</p>
   </div>

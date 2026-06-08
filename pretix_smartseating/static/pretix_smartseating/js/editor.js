@@ -415,7 +415,7 @@
     state.categories.forEach((category) => {
       const option = document.createElement("option");
       option.value = category.code;
-      option.textContent = `${category.name} (${category.code})`;
+      option.textContent = category.name;
       select.appendChild(option);
     });
     if (!state.categories.find((category) => category.code === current)) {
@@ -452,7 +452,7 @@
     state.categories.forEach((c) => {
       const o = document.createElement("option");
       o.value = c.code;
-      o.textContent = `${c.name} (${c.code})`;
+      o.textContent = c.name;
       sel.appendChild(o);
     });
     sel.value = cur;
@@ -827,6 +827,49 @@
     draw();
   };
 
+  const generateBlock = () => {
+    const rowCount = Math.max(1, Math.floor(parseNumber("gen-rows", 5)));
+    const seatCount = Math.max(1, Math.floor(parseNumber("gen-seat-count", 20)));
+    const rowSpacing = Math.max(5, parseNumber("gen-row-spacing", 28));
+    const seatSpacing = Math.max(5, parseNumber("gen-seat-spacing", 28));
+    const startX = parseNumber("gen-start-x", 120);
+    const startY = parseNumber("gen-start-y", 100);
+    const numbering = field("gen-numbering")?.value || "sequential";
+    const direction = field("gen-direction")?.value || "ltr";
+    const categoryCode = field("gen-category")?.value || state.categories[0]?.code || "standard";
+    const blockLabel = (field("gen-block")?.value || "A").trim() || "A";
+    const rowStartLabel = (field("gen-row-start")?.value || "A").trim() || "A";
+
+    saveSnapshot();
+    const baseRowIndex = nextRowIndex();
+    const usedIds = existingExternalIds();
+
+    for (let r = 0; r < rowCount; r++) {
+      const rowLabel = buildRowLabel(rowStartLabel, r);
+      const rowIndex = baseRowIndex + r;
+      for (let i = 0; i < seatCount; i++) {
+        const column = direction === "rtl" ? seatCount - 1 - i : i;
+        const seatNumber = seatNumberForPosition(i, seatCount, numbering);
+        const externalId = makeUniqueExternalId(`${blockLabel}-${rowLabel}-${seatNumber}`, usedIds);
+        state.seats.push(
+          createSeat({
+            external_id: externalId,
+            block_label: blockLabel,
+            row_label: rowLabel,
+            seat_number: seatNumber,
+            seat_index: i,
+            row_index: rowIndex,
+            x: snap(startX + column * seatSpacing),
+            y: snap(startY + r * rowSpacing),
+            rotation: 0,
+            category_code: categoryCode,
+          })
+        );
+      }
+    }
+    draw();
+  };
+
   const generateArcRows = ({ semicircle = false } = {}) => {
     const rowCount = Math.max(1, Math.floor(parseNumber("gen-rows", 1)));
     const seatCount = Math.max(1, Math.floor(parseNumber("gen-seat-count", 20)));
@@ -1012,6 +1055,7 @@
     button.addEventListener("click", () => {
       const action = button.getAttribute("data-action");
       if (action === "add-row") addGeneratedRow();
+      else if (action === "generate-block") generateBlock();
       else if (action === "generate-arc") generateArcRows({ semicircle: false });
       else if (action === "generate-semicircle") generateArcRows({ semicircle: true });
       else if (action === "duplicate-selected") duplicateSelected();

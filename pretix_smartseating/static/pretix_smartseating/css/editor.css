@@ -333,3 +333,12 @@
   .smartseat-workspace { flex-direction: column; }
   .smartseat-inspector { flex-basis: auto; max-height: none; }
 }
+
+.smartseat-gen-sub {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 14px 0 6px;
+  color: #2f3947;
+  border-top: 1px solid #eceef1;
+  padding-top: 10px;
+}
