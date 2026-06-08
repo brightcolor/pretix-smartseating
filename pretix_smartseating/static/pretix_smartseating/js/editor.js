@@ -81,37 +81,226 @@
     { passive: false }
   );
 
-  // Drag the empty background to pan (drags starting on a seat select instead).
-  let panning = null;
-  svg.addEventListener("pointerdown", (event) => {
-    if (event.target !== svg) return; // only when grabbing empty canvas
-    panning = { startX: event.clientX, startY: event.clientY, viewX: view.x, viewY: view.y };
-    svg.setPointerCapture(event.pointerId);
-    svg.classList.add("smartseat-panning");
-  });
-  svg.addEventListener("pointermove", (event) => {
-    if (!panning) return;
-    const rect = svg.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const dx = ((event.clientX - panning.startX) / rect.width) * view.w;
-    const dy = ((event.clientY - panning.startY) / rect.height) * view.h;
-    view.x = panning.viewX - dx;
-    view.y = panning.viewY - dy;
-    applyViewBox();
-    scheduleDraw();
-  });
-  const endPan = (event) => {
-    if (!panning) return;
-    panning = null;
-    svg.classList.remove("smartseat-panning");
-    try {
-      svg.releasePointerCapture(event.pointerId);
-    } catch (_e) {
-      // ignore
+  // ─── Unified pointer interaction ──────────────────────────────────────────
+  // Left-drag on empty canvas  → rubber-band selection
+  // Middle-mouse drag          → pan
+  // Space + left-drag          → pan
+  // Left-drag on a seat        → move seat(s)
+  // Left-click on seat         → select / Shift = toggle
+  // Left-click on empty canvas → deselect all
+  // Double-click               → reset view
+  // ──────────────────────────────────────────────────────────────────────────
+  const DRAG_THRESHOLD = 4; // client-px before a click becomes a drag
+
+  // Rubber-band overlay rect – re-appended to SVG top after every draw().
+  const rubberRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  rubberRect.setAttribute("fill", "rgba(0,85,204,0.08)");
+  rubberRect.setAttribute("stroke", "#0055cc");
+  rubberRect.setAttribute("stroke-width", "1");
+  rubberRect.setAttribute("stroke-dasharray", "5 3");
+  rubberRect.setAttribute("display", "none");
+  rubberRect.setAttribute("pointer-events", "none");
+
+  let spaceDown = false;
+  let pointerMode = null; // 'pan' | 'rubber' | 'seat-wait' | 'seat-drag'
+  let pointerData = {};
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === " " && document.activeElement === document.body) {
+      e.preventDefault();
+      spaceDown = true;
+      svg.classList.add("smartseat-space");
     }
+  });
+  window.addEventListener("keyup", (e) => {
+    if (e.key === " ") {
+      spaceDown = false;
+      svg.classList.remove("smartseat-space");
+    }
+  });
+
+  svg.addEventListener("pointerdown", (event) => {
+    // Middle-mouse or Space+left → pan
+    if (event.button === 1 || (event.button === 0 && spaceDown)) {
+      pointerMode = "pan";
+      pointerData = { startX: event.clientX, startY: event.clientY, viewX: view.x, viewY: view.y };
+      svg.setPointerCapture(event.pointerId);
+      svg.classList.add("smartseat-panning");
+      return;
+    }
+    if (event.button !== 0) return;
+
+    const svgPt = clientToSvg(event.clientX, event.clientY);
+    const seatId = event.target?.getAttribute("data-id");
+
+    if (seatId) {
+      // Seat interaction – wait to see if this becomes a drag or just a click.
+      svg.setPointerCapture(event.pointerId);
+      const seat = state.seats.find((s) => s.external_id === seatId);
+      if (!seat) return;
+      pointerMode = "seat-wait";
+      pointerData = {
+        seat,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        startSvgX: svgPt.x,
+        startSvgY: svgPt.y,
+        shiftKey: event.shiftKey,
+      };
+      return;
+    }
+
+    if (event.target === svg) {
+      // Empty canvas – start rubber-band.
+      svg.setPointerCapture(event.pointerId);
+      pointerMode = "rubber";
+      pointerData = { startClientX: event.clientX, startClientY: event.clientY, startSvgX: svgPt.x, startSvgY: svgPt.y };
+    }
+  });
+
+  svg.addEventListener("pointermove", (event) => {
+    if (!pointerMode) return;
+
+    if (pointerMode === "pan") {
+      const rect = svg.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const dx = ((event.clientX - pointerData.startX) / rect.width) * view.w;
+      const dy = ((event.clientY - pointerData.startY) / rect.height) * view.h;
+      view.x = pointerData.viewX - dx;
+      view.y = pointerData.viewY - dy;
+      applyViewBox();
+      scheduleDraw();
+      return;
+    }
+
+    if (pointerMode === "rubber") {
+      const moved = Math.hypot(event.clientX - pointerData.startClientX, event.clientY - pointerData.startClientY);
+      if (moved < DRAG_THRESHOLD) return;
+      const cur = clientToSvg(event.clientX, event.clientY);
+      const rx = Math.min(pointerData.startSvgX, cur.x);
+      const ry = Math.min(pointerData.startSvgY, cur.y);
+      rubberRect.setAttribute("x", rx);
+      rubberRect.setAttribute("y", ry);
+      rubberRect.setAttribute("width", Math.abs(cur.x - pointerData.startSvgX));
+      rubberRect.setAttribute("height", Math.abs(cur.y - pointerData.startSvgY));
+      rubberRect.setAttribute("display", "");
+      return;
+    }
+
+    if (pointerMode === "seat-wait" || pointerMode === "seat-drag") {
+      const moved = Math.hypot(event.clientX - pointerData.startClientX, event.clientY - pointerData.startClientY);
+      if (moved < DRAG_THRESHOLD && pointerMode === "seat-wait") return;
+
+      if (pointerMode === "seat-wait") {
+        // Elevate to drag: make the dragged seat selected if it wasn't.
+        if (!selected.has(pointerData.seat.external_id)) {
+          selected = new Set([pointerData.seat.external_id]);
+          scheduleDraw();
+        }
+        // Snapshot positions of all selected seats at drag start.
+        pointerData.origPositions = {};
+        for (const s of state.seats) {
+          if (selected.has(s.external_id)) {
+            pointerData.origPositions[s.external_id] = { x: s.x, y: s.y };
+          }
+        }
+        svg.classList.add("smartseat-dragging");
+        pointerMode = "seat-drag";
+      }
+
+      // Compute snapped delta (snap via lead seat so group stays coherent).
+      const cur = clientToSvg(event.clientX, event.clientY);
+      const rawDx = cur.x - pointerData.startSvgX;
+      const rawDy = cur.y - pointerData.startSvgY;
+      const leadOrig = pointerData.origPositions[pointerData.seat.external_id];
+      const effDx = snap(leadOrig.x + rawDx) - leadOrig.x;
+      const effDy = snap(leadOrig.y + rawDy) - leadOrig.y;
+
+      // Move circle nodes directly (fast – no full redraw on every pixel).
+      for (const s of state.seats) {
+        if (!selected.has(s.external_id)) continue;
+        const orig = pointerData.origPositions[s.external_id];
+        if (!orig) continue;
+        const node = renderedNodes.get(s.external_id);
+        if (node) {
+          node.setAttribute("cx", orig.x + effDx);
+          node.setAttribute("cy", orig.y + effDy);
+        }
+      }
+    }
+  });
+
+  const endPointer = (event) => {
+    if (!pointerMode) return;
+    try { svg.releasePointerCapture(event.pointerId); } catch (_) {}
+
+    if (pointerMode === "pan") {
+      pointerMode = null;
+      svg.classList.remove("smartseat-panning");
+      return;
+    }
+
+    if (pointerMode === "rubber") {
+      pointerMode = null;
+      rubberRect.setAttribute("display", "none");
+      const moved = Math.hypot(event.clientX - pointerData.startClientX, event.clientY - pointerData.startClientY);
+      if (moved < DRAG_THRESHOLD) {
+        // Treated as a click on the canvas → clear selection.
+        if (selected.size) { selected = new Set(); scheduleDraw(); }
+        return;
+      }
+      // Select seats inside the rectangle.
+      const rx = parseFloat(rubberRect.getAttribute("x"));
+      const ry = parseFloat(rubberRect.getAttribute("y"));
+      const rw = parseFloat(rubberRect.getAttribute("width"));
+      const rh = parseFloat(rubberRect.getAttribute("height"));
+      const newSel = new Set();
+      for (const s of state.seats) {
+        if (s.x >= rx && s.x <= rx + rw && s.y >= ry && s.y <= ry + rh) newSel.add(s.external_id);
+      }
+      selected = newSel;
+      scheduleDraw();
+      return;
+    }
+
+    if (pointerMode === "seat-wait") {
+      // Pure click – update selection.
+      pointerMode = null;
+      if (pointerData.shiftKey) {
+        if (selected.has(pointerData.seat.external_id)) selected.delete(pointerData.seat.external_id);
+        else selected.add(pointerData.seat.external_id);
+        applySelectionClass(pointerData.seat.external_id);
+      } else {
+        const prev = Array.from(selected);
+        selected = new Set([pointerData.seat.external_id]);
+        prev.forEach(applySelectionClass);
+        applySelectionClass(pointerData.seat.external_id);
+      }
+      return;
+    }
+
+    if (pointerMode === "seat-drag") {
+      pointerMode = null;
+      svg.classList.remove("smartseat-dragging");
+      // Commit new positions into state.seats.
+      saveSnapshot();
+      for (const s of state.seats) {
+        if (!selected.has(s.external_id)) continue;
+        const node = renderedNodes.get(s.external_id);
+        if (node) {
+          s.x = parseFloat(node.getAttribute("cx"));
+          s.y = parseFloat(node.getAttribute("cy"));
+        }
+      }
+      scheduleDraw(); // full redraw syncs labels, text, etc.
+      return;
+    }
+
+    pointerMode = null;
   };
-  svg.addEventListener("pointerup", endPan);
-  svg.addEventListener("pointercancel", endPan);
+
+  svg.addEventListener("pointerup", endPointer);
+  svg.addEventListener("pointercancel", endPointer);
   svg.addEventListener("dblclick", resetView);
 
   let state = {
@@ -265,9 +454,10 @@
     }
   };
 
-  const onSeatClick = (seat, event) => {
-    event.stopPropagation(); // don't let the click start a background pan
-    if (event.shiftKey) {
+  // onSeatClick kept for keyboard/programmatic use; pointer interaction is
+  // now handled by the unified SVG pointer handler above.
+  const onSeatClick = (seat, shiftKey = false) => {
+    if (shiftKey) {
       if (selected.has(seat.external_id)) selected.delete(seat.external_id);
       else selected.add(seat.external_id);
       applySelectionClass(seat.external_id);
@@ -310,7 +500,7 @@
       circle.setAttribute("fill", seatColor(seat));
       circle.setAttribute("class", `smartseat-seat ${selected.has(seat.external_id) ? "selected" : ""}`);
       circle.setAttribute("data-id", seat.external_id);
-      circle.addEventListener("click", (event) => onSeatClick(seat, event));
+      // Seat clicks/drags are handled by the unified SVG pointer handler.
       svg.appendChild(circle);
       renderedNodes.set(seat.external_id, circle);
 
@@ -323,6 +513,8 @@
         svg.appendChild(label);
       }
     }
+    // Keep rubber-band rect on top of all seats.
+    svg.appendChild(rubberRect);
   };
 
   const refreshTemplatePanel = () => {

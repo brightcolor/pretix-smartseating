@@ -155,13 +155,13 @@
 #smartseat-editor svg {
   width: 100%;
   height: 640px;
-  touch-action: none; /* let the editor handle pinch/drag instead of the browser */
-  cursor: grab;
+  touch-action: none;
+  cursor: crosshair;  /* default = rubber-band selection mode */
 }
 
-#smartseat-editor svg.smartseat-panning {
-  cursor: grabbing;
-}
+#smartseat-editor svg.smartseat-space    { cursor: grab;     } /* Space held = pan ready */
+#smartseat-editor svg.smartseat-panning  { cursor: grabbing; } /* actively panning */
+#smartseat-editor svg.smartseat-dragging { cursor: move;     } /* dragging seats */
 
 .smartseat-seat {
   cursor: pointer;
