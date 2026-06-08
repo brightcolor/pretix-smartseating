@@ -419,3 +419,75 @@
 .smartseat-handle[data-handle="w"] { cursor: ew-resize; }
 .smartseat-handle[data-handle="ne"],
 .smartseat-handle[data-handle="sw"] { cursor: nesw-resize; }
+
+/* ─── Tool palette & tool settings ───────────────────────────────────────── */
+.smartseat-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.smartseat-tool {
+  border: 1px solid #c7ccd6;
+  background: #fff;
+  border-radius: 4px;
+  padding: 5px 9px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.smartseat-tool.active {
+  background: #0055cc;
+  border-color: #0055cc;
+  color: #fff;
+  font-weight: 600;
+}
+.smartseat-toolsettings .smartseat-gen-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.smartseat-toolsettings .smartseat-gen-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.smartseat-toolsettings .smartseat-gen-grid input,
+.smartseat-toolsettings .smartseat-gen-grid select {
+  border: 1px solid #c7ccd6;
+  border-radius: 4px;
+  padding: 4px 6px;
+}
+.smartseat-tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.smartseat-selection-actions { display: flex; gap: 6px; margin: 8px 0; }
+
+/* ─── Group list ─────────────────────────────────────────────────────────── */
+.smartseat-group-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+.smartseat-group-row input[type="text"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid #c7ccd6;
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+.smartseat-group-row button {
+  border: 1px solid #c7ccd6;
+  background: #fff;
+  border-radius: 4px;
+  width: 26px;
+  height: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+.smartseat-group-count { font-size: 10px; color: #6b7280; flex: 0 0 auto; }

@@ -91,6 +91,7 @@ def _clone_plan(preset: SeatingPlan, *, name: str, slug: str, is_template: bool)
         snap_enabled=preset.snap_enabled,
         is_template=is_template,
         area_shapes=list(preset.area_shapes or []),
+        seat_groups=list(preset.seat_groups or []),
     )
     category_map: dict[int, SeatCategory] = {}
     for category in preset.seat_categories.all():
@@ -376,6 +377,7 @@ def plan_export(request: HttpRequest, organizer: str, event: str, plan_id: int) 
             "categories": bundle.categories,
             "seats": bundle.seats,
             "areas": bundle.areas,
+            "groups": bundle.groups,
             "metadata": bundle.metadata,
         }
     )

@@ -452,6 +452,7 @@
   let state = {
     seats: [],
     areas: [],
+    groups: [],
     template_assets: [],
     categories: [{ code: "standard", name: "Standard", color: "#3B82F6", price_rank: 100 }],
     bounds: { width, height },
@@ -1382,6 +1383,7 @@
     populateCategoryOptions();
     populateInspectorCategorySelect();
     refreshCategoryList();
+    refreshGroupList();
     draw();
     refreshTemplatePanel();
   };
@@ -1395,6 +1397,7 @@
     populateCategoryOptions();
     populateInspectorCategorySelect();
     refreshCategoryList();
+    refreshGroupList();
     draw();
     refreshTemplatePanel();
   };
@@ -1407,6 +1410,7 @@
         seats: state.seats,
         categories: state.categories,
         areas: state.areas,
+        groups: state.groups,
         plan: state.plan,
         bounds: state.bounds,
       }),
@@ -1430,6 +1434,7 @@
           categories: data.categories?.length ? data.categories : state.categories,
           seats: data.seats || [],
           areas: data.areas || [],
+          groups: data.groups || [],
           template_assets: [],
           bounds: { width: data.plan.width, height: data.plan.height },
         };
@@ -1442,6 +1447,7 @@
     populateCategoryOptions();
     populateInspectorCategorySelect();
     refreshCategoryList();
+    refreshGroupList();
     await fetchTemplateAssets();
     resetView(); // fit the freshly loaded plan into the viewport (also draws)
   };
@@ -1464,29 +1470,129 @@
     }
   });
 
-  document.querySelectorAll(".smartseat-toolbar [data-action]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const action = button.getAttribute("data-action");
-      if (action === "add-row") addGeneratedRow();
-      else if (action === "generate-block") generateBlock();
-      else if (action === "generate-arc") generateArcRows({ semicircle: false });
-      else if (action === "generate-semicircle") generateArcRows({ semicircle: true });
-      else if (action === "add-stage") addArea("rectangle");
-      else if (action === "add-ellipse") addArea("ellipse");
-      else if (action === "add-label") addArea("text");
-      else if (action === "duplicate-selected") duplicateSelected();
-      else if (action === "delete-selected") deleteSelected();
-      else if (action === "undo") undo();
-      else if (action === "redo") redo();
-      else if (action === "save") save();
+  // ─── Groups (flat + nestable) ──────────────────────────────────────────────
+  const groupListEl = document.getElementById("smartseat-group-list");
+  const childrenOf = (gid) => (state.groups || []).filter((g) => g.parent === gid);
+  const groupSeatIds = (g) => {
+    let ids = [...(g.seat_ids || [])];
+    childrenOf(g.id).forEach((c) => { ids = ids.concat(groupSeatIds(c)); });
+    return ids;
+  };
+  const newGroupId = () => "g" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+  const groupSelected = () => {
+    if (!selected.size) return;
+    saveSnapshot();
+    const id = newGroupId();
+    const directSeatIds = new Set(selected);
+    // Existing top-level groups fully inside the selection become children.
+    (state.groups || []).forEach((g) => {
+      if (g.parent) return;
+      const gids = groupSeatIds(g);
+      if (gids.length && gids.every((sid) => selected.has(sid))) {
+        g.parent = id;
+        gids.forEach((sid) => directSeatIds.delete(sid));
+      }
     });
+    state.groups.push({ id, name: "Group " + (state.groups.length + 1), seat_ids: [...directSeatIds], parent: null });
+    refreshGroupList();
+    draw();
+  };
+
+  const selectGroup = (gid) => {
+    const g = (state.groups || []).find((x) => x.id === gid);
+    if (!g) return;
+    selected = new Set(groupSeatIds(g).filter((sid) => state.seats.some((s) => s.external_id === sid)));
+    selectedArea = null;
+    draw();
+  };
+
+  const ungroup = (gid) => {
+    const g = (state.groups || []).find((x) => x.id === gid);
+    if (!g) return;
+    saveSnapshot();
+    childrenOf(gid).forEach((c) => { c.parent = g.parent; });
+    state.groups = state.groups.filter((x) => x.id !== gid);
+    refreshGroupList();
+  };
+
+  const refreshGroupList = () => {
+    if (!groupListEl) return;
+    groupListEl.innerHTML = "";
+    const tops = (state.groups || []).filter((g) => !g.parent);
+    if (!tops.length) {
+      groupListEl.innerHTML = '<p class="smartseat-insp-hint">No groups yet.</p>';
+      return;
+    }
+    const renderRow = (g, depth) => {
+      const row = document.createElement("div");
+      row.className = "smartseat-group-row";
+      row.style.paddingLeft = `${depth * 14}px`;
+      const name = document.createElement("input");
+      name.type = "text";
+      name.value = g.name || "Group";
+      name.addEventListener("change", () => { g.name = name.value; });
+      const selBtn = document.createElement("button");
+      selBtn.type = "button";
+      selBtn.textContent = "◉";
+      selBtn.title = "Select group";
+      selBtn.addEventListener("click", () => selectGroup(g.id));
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.textContent = "⨯";
+      delBtn.title = "Ungroup";
+      delBtn.addEventListener("click", () => ungroup(g.id));
+      const count = document.createElement("span");
+      count.className = "smartseat-group-count";
+      count.textContent = groupSeatIds(g).length + "♦";
+      row.append(selBtn, name, count, delBtn);
+      groupListEl.appendChild(row);
+      childrenOf(g.id).forEach((c) => renderRow(c, depth + 1));
+    };
+    tops.forEach((g) => renderRow(g, 0));
+  };
+
+  // ─── Action routing (top bar + tool actions + inspector buttons) ───────────
+  const handleAction = (action) => {
+    switch (action) {
+      case "add-row": addGeneratedRow(); break;
+      case "generate-block": generateBlock(); break;
+      case "generate-arc": generateArcRows({ semicircle: false }); break;
+      case "generate-semicircle": generateArcRows({ semicircle: true }); break;
+      case "add-stage": addArea("rectangle"); break;
+      case "add-ellipse": addArea("ellipse"); break;
+      case "add-label": addArea("text"); break;
+      case "duplicate-selected": duplicateSelected(); break;
+      case "delete-selected": deleteSelected(); break;
+      case "group-selected": groupSelected(); break;
+      case "add-category": addCategory(); break;
+      case "delete-area": if (selectedArea !== null) deleteArea(selectedArea); break;
+      case "undo": undo(); break;
+      case "redo": redo(); break;
+      case "save": save(); break;
+      default: break;
+    }
+  };
+  document.querySelectorAll("[data-action]").forEach((btn) => {
+    btn.addEventListener("click", () => handleAction(btn.getAttribute("data-action")));
+  });
+  document.querySelectorAll("[data-tool-action]").forEach((btn) => {
+    btn.addEventListener("click", () => handleAction(btn.getAttribute("data-tool-action")));
   });
 
-  // ─── Inspector wiring (category management + selection properties) ─────────
-  document.querySelector('[data-action="add-category"]')?.addEventListener("click", addCategory);
-  document.querySelector('[data-action="delete-area"]')?.addEventListener("click", () => {
-    if (selectedArea !== null) deleteArea(selectedArea);
+  // ─── Tool palette ──────────────────────────────────────────────────────────
+  const setTool = (tool) => {
+    document.querySelectorAll(".smartseat-tool").forEach((b) =>
+      b.classList.toggle("active", b.getAttribute("data-tool") === tool));
+    document.querySelectorAll("[data-tools]").forEach((el) => {
+      const tools = (el.getAttribute("data-tools") || "").split(/\s+/);
+      el.hidden = !tools.includes(tool);
+    });
+  };
+  document.querySelectorAll(".smartseat-tool").forEach((b) => {
+    b.addEventListener("click", () => setTool(b.getAttribute("data-tool")));
   });
+  setTool("select");
 
   field("insp-category")?.addEventListener("change", (event) => {
     const code = event.target.value;

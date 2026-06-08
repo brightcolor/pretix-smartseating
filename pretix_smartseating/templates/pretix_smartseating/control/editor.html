@@ -10,19 +10,8 @@
 {% block content %}
 <h1>{{ plan.name }}: {% trans "Seat Editor" %}</h1>
 
-{# ── Toolbar ──────────────────────────────────────────────────────────────── #}
+{# ── Top action bar (document-level actions only) ─────────────────────────── #}
 <div class="smartseat-toolbar">
-  <button class="btn btn-default" data-action="add-row">{% trans "Add row" %}</button>
-  <button class="btn btn-default" data-action="generate-block">{% trans "Generate block" %}</button>
-  <button class="btn btn-default" data-action="generate-arc">{% trans "Generate arc row" %}</button>
-  <button class="btn btn-default" data-action="generate-semicircle">{% trans "Generate semicircle rows" %}</button>
-  <span class="smartseat-toolbar-sep"></span>
-  <button class="btn btn-default" data-action="add-stage">{% trans "+ Stage/Area" %}</button>
-  <button class="btn btn-default" data-action="add-ellipse">{% trans "+ Round area" %}</button>
-  <button class="btn btn-default" data-action="add-label">{% trans "+ Label" %}</button>
-  <span class="smartseat-toolbar-sep"></span>
-  <button class="btn btn-default" data-action="duplicate-selected">{% trans "Duplicate selected" %}</button>
-  <button class="btn btn-default" data-action="delete-selected">{% trans "Delete selected" %}</button>
   <button class="btn btn-default" data-action="undo">{% trans "Undo" %}</button>
   <button class="btn btn-default" data-action="redo">{% trans "Redo" %}</button>
   <button class="btn btn-primary" data-action="save">{% trans "Save" %}</button>
@@ -31,9 +20,9 @@
   <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_export_native" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export pretix JSON" %}</a>
   <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_import" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Import JSON" %}</a>
 </div>
-<p class="help-block">{% trans "Mouse wheel zooms · drag seats to move · drag empty canvas = rubber-band select · middle-mouse or Space+drag = pan · double-click fits view · Shift+click toggles" %}</p>
+<p class="help-block">{% trans "Mouse wheel zooms · drag seats to move · drag empty canvas = select · middle-mouse or Space+drag = pan · double-click fits view" %}</p>
 
-{# ── Workspace: canvas + inspector ───────────────────────────────────────── #}
+{# ── Workspace: canvas + sidebar ──────────────────────────────────────────── #}
 <div class="smartseat-workspace">
   <div id="smartseat-editor"
        data-save-url="{% url "plugins:pretix_smartseating:control.plan_save_layout" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}"
@@ -48,6 +37,66 @@
   </div>
 
   <aside class="smartseat-inspector">
+    {# ── Tool palette ── #}
+    <section class="smartseat-insp-section">
+      <h4>{% trans "Tool" %}</h4>
+      <div class="smartseat-tools">
+        <button type="button" class="smartseat-tool active" data-tool="select">{% trans "Select" %}</button>
+        <button type="button" class="smartseat-tool" data-tool="row">{% trans "Row" %}</button>
+        <button type="button" class="smartseat-tool" data-tool="block">{% trans "Block" %}</button>
+        <button type="button" class="smartseat-tool" data-tool="arc">{% trans "Arc" %}</button>
+        <button type="button" class="smartseat-tool" data-tool="stage">{% trans "Stage" %}</button>
+        <button type="button" class="smartseat-tool" data-tool="round">{% trans "Round" %}</button>
+        <button type="button" class="smartseat-tool" data-tool="label">{% trans "Label" %}</button>
+      </div>
+    </section>
+
+    {# ── Tool settings (shown per active tool) ── #}
+    <section class="smartseat-insp-section smartseat-toolsettings">
+      <p class="smartseat-insp-hint" data-tools="select">{% trans "Click a seat to select. Drag on empty canvas to rubber-band select. Shift-click toggles." %}</p>
+
+      <div class="smartseat-gen-grid">
+        <label data-tools="row block arc">{% trans "Block" %}<input data-field="gen-block" type="text" value="A"></label>
+        <label data-tools="row block arc">{% trans "Start row label" %}<input data-field="gen-row-start" type="text" value="A"></label>
+        <label data-tools="block arc">{% trans "Rows" %}<input data-field="gen-rows" type="number" min="1" max="60" value="5"></label>
+        <label data-tools="row block arc">{% trans "Seats / row" %}<input data-field="gen-seat-count" type="number" min="1" max="150" value="20"></label>
+        <label data-tools="block arc">{% trans "Row spacing" %}<input data-field="gen-row-spacing" type="number" min="5" value="28"></label>
+        <label data-tools="row block">{% trans "Seat spacing" %}<input data-field="gen-seat-spacing" type="number" min="5" value="28"></label>
+        <label data-tools="block">{% trans "Start X" %}<input data-field="gen-start-x" type="number" value="120"></label>
+        <label data-tools="block">{% trans "Start Y" %}<input data-field="gen-start-y" type="number" value="100"></label>
+        <label data-tools="arc">{% trans "Center X" %}<input data-field="gen-center-x" type="number" value="{{ plan.width|floatformat:0|default:'900' }}"></label>
+        <label data-tools="arc">{% trans "Center Y" %}<input data-field="gen-center-y" type="number" value="{{ plan.height|floatformat:0|default:'450' }}"></label>
+        <label data-tools="arc">{% trans "Start radius" %}<input data-field="gen-radius-start" type="number" min="20" value="200"></label>
+        <label data-tools="arc">{% trans "Start angle" %}<input data-field="gen-angle-start" type="number" min="-360" max="360" value="-70"></label>
+        <label data-tools="arc">{% trans "End angle" %}<input data-field="gen-angle-end" type="number" min="-360" max="360" value="70"></label>
+        <label data-tools="block arc">{% trans "Direction" %}
+          <select data-field="gen-direction">
+            <option value="ltr">{% trans "Left to right" %}</option>
+            <option value="rtl">{% trans "Right to left" %}</option>
+          </select>
+        </label>
+        <label data-tools="row block arc">{% trans "Numbering" %}
+          <select data-field="gen-numbering">
+            <option value="sequential">{% trans "Sequential" %}</option>
+            <option value="odd_even">{% trans "Odd/Even split" %}</option>
+          </select>
+        </label>
+        <label data-tools="row block arc">{% trans "Category" %}
+          <select data-field="gen-category"></select>
+        </label>
+      </div>
+
+      <div class="smartseat-tool-actions">
+        <button type="button" class="btn btn-primary btn-sm" data-tool-action="add-row" data-tools="row">{% trans "Add row" %}</button>
+        <button type="button" class="btn btn-primary btn-sm" data-tool-action="generate-block" data-tools="block">{% trans "Generate block" %}</button>
+        <button type="button" class="btn btn-primary btn-sm" data-tool-action="generate-arc" data-tools="arc">{% trans "Generate arc" %}</button>
+        <button type="button" class="btn btn-default btn-sm" data-tool-action="generate-semicircle" data-tools="arc">{% trans "Semicircle" %}</button>
+        <button type="button" class="btn btn-primary btn-sm" data-tool-action="add-stage" data-tools="stage">{% trans "Add stage / area" %}</button>
+        <button type="button" class="btn btn-primary btn-sm" data-tool-action="add-ellipse" data-tools="round">{% trans "Add round area" %}</button>
+        <button type="button" class="btn btn-primary btn-sm" data-tool-action="add-label" data-tools="label">{% trans "Add label" %}</button>
+      </div>
+    </section>
+
     {# ── Selection properties ── #}
     <section class="smartseat-insp-section">
       <h4>{% trans "Selection" %} <span class="smartseat-badge" data-role="sel-count">0</span></h4>
@@ -70,6 +119,12 @@
         <label class="smartseat-check"><input type="checkbox" data-field="insp-companion"> {% trans "Companion seat" %}</label>
         <label class="smartseat-check"><input type="checkbox" data-field="insp-blocked"> {% trans "Blocked (not sold)" %}</label>
         <label class="smartseat-check"><input type="checkbox" data-field="insp-technical"> {% trans "Technical block" %}</label>
+
+        <div class="smartseat-selection-actions">
+          <button type="button" class="btn btn-default btn-sm" data-action="group-selected">{% trans "Group" %}</button>
+          <button type="button" class="btn btn-default btn-sm" data-action="duplicate-selected">{% trans "Duplicate" %}</button>
+          <button type="button" class="btn btn-default btn-sm" data-action="delete-selected">{% trans "Delete" %}</button>
+        </div>
 
         <div class="smartseat-align">
           <span class="smartseat-insp-hint">{% trans "Align / distribute (2+ seats)" %}</span>
@@ -94,64 +149,23 @@
       <button type="button" class="btn btn-danger btn-sm" data-action="delete-area">{% trans "Delete area" %}</button>
     </section>
 
+    {# ── Groups ── #}
+    <section class="smartseat-insp-section">
+      <h4>{% trans "Groups" %}</h4>
+      <div id="smartseat-group-list"></div>
+      <p class="smartseat-insp-hint">{% trans "Select seats, then Group. Click a group to select it; drag to move it as one." %}</p>
+    </section>
+
     {# ── Category management ── #}
     <section class="smartseat-insp-section">
       <h4>{% trans "Categories (price zones)" %}</h4>
       <div id="smartseat-category-list"></div>
       <button type="button" class="btn btn-default btn-sm" data-action="add-category">+ {% trans "Add category" %}</button>
-      <p class="smartseat-insp-hint">{% trans "Each category maps to a product when you apply the plan to the event." %}</p>
     </section>
   </aside>
 </div>
 
-{# ── Row Generator (collapsed by default) ────────────────────────────────── #}
-<details class="smartseat-details">
-  <summary><strong>{% trans "Row, Block &amp; Curve Generator" %}</strong></summary>
-  <div class="smartseat-generator card card-body">
-    <div class="smartseat-generator-grid">
-      <label>{% trans "Block" %}<input data-field="gen-block" type="text" value="A"></label>
-      <label>{% trans "Start row label" %}<input data-field="gen-row-start" type="text" value="A"></label>
-      <label>{% trans "Rows" %}<input data-field="gen-rows" type="number" min="1" max="60" value="5"></label>
-      <label>{% trans "Seats per row" %}<input data-field="gen-seat-count" type="number" min="1" max="150" value="20"></label>
-      <label>{% trans "Row spacing" %}<input data-field="gen-row-spacing" type="number" min="5" value="28"></label>
-      <label>{% trans "Seat spacing" %}<input data-field="gen-seat-spacing" type="number" min="5" value="28"></label>
-      <label>{% trans "Numbering" %}
-        <select data-field="gen-numbering">
-          <option value="sequential">{% trans "Sequential" %}</option>
-          <option value="odd_even">{% trans "Odd/Even split" %}</option>
-        </select>
-      </label>
-      <label>{% trans "Direction" %}
-        <select data-field="gen-direction">
-          <option value="ltr">{% trans "Left to right" %}</option>
-          <option value="rtl">{% trans "Right to left" %}</option>
-        </select>
-      </label>
-      <label>{% trans "Category" %}
-        <select data-field="gen-category"></select>
-      </label>
-    </div>
-
-    <h4 class="smartseat-gen-sub">{% trans "Rectangular block" %}</h4>
-    <div class="smartseat-generator-grid">
-      <label>{% trans "Start X (top-left)" %}<input data-field="gen-start-x" type="number" value="120"></label>
-      <label>{% trans "Start Y (top-left)" %}<input data-field="gen-start-y" type="number" value="100"></label>
-    </div>
-    <p class="help-block">{% trans "Uses Block, Rows, Seats per row, Row/Seat spacing, Numbering and Category above. Click \"Generate block\" in the toolbar." %}</p>
-
-    <h4 class="smartseat-gen-sub">{% trans "Arc / semicircle" %}</h4>
-    <div class="smartseat-generator-grid">
-      <label>{% trans "Center X" %}<input data-field="gen-center-x" type="number" value="{{ plan.width|floatformat:0|default:'900' }}"></label>
-      <label>{% trans "Center Y" %}<input data-field="gen-center-y" type="number" value="{{ plan.height|floatformat:0|default:'450' }}"></label>
-      <label>{% trans "Start radius" %}<input data-field="gen-radius-start" type="number" min="20" value="200"></label>
-      <label>{% trans "Start angle (deg)" %}<input data-field="gen-angle-start" type="number" min="-360" max="360" value="-70"></label>
-      <label>{% trans "End angle (deg)" %}<input data-field="gen-angle-end" type="number" min="-360" max="360" value="70"></label>
-    </div>
-    <p class="help-block">{% trans "Set center, radius and angle range, then click Generate arc row or Generate semicircle rows." %}</p>
-  </div>
-</details>
-
-{# ── Background Template Layers (collapsed) ──────────────────────────────── #}
+{# ── Background Template Layers (collapsed, below canvas — rarely used) ────── #}
 <details class="smartseat-details">
   <summary><strong>{% trans "Background Template Layers" %}</strong></summary>
   <div class="smartseat-templates card card-body">
@@ -166,7 +180,6 @@
   </div>
 </details>
 
-{# ── Save-as-Preset ───────────────────────────────────────────────────────── #}
 <details class="smartseat-details">
   <summary><strong>{% trans "Save as Location Preset" %}</strong></summary>
   <form class="smartseat-inline-form card card-body" method="post" action="{% url "plugins:pretix_smartseating:control.plan_save_as_preset" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">

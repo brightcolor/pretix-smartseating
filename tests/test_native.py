@@ -293,6 +293,33 @@ def test_areas_import_export_roundtrip(local_plan):
 
 
 @pytest.mark.django_db
+def test_groups_import_export_roundtrip(local_plan):
+    from pretix_smartseating.services.import_export import export_plan, import_plan
+
+    groups = [
+        {"id": "g1", "name": "Left block", "seat_ids": ["A-1-1"], "parent": None},
+        {"id": "g2", "name": "All", "seat_ids": ["A-1-2"], "parent": None},
+    ]
+    payload = {
+        "plan": {"width": 1000, "height": 600},
+        "categories": [{"code": "stalls", "name": "Stalls"}],
+        "groups": groups,
+        "seats": [
+            {"external_id": "A-1-1", "block_label": "A", "row_label": "1", "seat_number": "1",
+             "category_code": "stalls", "x": 10, "y": 10},
+            {"external_id": "A-1-2", "block_label": "A", "row_label": "1", "seat_number": "2",
+             "category_code": "stalls", "x": 30, "y": 10},
+        ],
+        "bounds": {"width": 1000, "height": 600},
+    }
+    with scopes_disabled():
+        assert import_plan(local_plan, payload, replace_existing=True) == []
+        local_plan.refresh_from_db()
+        assert local_plan.seat_groups == groups
+        assert export_plan(local_plan).groups == groups
+
+
+@pytest.mark.django_db
 def test_build_layout_rejects_duplicate_seat_guids(local_plan, monkeypatch):
     # Force two seats to share a guid -> pretix validator must reject.
     seats = list(local_plan.seats.all())

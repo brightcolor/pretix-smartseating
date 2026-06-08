@@ -33,6 +33,9 @@ class SeatingPlan(models.Model):
     # NB: named area_shapes (not "areas") to avoid clashing with the SeatingArea
     # reverse accessor (related_name="areas"). The JSON key stays "areas".
     area_shapes = models.JSONField(default=list, blank=True)
+    # Editor-only seat groupings (nestable): list of
+    #   {id, name, seat_ids: [external_id, ...], parent: id|null}
+    seat_groups = models.JSONField(default=list, blank=True)
     # Link to the native pretix seating plan generated from this editor plan.
     # When set, pretix core owns checkout/holds/orders for the mapped event(s).
     pretix_plan = models.OneToOneField(
