@@ -373,6 +373,7 @@
       }
       selected = newSel;
       scheduleDraw();
+      if (newSel.size) setSidebarTab("edit");
       return;
     }
 
@@ -394,6 +395,7 @@
         applySelectionClass(pointerData.seat.external_id);
       }
       refreshInspector();
+      if (selected.size) setSidebarTab("edit");
       return;
     }
 
@@ -420,6 +422,7 @@
       selectedArea = pointerData.areaIndex;
       selected = new Set();
       draw();
+      setSidebarTab("edit");
       return;
     }
 
@@ -794,15 +797,18 @@
   };
 
   const refreshAreaInspector = () => {
-    const section = document.querySelector('[data-role="area-section"]');
-    if (!section || !areaFieldsEl) return;
+    const body = document.querySelector('[data-role="area-body"]');
+    const empty = document.querySelector('[data-role="area-empty"]');
+    if (!areaFieldsEl) return;
     const area = selectedArea !== null ? state.areas[selectedArea] : null;
     if (!area) {
-      section.hidden = true;
+      if (body) body.hidden = true;
+      if (empty) empty.hidden = false;
       areaFieldsEl.innerHTML = "";
       return;
     }
-    section.hidden = false;
+    if (body) body.hidden = false;
+    if (empty) empty.hidden = true;
     areaFieldsEl.innerHTML = "";
 
     const typeLine = document.createElement("p");
@@ -1739,9 +1745,28 @@
     if (title) title.textContent = TOOL_TITLES[tool] || "Tool";
   };
   document.querySelectorAll(".smartseat-tool").forEach((b) => {
-    b.addEventListener("click", () => setTool(b.getAttribute("data-tool")));
+    b.addEventListener("click", () => {
+      const t = b.getAttribute("data-tool");
+      setTool(t);
+      // Creation tools live on the Build tab; jump there for their settings.
+      if (t !== "select") setSidebarTab("build");
+    });
   });
+
+  // ─── Sidebar tabs ───────────────────────────────────────────────────────────
+  const setSidebarTab = (name) => {
+    document.querySelectorAll("[data-tab-btn]").forEach((b) =>
+      b.classList.toggle("active", b.getAttribute("data-tab-btn") === name));
+    document.querySelectorAll("[data-tab]").forEach((sec) => {
+      sec.hidden = sec.getAttribute("data-tab") !== name;
+    });
+  };
+  document.querySelectorAll("[data-tab-btn]").forEach((b) => {
+    b.addEventListener("click", () => setSidebarTab(b.getAttribute("data-tab-btn")));
+  });
+
   setTool("select");
+  setSidebarTab("build");
 
   field("insp-category")?.addEventListener("change", (event) => {
     const code = event.target.value;

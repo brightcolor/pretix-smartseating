@@ -627,3 +627,28 @@
 .smartseat-x-mark { stroke: #dc2626; stroke-dasharray: 60; stroke-dashoffset: 60; }
 
 @keyframes smartseat-draw { to { stroke-dashoffset: 0; } }
+
+/* ─── Sidebar tabs ───────────────────────────────────────────────────────── */
+.smartseat-tabs {
+  display: flex;
+  gap: 0;
+  margin: -12px -12px 12px;
+  border-bottom: 1px solid #d7d9dd;
+  position: sticky;
+  top: 0;
+  background: #fafbfc;
+  z-index: 2;
+}
+.smartseat-tab {
+  flex: 1 1 0;
+  border: none;
+  background: none;
+  padding: 10px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.smartseat-tab:hover { color: #2f3947; }
+.smartseat-tab.active { color: #0055cc; border-bottom-color: #0055cc; }
