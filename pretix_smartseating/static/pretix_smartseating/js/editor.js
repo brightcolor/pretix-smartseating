@@ -1439,10 +1439,36 @@
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      alert(`Validation failed: ${JSON.stringify(data.issues || data)}`);
+      showSaveFeedback(false, (data.issues || []).map((i) => i.message || i.code).join(" · ") || "Save failed");
       return;
     }
-    alert("Seat plan saved.");
+    showSaveFeedback(true);
+  };
+
+  // Transient saved overlay with an animated check mark (replaces alert()).
+  const showSaveFeedback = (ok, message) => {
+    const wrap = document.createElement("div");
+    wrap.className = "smartseat-saved" + (ok ? "" : " is-error");
+    if (ok) {
+      wrap.innerHTML =
+        '<div class="smartseat-saved-badge">' +
+        '<svg width="64" height="64" viewBox="0 0 60 60" aria-hidden="true">' +
+        '<circle class="smartseat-check-circle" cx="30" cy="30" r="27"/>' +
+        '<path class="smartseat-check-mark" d="M18 31 L26 39 L43 20"/>' +
+        "</svg></div>";
+      setTimeout(() => wrap.remove(), 1500);
+    } else {
+      wrap.innerHTML =
+        '<div class="smartseat-saved-badge">' +
+        '<svg width="64" height="64" viewBox="0 0 60 60" aria-hidden="true">' +
+        '<circle class="smartseat-check-circle smartseat-x-circle" cx="30" cy="30" r="27"/>' +
+        '<path class="smartseat-check-mark smartseat-x-mark" d="M20 20 L40 40 M40 20 L20 40"/>' +
+        "</svg>" +
+        '<div class="smartseat-saved-text"></div></div>';
+      wrap.querySelector(".smartseat-saved-text").textContent = message || "Save failed";
+      setTimeout(() => wrap.remove(), 3500);
+    }
+    document.body.appendChild(wrap);
   };
 
   const load = async () => {

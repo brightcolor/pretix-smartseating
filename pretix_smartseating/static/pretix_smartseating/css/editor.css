@@ -582,3 +582,48 @@
   border: none; background: none; color: #c0392b; cursor: pointer;
   flex: 0 0 auto; width: 20px; padding: 0;
 }
+
+/* ─── Animated "saved" overlay (replaces the save alert) ─────────────────── */
+.smartseat-saved {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4000;
+  pointer-events: none;
+}
+.smartseat-saved-badge {
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 16px;
+  padding: 22px 26px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  animation: smartseat-pop 0.22s ease-out, smartseat-fade 0.45s ease-in 0.95s forwards;
+}
+.smartseat-saved.is-error .smartseat-saved-badge {
+  animation: smartseat-pop 0.22s ease-out, smartseat-fade 0.45s ease-in 2.9s forwards;
+}
+.smartseat-saved-text { font-size: 13px; color: #b91c1c; max-width: 260px; text-align: center; }
+
+@keyframes smartseat-pop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes smartseat-fade { to { opacity: 0; } }
+
+.smartseat-check-circle {
+  stroke: #16a34a; stroke-width: 4; fill: none;
+  stroke-dasharray: 170; stroke-dashoffset: 170;
+  animation: smartseat-draw 0.5s ease-out forwards;
+}
+.smartseat-check-mark {
+  stroke: #16a34a; stroke-width: 5; fill: none;
+  stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 48; stroke-dashoffset: 48;
+  animation: smartseat-draw 0.3s 0.45s ease-out forwards;
+}
+.smartseat-x-circle { stroke: #dc2626; }
+.smartseat-x-mark { stroke: #dc2626; stroke-dasharray: 60; stroke-dashoffset: 60; }
+
+@keyframes smartseat-draw { to { stroke-dashoffset: 0; } }
