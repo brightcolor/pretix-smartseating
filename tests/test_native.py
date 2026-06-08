@@ -1,6 +1,9 @@
 """Tests for the native pretix seating bridge."""
+from datetime import timedelta
+
 import pytest
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from django_scopes import scopes_disabled
 
 from pretix_smartseating.models import SeatDefinition
@@ -105,6 +108,55 @@ def test_sync_unmapped_category_leaves_seats_unsold(event, local_plan):
         seats = Seat.objects.filter(event=event)
         assert seats.count() == 2
         assert all(s.product_id is None for s in seats)
+
+
+@pytest.mark.django_db
+def test_native_seat_available_then_held_by_cart(event, item, local_plan):
+    """End-to-end: generated seats use pretix' native availability + hold logic.
+
+    A cart position holds the seat against everyone else (parallel double
+    booking prevented) but not against its own cart, and an expired cart
+    releases it — exactly the contract pretix' checkout relies on.
+    """
+    from pretix.base.models import CartPosition, Seat
+
+    sync_plan_to_event(event=event, plan=local_plan, product_map={"stalls": item})
+    with scopes_disabled():
+        seat = Seat.objects.filter(event=event, blocked=False).first()
+        assert seat.is_available() is True
+
+        cart = CartPosition.objects.create(
+            event=event,
+            cart_id="cart-A",
+            item=item,
+            price=item.default_price,
+            expires=timezone.now() + timedelta(minutes=10),
+            seat=seat,
+            subevent=None,
+        )
+        # Held for everyone else, but the holding cart may still use it.
+        assert seat.is_available() is False
+        assert seat.is_available(ignore_cart=cart) is True
+
+        # Expired hold frees the seat again.
+        cart.expires = timezone.now() - timedelta(minutes=1)
+        cart.save()
+        assert seat.is_available() is True
+
+
+@pytest.mark.django_db
+def test_native_blocked_seat_not_available(event, item, local_plan):
+    from pretix.base.models import Seat
+
+    with scopes_disabled():
+        s = local_plan.seats.get(external_id="A-1-2")
+        s.is_blocked = True
+        s.save()
+    sync_plan_to_event(event=event, plan=local_plan, product_map={"stalls": item})
+    with scopes_disabled():
+        blocked = Seat.objects.get(event=event, blocked=True)
+        # Default settings allow blocked seats for no sales channel.
+        assert blocked.is_available() is False
 
 
 @pytest.mark.django_db
