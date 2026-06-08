@@ -29,6 +29,18 @@
     if (!url) return;
     var form = host.closest("form");
 
+    // Show normal ticket products first, then the seat plan below them:
+    // move our container to the end of the cart form (pretix renders the
+    // seating block above the product list by default).
+    if (form) form.appendChild(host);
+
+    var heading = el("h3", { class: "smartseat-shop-heading", text: t("Choose your seats") });
+    host.appendChild(heading);
+
+    // Price-zone legend (filled after fetch) + seat-state legend
+    var priceLegend = el("div", { class: "smartseat-shop-prices" });
+    host.appendChild(priceLegend);
+
     // UI scaffold
     var legend = el("div", { class: "smartseat-shop-legend" });
     [["free", t("Available")], ["sel", t("Selected")], ["taken", t("Unavailable")], ["blk", t("Blocked")]]
@@ -56,6 +68,8 @@
     var view = { x: 0, y: 0, w: 1000, h: 600 };
     var selected = {}; // guid -> product
     var nodes = {};    // guid -> circle
+    var currency = "";
+    var priceByProduct = {}; // product id -> {price, ...}
 
     function applyViewBox() { svg.setAttribute("viewBox", view.x + " " + view.y + " " + view.w + " " + view.h); }
 
@@ -70,7 +84,18 @@
         form.appendChild(inp); n += 1;
       });
       submit.disabled = n === 0;
-      status.textContent = n ? (t("Selected seats:") + " " + n) : t("Pick your seats on the map.");
+      if (!n) {
+        status.textContent = t("Pick your seats on the map.");
+        return;
+      }
+      var total = 0, haveAll = true;
+      Object.keys(selected).forEach(function (guid) {
+        var p = priceByProduct[selected[guid]];
+        if (p && p.price !== null && p.price !== undefined) total += parseFloat(p.price) || 0;
+        else haveAll = false;
+      });
+      status.textContent = t("Selected seats:") + " " + n
+        + (haveAll ? " · " + t("Total:") + " " + fmtPrice(total.toFixed(2), currency) : "");
     }
 
     function toggle(seat, circle) {
@@ -80,9 +105,27 @@
       syncForm();
     }
 
+    function fmtPrice(p, cur) {
+      if (p === null || p === undefined || p === "") return "";
+      var n = parseFloat(p);
+      return (isNaN(n) ? p : n.toFixed(2)) + (cur ? " " + cur : "");
+    }
+
     function render(data) {
       while (svg.firstChild) svg.removeChild(svg.firstChild);
       nodes = {};
+      currency = data.currency || "";
+      priceByProduct = {};
+      (data.products || []).forEach(function (p) { priceByProduct[p.id] = p; });
+
+      // Price-zone legend
+      priceLegend.innerHTML = "";
+      (data.products || []).forEach(function (p) {
+        priceLegend.appendChild(el("span", { class: "smartseat-shop-price" }, [
+          el("span", { class: "smartseat-shop-dot", style: "background:" + (p.color || "#3B82F6") }),
+          document.createTextNode(" " + (p.name || t("Seat")) + " — " + fmtPrice(p.price, currency)),
+        ]));
+      });
       var sz = data.size || { width: 1000, height: 600 };
       view = { x: -20, y: -20, w: (sz.width || 1000) + 40, h: (sz.height || 600) + 40 };
       applyViewBox();
@@ -93,7 +136,9 @@
         if (seat.blocked) cls += "blk"; else if (!seat.available) cls += "taken"; else cls += "free";
         c.setAttribute("class", cls);
         if (seat.available) c.style.fill = seat.color || "#16a34a";
-        var label = (seat.label || "") + (seat.available ? "" : " (" + t("unavailable") + ")");
+        var priceTxt = fmtPrice(seat.price, currency);
+        var label = (seat.label || "") + (priceTxt ? " · " + priceTxt : "")
+          + (seat.available ? "" : " (" + t("unavailable") + ")");
         c.setAttribute("tabindex", seat.available ? "0" : "-1");
         c.setAttribute("role", "button");
         c.setAttribute("aria-label", label);

@@ -46,3 +46,14 @@
   .smartseat-shop-submit { width: 100%; }
   .smartseat-shop-svg { height: 55vh; }
 }
+
+.smartseat-shop-heading { margin: 18px 0 8px; }
+.smartseat-shop-prices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.smartseat-shop-price { display: inline-flex; align-items: center; gap: 5px; }
+.smartseat-shop-price .smartseat-shop-dot { border: 1px solid #1b2736; }

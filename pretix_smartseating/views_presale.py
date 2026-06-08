@@ -116,32 +116,52 @@ def api_seatmap(request: HttpRequest, organizer: str, event: str) -> JsonRespons
         # otherwise the seat looks free but the cart rejects it. Cache per item.
         from pretix.base.models import Item, Quota
         product_ok: dict[int, bool] = {}
+        product_info: dict[int, dict] = {}
+
+        def _item(pid):
+            if pid not in product_info:
+                try:
+                    it = Item.objects.get(pk=pid, event=event_obj)
+                    product_info[pid] = {"name": str(it.name), "price": str(it.default_price)}
+                    product_ok[pid] = it.check_quotas(subevent=subevent, count_waitinglist=False)[0] == Quota.AVAILABILITY_OK
+                except Exception:
+                    product_info[pid] = {"name": "", "price": None}
+                    product_ok[pid] = False
+            return product_info[pid]
 
         def _product_available(pid: int | None) -> bool:
             if not pid:
                 return False
-            if pid not in product_ok:
-                try:
-                    item = Item.objects.get(pk=pid, event=event_obj)
-                    flag = item.check_quotas(subevent=subevent, count_waitinglist=False)[0]
-                    product_ok[pid] = flag == Quota.AVAILABILITY_OK
-                except Exception:
-                    product_ok[pid] = False
-            return product_ok[pid]
+            _item(pid)
+            return product_ok.get(pid, False)
 
+        products: dict[int, dict] = {}
         seats = []
         for s in annotated:
             taken = bool(getattr(s, "has_order", False) or getattr(s, "has_cart", False)
                          or getattr(s, "has_voucher", False))
+            colour = colours.get(s.seat_guid, "#3B82F6")
+            info = _item(s.product_id) if s.product_id else {"name": "", "price": None}
+            if s.product_id and s.product_id not in products:
+                products[s.product_id] = {
+                    "id": s.product_id, "name": info["name"], "price": info["price"], "color": colour,
+                }
             seats.append({
                 "guid": s.seat_guid,
                 "x": s.x if s.x is not None else 0,
                 "y": s.y if s.y is not None else 0,
                 "label": str(s),
                 "product": s.product_id,
-                "color": colours.get(s.seat_guid, "#3B82F6"),
+                "price": info["price"],
+                "color": colour,
                 "available": (not s.blocked and not taken and _product_available(s.product_id)),
                 "blocked": bool(s.blocked),
             })
 
-    return JsonResponse({"ok": True, "size": {"width": width, "height": height}, "seats": seats})
+    return JsonResponse({
+        "ok": True,
+        "size": {"width": width, "height": height},
+        "currency": event_obj.currency,
+        "products": list(products.values()),
+        "seats": seats,
+    })

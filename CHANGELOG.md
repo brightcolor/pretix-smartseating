@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-06-08
+
+### Added
+- Shop seat map shows **prices**: a price-zone legend (colour · product ·
+  price), the price in each seat's tooltip, and a running total while
+  selecting. The seatmap endpoint now returns `currency`, `products`
+  (id/name/price/colour) and a per-seat `price`.
+
+### Changed
+- Shop layout: the normal ticket products are shown first; the seat plan is
+  moved **below** them (the renderer relocates itself to the end of the cart
+  form, with a "Choose your seats" heading).
+
 ## [0.5.1] - 2026-06-08
 
 ### Fixed
