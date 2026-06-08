@@ -15,6 +15,8 @@ Checkout, den Order-Lifecycle sowie die Anzeige des Sitzplatzes auf Ticket und i
   - Sitzreihen-Generator, Bogen-/Halbrund-Generator (Center/Radius/Winkel, mehrere Reihen)
   - Hintergrund-Vorlagen (PNG/JPG/WEBP/GIF/SVG/PDF) als Layer mit Position/Skalierung/Rotation/Opacity
   - Multi-Select (Shift+Click), Duplicate/Delete, Bulk-Block/Unblock, Undo/Redo
+  - Pan/Zoom (Mausrad/Drag/Pinch, Doppelklick = einpassen) mit Viewport-Culling: nur sichtbare
+    Sitze werden gerendert, Labels ab vielen sichtbaren Sitzen ausgeblendet → große Pläne bleiben flüssig
   - Kategorien (Preiszonen) per Farbe, Sitztypen (normal, Rollstuhl, Begleitung, technisch, VIP)
   - JSON Import/Export, Validierung gegen doppelte Sitze/Labels und fehlende Kategorien
 - **Standort-Presets**: Plan als Preset speichern und für weitere Events kopieren.
@@ -94,8 +96,9 @@ DJANGO_SETTINGS_MODULE=pretix.testutils.settings python -m django check
   mobile-first Selector-Widget ist Roadmap.
 - Auto-Seat liefert Vorschläge über einen read-only Endpunkt; das Vorbelegen im pretix-Shop-Frontend
   ist noch nicht automatisch verdrahtet (Frontend-Hook ausstehend).
-- Sehr große Pläne (10k+ Sitze) im Editor: Viewport-Culling ist vorgesehen, derzeit dokumentierte
-  Grenze ~2.000 Sitze für flüssiges Editieren.
+- Editor-Performance: Viewport-Culling + Label-Begrenzung sind aktiv (gerendert wird nur der
+  sichtbare Ausschnitt), wodurch große Pläne navigierbar bleiben. Das initiale Laden des gesamten
+  Plan-JSON bleibt linear zur Sitzanzahl.
 
 ## Dokumentation
 

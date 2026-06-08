@@ -15,8 +15,104 @@
   const templateUploadForm = document.getElementById("smartseat-template-upload-form");
 
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
   host.appendChild(svg);
+
+  // --- Pan / zoom / viewport-culling ----------------------------------------
+  // The visible region is expressed as a viewBox. draw() only renders seats
+  // inside it (+ margin), so very large plans stay responsive: rendering cost
+  // scales with what's on screen, not with the total seat count.
+  const MIN_VIEW = 60;
+  const MAX_VIEW_FACTOR = 4;
+  const LABEL_SEAT_LIMIT = 400; // skip per-seat text labels above this many visible seats
+  const view = { x: 0, y: 0, w: width, h: height };
+  let drawScheduled = false;
+
+  const applyViewBox = () => {
+    svg.setAttribute("viewBox", `${view.x} ${view.y} ${view.w} ${view.h}`);
+  };
+  applyViewBox();
+
+  const scheduleDraw = () => {
+    if (drawScheduled) return;
+    drawScheduled = true;
+    requestAnimationFrame(() => {
+      drawScheduled = false;
+      draw();
+    });
+  };
+
+  const clientToSvg = (clientX, clientY) => {
+    const rect = svg.getBoundingClientRect();
+    if (!rect.width || !rect.height) return { x: view.x, y: view.y };
+    return {
+      x: view.x + ((clientX - rect.left) / rect.width) * view.w,
+      y: view.y + ((clientY - rect.top) / rect.height) * view.h,
+    };
+  };
+
+  const resetView = () => {
+    const bounds = (state && state.bounds) ? state.bounds : { width, height };
+    view.x = 0;
+    view.y = 0;
+    view.w = Number(bounds.width) || width;
+    view.h = Number(bounds.height) || height;
+    applyViewBox();
+    scheduleDraw();
+  };
+
+  svg.addEventListener(
+    "wheel",
+    (event) => {
+      event.preventDefault();
+      const factor = event.deltaY < 0 ? 0.85 : 1.18;
+      const focus = clientToSvg(event.clientX, event.clientY);
+      const maxW = width * MAX_VIEW_FACTOR;
+      const maxH = height * MAX_VIEW_FACTOR;
+      const newW = Math.min(Math.max(view.w * factor, MIN_VIEW), maxW);
+      const newH = Math.min(Math.max(view.h * factor, MIN_VIEW), maxH);
+      // Keep the point under the cursor stationary while zooming.
+      view.x = focus.x - (focus.x - view.x) * (newW / view.w);
+      view.y = focus.y - (focus.y - view.y) * (newH / view.h);
+      view.w = newW;
+      view.h = newH;
+      applyViewBox();
+      scheduleDraw();
+    },
+    { passive: false }
+  );
+
+  // Drag the empty background to pan (drags starting on a seat select instead).
+  let panning = null;
+  svg.addEventListener("pointerdown", (event) => {
+    if (event.target !== svg) return; // only when grabbing empty canvas
+    panning = { startX: event.clientX, startY: event.clientY, viewX: view.x, viewY: view.y };
+    svg.setPointerCapture(event.pointerId);
+    svg.classList.add("smartseat-panning");
+  });
+  svg.addEventListener("pointermove", (event) => {
+    if (!panning) return;
+    const rect = svg.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const dx = ((event.clientX - panning.startX) / rect.width) * view.w;
+    const dy = ((event.clientY - panning.startY) / rect.height) * view.h;
+    view.x = panning.viewX - dx;
+    view.y = panning.viewY - dy;
+    applyViewBox();
+    scheduleDraw();
+  });
+  const endPan = (event) => {
+    if (!panning) return;
+    panning = null;
+    svg.classList.remove("smartseat-panning");
+    try {
+      svg.releasePointerCapture(event.pointerId);
+    } catch (_e) {
+      // ignore
+    }
+  };
+  svg.addEventListener("pointerup", endPan);
+  svg.addEventListener("pointercancel", endPan);
+  svg.addEventListener("dblclick", resetView);
 
   let state = {
     seats: [],
@@ -158,10 +254,55 @@
     });
   };
 
+  // Maps external_id -> currently rendered circle node, so selection changes
+  // can update just the affected nodes instead of redrawing the whole plan.
+  const renderedNodes = new Map();
+
+  const applySelectionClass = (externalId) => {
+    const node = renderedNodes.get(externalId);
+    if (node) {
+      node.setAttribute("class", `smartseat-seat ${selected.has(externalId) ? "selected" : ""}`);
+    }
+  };
+
+  const onSeatClick = (seat, event) => {
+    event.stopPropagation(); // don't let the click start a background pan
+    if (event.shiftKey) {
+      if (selected.has(seat.external_id)) selected.delete(seat.external_id);
+      else selected.add(seat.external_id);
+      applySelectionClass(seat.external_id);
+    } else {
+      const previous = Array.from(selected);
+      selected = new Set([seat.external_id]);
+      previous.forEach(applySelectionClass);
+      applySelectionClass(seat.external_id);
+    }
+  };
+
   const draw = () => {
     while (svg.firstChild) svg.removeChild(svg.firstChild);
+    renderedNodes.clear();
     drawBackgroundAssets();
-    state.seats.forEach((seat) => {
+
+    // Viewport culling: only build DOM for seats inside the visible region.
+    const marginX = view.w * 0.05;
+    const marginY = view.h * 0.05;
+    const minX = view.x - marginX;
+    const maxX = view.x + view.w + marginX;
+    const minY = view.y - marginY;
+    const maxY = view.y + view.h + marginY;
+
+    const visible = [];
+    for (const seat of state.seats) {
+      const sx = Number(seat.x);
+      const sy = Number(seat.y);
+      if (sx < minX || sx > maxX || sy < minY || sy > maxY) continue;
+      visible.push(seat);
+    }
+    // Labels are the most expensive part; only render them when few seats show.
+    const showLabels = visible.length <= LABEL_SEAT_LIMIT;
+
+    for (const seat of visible) {
       const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
       circle.setAttribute("cx", seat.x);
       circle.setAttribute("cy", seat.y);
@@ -169,24 +310,19 @@
       circle.setAttribute("fill", seatColor(seat));
       circle.setAttribute("class", `smartseat-seat ${selected.has(seat.external_id) ? "selected" : ""}`);
       circle.setAttribute("data-id", seat.external_id);
-      circle.addEventListener("click", (event) => {
-        if (event.shiftKey) {
-          if (selected.has(seat.external_id)) selected.delete(seat.external_id);
-          else selected.add(seat.external_id);
-        } else {
-          selected = new Set([seat.external_id]);
-        }
-        draw();
-      });
+      circle.addEventListener("click", (event) => onSeatClick(seat, event));
       svg.appendChild(circle);
+      renderedNodes.set(seat.external_id, circle);
 
-      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      label.setAttribute("x", seat.x + 10);
-      label.setAttribute("y", seat.y + 4);
-      label.setAttribute("font-size", "10");
-      label.textContent = `${seat.row_label}${seat.seat_number}`;
-      svg.appendChild(label);
-    });
+      if (showLabels) {
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("x", seat.x + 10);
+        label.setAttribute("y", seat.y + 4);
+        label.setAttribute("font-size", "10");
+        label.textContent = `${seat.row_label}${seat.seat_number}`;
+        svg.appendChild(label);
+      }
+    }
   };
 
   const refreshTemplatePanel = () => {
@@ -506,7 +642,7 @@
     field("gen-center-y").value = Math.round(state.bounds.height / 2);
     populateCategoryOptions();
     await fetchTemplateAssets();
-    draw();
+    resetView(); // fit the freshly loaded plan into the viewport (also draws)
   };
 
   document.addEventListener("keydown", (event) => {

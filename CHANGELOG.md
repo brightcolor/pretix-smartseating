@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Editor pan/zoom (wheel/drag/pinch, double-click to fit) with **viewport
+  culling**: only seats inside the visible region are rendered and per-seat
+  labels are suppressed above a visibility threshold, so large plans stay
+  responsive. Selection no longer redraws the whole plan (only affected nodes
+  update).
 - Auto-seat wired to native availability: `services.native.suggest_seats`
   ranks an available seat group using `Seat.is_available()` (respects live
   carts/orders/vouchers). New read-only GET endpoint
