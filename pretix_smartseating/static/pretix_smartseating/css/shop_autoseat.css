@@ -1,0 +1,75 @@
+/* Smart Seating auto-seat helper — mobile-first bottom sheet on the seating page. */
+.smartseat-as-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: #fff;
+  border-top: 1px solid #d0d0d0;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.12);
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 16px;
+}
+
+.smartseat-as-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.smartseat-as-label {
+  flex: 0 0 auto;
+  margin: 0;
+  font-weight: 600;
+}
+
+.smartseat-as-qty,
+.smartseat-as-mode {
+  flex: 1 1 auto;
+  min-height: 44px; /* comfortable touch target */
+  font-size: 16px;
+  padding: 6px 10px;
+}
+
+.smartseat-as-btn {
+  min-height: 48px;
+  font-size: 16px;
+  font-weight: 600;
+  width: 100%;
+}
+
+.smartseat-as-result {
+  min-height: 1.2em;
+}
+
+.smartseat-as-list {
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.smartseat-as-hint {
+  color: #555;
+  font-size: 0.9em;
+  margin-top: 2px;
+}
+
+/* Best-effort highlight when the plan exposes per-seat DOM nodes. */
+.smartseat-suggested {
+  outline: 3px solid #16a34a !important;
+  outline-offset: 1px;
+}
+
+@media (min-width: 768px) {
+  .smartseat-as-panel {
+    left: auto;
+    right: 16px;
+    bottom: 16px;
+    width: 340px;
+    border: 1px solid #d0d0d0;
+    border-radius: 10px;
+  }
+}
