@@ -54,6 +54,11 @@ urlpatterns = [
         name="control.plan_export",
     ),
     path(
+        "control/event/<str:organizer>/<str:event>/smartseating/<int:plan_id>/export-native/",
+        views_control.plan_export_native,
+        name="control.plan_export_native",
+    ),
+    path(
         "control/event/<str:organizer>/<str:event>/smartseating/<int:plan_id>/assets/",
         views_control.plan_template_assets,
         name="control.plan_template_assets",

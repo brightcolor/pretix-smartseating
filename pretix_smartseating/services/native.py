@@ -99,22 +99,96 @@ def build_pretix_layout(plan: LocalPlan) -> dict:
             "position": {"x": float(seat.x), "y": float(seat.y)},
         })
 
+    zone_list = [
+        {
+            "name": zone["name"],
+            "position": zone["position"],
+            "rows": list(zone["rows"].values()),
+        }
+        for zone in zones.values()
+    ]
+
+    # Decorative areas (stage/bar/labels) go into a dedicated zone with no rows.
+    area_shapes = list(plan.area_shapes or [])
+    if area_shapes:
+        zone_list.append({
+            "name": "Decorations",
+            "position": {"x": 0, "y": 0},
+            "rows": [],
+            "areas": area_shapes,
+        })
+
     layout = {
         "name": plan.name,
         "categories": categories,
-        "zones": [
-            {
-                "name": zone["name"],
-                "position": zone["position"],
-                "rows": list(zone["rows"].values()),
-            }
-            for zone in zones.values()
-        ],
+        "zones": zone_list,
         "size": {"width": int(plan.width), "height": int(plan.height)},
     }
     # Raises django ValidationError if the layout is malformed.
     SeatingPlanLayoutValidator()(layout)
     return layout
+
+
+def layout_from_pretix(data: dict) -> dict:
+    """Convert a pretix / seats.pretix.eu seating layout into our internal
+    editor payload (the shape expected by ``import_plan``).
+
+    Validates against pretix' schema first, then flattens zones/rows into the
+    editor's flat seat list (absolute coordinates, block = zone name) and
+    collects all decorative areas.
+    """
+    if not isinstance(data, dict):
+        raise ValueError("Layout must be a JSON object.")
+    SeatingPlanLayoutValidator()(data)  # raises django ValidationError if invalid
+
+    size = data.get("size") or {}
+    width = int(size.get("width") or 1000)
+    height = int(size.get("height") or 600)
+
+    categories = []
+    for idx, cat in enumerate(data.get("categories", [])):
+        name = cat.get("name", "")
+        categories.append({
+            "code": name,
+            "name": name,
+            "color": cat.get("color", "#3B82F6"),
+            "price_rank": (idx + 1) * 10,
+        })
+
+    seats: list[dict] = []
+    areas: list[dict] = []
+    for zone in data.get("zones", []):
+        zpos = zone.get("position", {})
+        zx, zy = float(zpos.get("x", 0)), float(zpos.get("y", 0))
+        zone_name = zone.get("name") or zone.get("zone_id") or "Main"
+        areas.extend(zone.get("areas", []) or [])
+        for ri, row in enumerate(zone.get("rows", [])):
+            rpos = row.get("position", {})
+            rx, ry = float(rpos.get("x", 0)), float(rpos.get("y", 0))
+            row_number = str(row.get("row_number", ri))
+            row_label = row.get("row_label") or row_number
+            for si, seat in enumerate(row.get("seats", [])):
+                spos = seat.get("position", {})
+                seats.append({
+                    "external_id": seat["seat_guid"],
+                    "block_label": zone_name,
+                    "row_label": row_label,
+                    "seat_number": str(seat.get("seat_number", si + 1)),
+                    "seat_index": si,
+                    "row_index": ri,
+                    "category_code": seat.get("category"),
+                    "x": zx + rx + float(spos.get("x", 0)),
+                    "y": zy + ry + float(spos.get("y", 0)),
+                })
+
+    return {
+        "plan": {"name": data.get("name", ""), "width": width, "height": height,
+                 "grid_size": 10, "snap_enabled": True},
+        "bounds": {"width": width, "height": height},
+        "categories": categories,
+        "seats": seats,
+        "areas": areas,
+    }
 
 
 def blocked_seat_guids(plan: LocalPlan) -> set[str]:
@@ -281,6 +355,7 @@ __all__ = [
     "SeatSuggestion",
     "SeatProtected",
     "build_pretix_layout",
+    "layout_from_pretix",
     "blocked_seat_guids",
     "sync_plan_to_event",
     "detach_plan_from_event",

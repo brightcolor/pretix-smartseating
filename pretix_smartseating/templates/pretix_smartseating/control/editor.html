@@ -23,6 +23,7 @@
   <button class="btn btn-primary" data-action="save">{% trans "Save" %}</button>
   <a class="btn btn-success" href="{% url "plugins:pretix_smartseating:control.plan_apply" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Apply to event (sell seats)" %}</a>
   <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export JSON" %}</a>
+  <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_export_native" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export pretix JSON" %}</a>
   <a class="btn btn-default" href="{% url "plugins:pretix_smartseating:control.plan_import" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Import JSON" %}</a>
 </div>
 <p class="help-block">{% trans "Mouse wheel zooms · drag seats to move · drag empty canvas = rubber-band select · middle-mouse or Space+drag = pan · double-click fits view · Shift+click toggles" %}</p>

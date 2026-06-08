@@ -5,6 +5,7 @@ from pathlib import Path
 
 from defusedxml import ElementTree as SafeET
 from django.contrib import messages
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.files.base import ContentFile
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -27,6 +28,8 @@ from pretix_smartseating.services.import_export import export_plan, import_plan
 from pretix_smartseating.services.native import (
     DEFAULT_CATEGORY_NAME,
     SeatProtected,
+    build_pretix_layout,
+    layout_from_pretix,
     sync_plan_to_event,
 )
 
@@ -379,17 +382,42 @@ def plan_export(request: HttpRequest, organizer: str, event: str, plan_id: int) 
 
 
 @event_permission_required("can_change_event_settings")
+@require_http_methods(["GET"])
+def plan_export_native(request: HttpRequest, organizer: str, event: str, plan_id: int) -> JsonResponse:
+    """Download the plan in pretix / seats.pretix.eu native layout format."""
+    plan = _plan_for_event(request, plan_id)
+    try:
+        layout = build_pretix_layout(plan)
+    except DjangoValidationError as exc:
+        return JsonResponse({"ok": False, "error": "invalid_layout", "detail": str(exc)}, status=400)
+    response = JsonResponse(layout, json_dumps_params={"indent": 2})
+    response["Content-Disposition"] = f'attachment; filename="{plan.slug}-pretix-layout.json"'
+    return response
+
+
+@event_permission_required("can_change_event_settings")
 @require_http_methods(["GET", "POST"])
 def plan_import(request: HttpRequest, organizer: str, event: str, plan_id: int) -> HttpResponse:
     plan = _plan_for_event(request, plan_id)
     if request.method == "POST":
         form = ImportPlanForm(request.POST)
         if form.is_valid():
-            issues = import_plan(
-                plan,
-                form.cleaned_data["payload"],
-                replace_existing=form.cleaned_data["replace_existing"],
-            )
+            payload = form.cleaned_data["payload"]
+            # Auto-detect a pretix / seats.pretix.eu layout and convert it.
+            if isinstance(payload, dict) and "zones" in payload and "size" in payload:
+                try:
+                    payload = layout_from_pretix(payload)
+                except (ValueError, DjangoValidationError) as exc:
+                    messages.error(request, _("Invalid pretix layout: {error}").format(error=str(exc)))
+                    payload = None
+            if payload is None:
+                issues = [{"code": "invalid", "message": "conversion failed"}]
+            else:
+                issues = import_plan(
+                    plan,
+                    payload,
+                    replace_existing=form.cleaned_data["replace_existing"],
+                )
             if issues:
                 for issue in issues:
                     messages.error(request, f"{issue['code']}: {issue['message']}")

@@ -10,6 +10,7 @@ from pretix_smartseating.models import EventSeatPlanMapping, SeatDefinition
 from pretix_smartseating.services.native import (
     DEFAULT_CATEGORY_NAME,
     build_pretix_layout,
+    layout_from_pretix,
     suggest_seats,
     sync_plan_to_event,
 )
@@ -212,6 +213,55 @@ def test_suggest_endpoint_rejects_bad_quantity(client, event):
     resp = client.get(url)
     assert resp.status_code == 400
     assert resp.json()["error"] == "invalid_quantity"
+
+
+@pytest.mark.django_db
+def test_build_layout_includes_areas(local_plan):
+    with scopes_disabled():
+        local_plan.area_shapes = [
+            {"shape": "rectangle", "position": {"x": 0, "y": 0},
+             "rectangle": {"width": 100, "height": 20}, "color": "#000000"},
+        ]
+        local_plan.save()
+    layout = build_pretix_layout(local_plan)
+    decor = [z for z in layout["zones"] if z.get("areas")]
+    assert decor and decor[0]["areas"][0]["shape"] == "rectangle"
+
+
+def test_layout_from_pretix_roundtrip():
+    pretix_layout = {
+        "name": "Imported Hall",
+        "size": {"width": 800, "height": 400},
+        "categories": [{"name": "stalls", "color": "#ff0000"}],
+        "zones": [{
+            "name": "Block A",
+            "position": {"x": 50, "y": 10},
+            "areas": [{"shape": "text", "position": {"x": 0, "y": 0},
+                       "text": {"text": "Stage", "position": {"x": 0, "y": 0}}}],
+            "rows": [{
+                "row_number": "1", "row_label": "Row 1", "position": {"x": 5, "y": 0},
+                "seats": [
+                    {"seat_guid": "g1", "seat_number": "1", "category": "stalls",
+                     "position": {"x": 0, "y": 0}},
+                    {"seat_guid": "g2", "seat_number": "2", "category": "stalls",
+                     "position": {"x": 30, "y": 0}},
+                ],
+            }],
+        }],
+    }
+    payload = layout_from_pretix(pretix_layout)
+    assert payload["plan"]["width"] == 800
+    assert {c["code"] for c in payload["categories"]} == {"stalls"}
+    assert len(payload["seats"]) == 2
+    s1 = next(s for s in payload["seats"] if s["external_id"] == "g1")
+    # absolute x = zone(50) + row(5) + seat(0)
+    assert s1["x"] == 55 and s1["block_label"] == "Block A"
+    assert payload["areas"][0]["shape"] == "text"
+
+
+def test_layout_from_pretix_rejects_invalid():
+    with pytest.raises(Exception):
+        layout_from_pretix({"not": "a valid layout"})
 
 
 @pytest.mark.django_db

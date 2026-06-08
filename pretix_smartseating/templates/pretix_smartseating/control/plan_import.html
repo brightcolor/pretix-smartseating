@@ -5,6 +5,9 @@
 
 {% block content %}
 <h1>{% trans "Import seating plan" %}: {{ plan.name }}</h1>
+<p class="help-block">
+  {% trans "Paste either this plugin's own JSON export, or a pretix / seats.pretix.eu layout (with \"zones\" and \"size\") — the format is detected automatically." %}
+</p>
 <form method="post">
   {% csrf_token %}
   {% bootstrap_form form %}
