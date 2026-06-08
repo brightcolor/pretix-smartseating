@@ -1,2 +1,1 @@
-default_app_config = "pretix_smartseating.apps.PluginApp"
-
+__version__ = "0.3.0"

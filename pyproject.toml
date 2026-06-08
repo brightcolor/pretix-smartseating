@@ -1,13 +1,13 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools", "pretix-plugin-build"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pretix-smartseating"
-version = "0.2.0"
-description = "Production-ready reserved seating plugin for pretix with editor and auto-seat logic."
+dynamic = ["version"]
+description = "Reserved seating plugin for pretix with a visual editor, seat holds and auto-seat logic."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { file = "LICENSE" }
 authors = [
   { name = "Smart Seating Contributors" }
@@ -15,14 +15,17 @@ authors = [
 keywords = ["pretix", "plugin", "seating", "ticketing", "django"]
 classifiers = [
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Framework :: Django",
   "License :: OSI Approved :: MIT License",
   "Intended Audience :: Developers"
 ]
+# Django is governed by the installed pretix release; do not pin it here.
 dependencies = [
-  "Django>=4.2",
-  "pretix>=2025.1",
   "pypdfium2>=4.30",
+  "defusedxml>=0.7",
 ]
 
 [project.optional-dependencies]
@@ -36,13 +39,20 @@ dev = [
 [project.entry-points."pretix.plugin"]
 pretix_smartseating = "pretix_smartseating:PretixPluginMeta"
 
+[project.entry-points."distutils.commands"]
+build = "pretix_plugin_build.build:CustomBuild"
+
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools.dynamic]
+version = { attr = "pretix_smartseating.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["pretix_smartseating*"]
 
 [tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "pretix.testutils.settings"
 python_files = ["tests.py", "test_*.py"]
 addopts = "-q -p no:cacheprovider"
 testpaths = ["tests"]
@@ -50,8 +60,8 @@ norecursedirs = [".*", "build", "dist", "pytest-cache-files-*"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py311"
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 ignore_missing_imports = true
