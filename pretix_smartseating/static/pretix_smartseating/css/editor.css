@@ -106,11 +106,50 @@
   padding: 4px 8px;
 }
 
+/* Canvas — shown immediately below the toolbar */
 #smartseat-editor {
   border: 1px solid #d7d9dd;
   background: linear-gradient(180deg, #f5f8fc, #f0f3f7);
   min-height: 640px;
   position: relative;
+  margin-bottom: 16px;
+}
+
+/* Collapsible tool sections below the canvas */
+.smartseat-details {
+  margin-top: 12px;
+  border: 1px solid #d7d9dd;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.smartseat-details summary {
+  padding: 10px 14px;
+  cursor: pointer;
+  background: #f8f9fb;
+  user-select: none;
+  list-style: none;
+}
+
+.smartseat-details summary::-webkit-details-marker { display: none; }
+
+.smartseat-details summary::before {
+  content: "▶ ";
+  font-size: 0.75em;
+  opacity: 0.6;
+}
+
+.smartseat-details[open] summary::before {
+  content: "▼ ";
+}
+
+.smartseat-details .card.card-body,
+.smartseat-details .smartseat-generator.card.card-body,
+.smartseat-details .smartseat-templates.card.card-body,
+.smartseat-details .smartseat-inline-form.card.card-body {
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid #e8e8e8;
 }
 
 #smartseat-editor svg {
