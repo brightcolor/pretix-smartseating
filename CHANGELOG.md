@@ -5,10 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] - 2026-06-08
+
+Editor overhaul toward a seats.pretix.eu-style experience.
 
 ### Added
-- **Decorative areas & labels** in the editor (seats.pretix.eu-style): stage,
+- **First-class Zones** (sidebar list, add/rename/activate/delete, per-zone
+  seat counts); a seat's zone is its `block_label`, new seats go to the active
+  zone. Persisted in `SeatingPlan.zones`; round-tripped + extracted on import.
+- **Tabbed sidebar** (Build / Edit / Plan) with auto-switching; tools moved to
+  a top toolbar above the canvas; Plan properties (size, live seat count) and
+  per-category seat counts.
+- **Resize handles** for areas; **rotation-aware** resize.
+- **Seat grouping** (nestable): group/ungroup, select & move a group as one.
+- **Decorative areas & labels** (seats.pretix.eu-style): stage,
   bar, round areas and text labels (rectangle/ellipse/text), draggable and
   editable (fill/border colour, size, rotation, text). Stored in
   `SeatingPlan.area_shapes`, round-tripped through save/import/export and
@@ -32,6 +42,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `…/smartseating/<org>/<event>/autoseat-suggest/`; booking still goes through
   the pretix cart. Covered by tests (held-seat skip, bad-quantity reject,
   GET-only).
+- Shop auto-seat helper injected into the native seating page via
+  `seatingframe_html_head` (read-only suggestions).
+
+### Changed
+- Save shows an animated check-mark overlay instead of a blocking `alert()`.
+
+### Fixed
+- Exact cursor↔canvas mapping via `getScreenCTM()` (marquee/drag/zoom were
+  desynced when the canvas aspect ratio differed from the viewBox).
+- Background images set `pointer-events: none` so selection/tools work over them.
+- Duplicate visible seat labels (block/row/seat) no longer block import; only
+  the seat GUID is unique, matching pretix core (DB constraint dropped).
 
 ## [0.3.0] - 2026-06-08
 
