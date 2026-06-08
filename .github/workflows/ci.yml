@@ -25,5 +25,9 @@ jobs:
         run: ruff check .
       - name: Type check
         run: mypy pretix_smartseating
+      - name: Django system check
+        env:
+          DJANGO_SETTINGS_MODULE: pretix.testutils.settings
+        run: python -m django check
       - name: Tests
         run: pytest

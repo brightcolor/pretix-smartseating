@@ -2,17 +2,18 @@ import json
 import re
 from io import BytesIO
 from pathlib import Path
-from xml.etree import ElementTree
 
+from defusedxml import ElementTree as SafeET
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_http_methods
-from pretix.base.models import Event
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
+from pretix.base.models import SubEvent
+from pretix.control.permissions import event_permission_required
 
 from pretix_smartseating.forms import ImportPlanForm, SeatingPlanForm
 from pretix_smartseating.models import (
@@ -23,12 +24,45 @@ from pretix_smartseating.models import (
     SeatingTemplateAsset,
 )
 from pretix_smartseating.services.import_export import export_plan, import_plan
+from pretix_smartseating.services.native import (
+    DEFAULT_CATEGORY_NAME,
+    SeatProtected,
+    sync_plan_to_event,
+)
 
+# Hard caps for untrusted background-plan uploads.
 MAX_TEMPLATE_UPLOAD_BYTES = 25 * 1024 * 1024
+MAX_IMAGE_PIXELS = 40_000_000  # ~40 MP, guards against decompression bombs
+MAX_JSON_BODY_BYTES = 5 * 1024 * 1024
+
+# Pillow's own bomb guard; keep it a touch above our explicit check.
+Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS + 1_000_000
+
+ALLOWED_RASTER_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+ALLOWED_RASTER_MIME = {"image/png", "image/jpeg", "image/webp", "image/gif"}
+
+# SVG elements/attributes that can execute script or load remote content.
+_SVG_FORBIDDEN_TAGS = {"script", "foreignobject", "iframe", "embed", "object", "animate",
+                       "set", "handler", "use"}
+_SVG_FORBIDDEN_ATTR_PREFIXES = ("on",)
+_SVG_FORBIDDEN_ATTR_VALUES = re.compile(r"(javascript:|data:text/html)", re.IGNORECASE)
 
 
-def _event_from_url(organizer: str, event: str) -> Event:
-    return get_object_or_404(Event, organizer__slug=organizer, slug=event)
+def _local_tag(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1].lower() if isinstance(tag, str) else ""
+
+
+def _plan_for_event(request: HttpRequest, plan_id: int) -> SeatingPlan:
+    # Scope every plan lookup to the organizer the permission check passed for,
+    # so a valid plan_id from another organizer cannot be reached.
+    return get_object_or_404(SeatingPlan, id=plan_id, scope_organizer=request.organizer)
+
+
+def _read_json_body(request: HttpRequest) -> dict:
+    body = request.body or b""
+    if len(body) > MAX_JSON_BODY_BYTES:
+        raise ValueError("Request body is too large.")
+    return json.loads(body.decode("utf-8")) if body else {}
 
 
 def _unique_slug(organizer, desired_slug: str) -> str:
@@ -135,59 +169,90 @@ def _serialize_template_asset(request: HttpRequest, asset: SeatingTemplateAsset)
     }
 
 
-def _image_dimensions(content: bytes) -> tuple[int, int]:
-    with Image.open(BytesIO(content)) as image:
-        return image.size
+def _verify_raster(content: bytes) -> tuple[int, int]:
+    """Validate that the bytes are a real, sanely-sized raster image."""
+    try:
+        with Image.open(BytesIO(content)) as probe:
+            probe.verify()  # detects truncated/forged images
+        with Image.open(BytesIO(content)) as image:
+            width, height = image.size
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
+        raise ValueError(_("The uploaded file is not a valid image.")) from exc
+    if width * height > MAX_IMAGE_PIXELS:
+        raise ValueError(_("The uploaded image exceeds the maximum allowed resolution."))
+    return width, height
 
 
-def _svg_dimensions(content: bytes) -> tuple[int, int]:
-    root = ElementTree.fromstring(content)
-    width_raw = root.get("width", "") or ""
-    height_raw = root.get("height", "") or ""
+def _sanitize_svg(content: bytes) -> tuple[bytes, tuple[int, int]]:
+    """Parse the SVG defensively (no XXE/entity expansion), strip scriptable
+    constructs and re-serialize. Returns sanitized bytes and dimensions."""
+    try:
+        root = SafeET.fromstring(content)
+    except SafeET.ParseError as exc:
+        raise ValueError(_("The uploaded SVG could not be parsed.")) from exc
+    except Exception as exc:  # defusedxml raises on entity-expansion attacks
+        raise ValueError(_("The uploaded SVG was rejected for security reasons.")) from exc
 
+    def scrub(element):
+        for attr in list(element.attrib):
+            local = attr.rsplit("}", 1)[-1].lower()
+            value = element.attrib[attr]
+            if local.startswith(_SVG_FORBIDDEN_ATTR_PREFIXES) or _SVG_FORBIDDEN_ATTR_VALUES.search(value or ""):
+                del element.attrib[attr]
+        for child in list(element):
+            if _local_tag(child.tag) in _SVG_FORBIDDEN_TAGS:
+                element.remove(child)
+            else:
+                scrub(child)
+
+    scrub(root)
+    sanitized = SafeET.tostring(root)
+    if isinstance(sanitized, str):
+        sanitized = sanitized.encode("utf-8")
+    width, height = _svg_dimensions(root)
+    return sanitized, (width, height)
+
+
+def _svg_dimensions(root) -> tuple[int, int]:
     def _num(value: str) -> int | None:
-        match = re.search(r"([0-9]+(?:\.[0-9]+)?)", value)
-        if not match:
-            return None
-        return int(float(match.group(1)))
+        match = re.search(r"([0-9]+(?:\.[0-9]+)?)", value or "")
+        return int(float(match.group(1))) if match else None
 
-    width_val = _num(width_raw)
-    height_val = _num(height_raw)
+    width_val = _num(root.get("width", ""))
+    height_val = _num(root.get("height", ""))
     if width_val and height_val:
         return width_val, height_val
-
     view_box = root.get("viewBox", "") or ""
-    if view_box:
-        parts = [p for p in re.split(r"[,\s]+", view_box.strip()) if p]
-        if len(parts) == 4:
-            try:
-                return int(float(parts[2])), int(float(parts[3]))
-            except ValueError:
-                pass
+    parts = [p for p in re.split(r"[,\s]+", view_box.strip()) if p]
+    if len(parts) == 4:
+        try:
+            return int(float(parts[2])), int(float(parts[3]))
+        except ValueError:
+            pass
     return 1000, 600
 
 
 def _pdf_to_png_content(pdf_content: bytes) -> tuple[ContentFile, int, int]:
     try:
-        import pypdfium2  # type: ignore
+        import pypdfium2
     except Exception as exc:
-        raise RuntimeError("PDF support is unavailable: pypdfium2 is missing.") from exc
+        raise RuntimeError(_("PDF support is unavailable: pypdfium2 is missing.")) from exc
 
     pdf = pypdfium2.PdfDocument(pdf_content)
     if len(pdf) < 1:
-        raise ValueError("PDF does not contain any pages.")
+        raise ValueError(_("PDF does not contain any pages."))
     page = pdf[0]
     pil_image = page.render(scale=2).to_pil()
+    if pil_image.width * pil_image.height > MAX_IMAGE_PIXELS:
+        raise ValueError(_("The rendered PDF page exceeds the maximum allowed resolution."))
     output = BytesIO()
     pil_image.save(output, format="PNG")
-    png_bytes = output.getvalue()
-    width, height = pil_image.size
-    return ContentFile(png_bytes), width, height
+    return ContentFile(output.getvalue()), pil_image.width, pil_image.height
 
 
-@login_required
+@event_permission_required("can_change_event_settings")
 def plan_list(request: HttpRequest, organizer: str, event: str) -> HttpResponse:
-    event_obj = _event_from_url(organizer, event)
+    event_obj = request.event
     mappings = (
         EventSeatPlanMapping.objects.select_related("plan")
         .filter(event=event_obj, subevent__isnull=True)
@@ -202,10 +267,10 @@ def plan_list(request: HttpRequest, organizer: str, event: str) -> HttpResponse:
     )
 
 
-@login_required
+@event_permission_required("can_change_event_settings")
 @require_http_methods(["GET", "POST"])
 def plan_create(request: HttpRequest, organizer: str, event: str) -> HttpResponse:
-    event_obj = _event_from_url(organizer, event)
+    event_obj = request.event
     if request.method == "POST":
         form = SeatingPlanForm(request.POST)
         if form.is_valid():
@@ -213,7 +278,7 @@ def plan_create(request: HttpRequest, organizer: str, event: str) -> HttpRespons
             plan.scope_organizer = event_obj.organizer
             plan.save()
             EventSeatPlanMapping.objects.get_or_create(event=event_obj, subevent=None, defaults={"plan": plan})
-            messages.success(request, "Seating plan created.")
+            messages.success(request, _("Seating plan created."))
             return redirect(
                 reverse(
                     "plugins:pretix_smartseating:control.plan_editor",
@@ -225,13 +290,13 @@ def plan_create(request: HttpRequest, organizer: str, event: str) -> HttpRespons
     return render(request, "pretix_smartseating/control/plan_form.html", {"form": form, "event": event_obj})
 
 
-@login_required
+@event_permission_required("can_change_event_settings")
 @require_http_methods(["POST"])
 def plan_create_from_preset(request: HttpRequest, organizer: str, event: str) -> HttpResponse:
-    event_obj = _event_from_url(organizer, event)
+    event_obj = request.event
     preset_id = request.POST.get("preset_id")
     if not preset_id:
-        messages.error(request, "Please select a preset.")
+        messages.error(request, _("Please select a preset."))
         return redirect(
             reverse("plugins:pretix_smartseating:control.plan_list", kwargs={"organizer": organizer, "event": event})
         )
@@ -245,7 +310,8 @@ def plan_create_from_preset(request: HttpRequest, organizer: str, event: str) ->
     target_slug = _unique_slug(event_obj.organizer, request.POST.get("slug") or preset.slug)
     target = _clone_plan(preset, name=target_name, slug=target_slug, is_template=False)
     EventSeatPlanMapping.objects.get_or_create(event=event_obj, subevent=None, defaults={"plan": target})
-    messages.success(request, f"Created seating plan '{target.name}' from preset '{preset.name}'.")
+    messages.success(request, _("Created seating plan '{name}' from preset '{preset}'.").format(
+        name=target.name, preset=preset.name))
     return redirect(
         reverse(
             "plugins:pretix_smartseating:control.plan_editor",
@@ -254,27 +320,25 @@ def plan_create_from_preset(request: HttpRequest, organizer: str, event: str) ->
     )
 
 
-@login_required
+@event_permission_required("can_change_event_settings")
 @require_http_methods(["GET"])
 def plan_editor(request: HttpRequest, organizer: str, event: str, plan_id: int) -> HttpResponse:
-    event_obj = _event_from_url(organizer, event)
-    plan = get_object_or_404(SeatingPlan, id=plan_id, scope_organizer=event_obj.organizer)
+    plan = _plan_for_event(request, plan_id)
     return render(
         request,
         "pretix_smartseating/control/editor.html",
-        {"event": event_obj, "plan": plan},
+        {"event": request.event, "plan": plan},
     )
 
 
-@login_required
+@event_permission_required("can_change_event_settings")
 @require_http_methods(["POST"])
 def plan_save_as_preset(request: HttpRequest, organizer: str, event: str, plan_id: int) -> HttpResponse:
-    event_obj = _event_from_url(organizer, event)
-    plan = get_object_or_404(SeatingPlan, id=plan_id, scope_organizer=event_obj.organizer)
+    plan = _plan_for_event(request, plan_id)
     preset_name = (request.POST.get("name") or f"{plan.name} preset").strip()
-    preset_slug = _unique_slug(event_obj.organizer, request.POST.get("slug") or f"{plan.slug}-preset")
+    preset_slug = _unique_slug(request.organizer, request.POST.get("slug") or f"{plan.slug}-preset")
     preset = _clone_plan(plan, name=preset_name, slug=preset_slug, is_template=True)
-    messages.success(request, f"Preset '{preset.name}' has been created.")
+    messages.success(request, _("Preset '{name}' has been created.").format(name=preset.name))
     return redirect(
         reverse(
             "plugins:pretix_smartseating:control.plan_editor",
@@ -283,23 +347,24 @@ def plan_save_as_preset(request: HttpRequest, organizer: str, event: str, plan_i
     )
 
 
-@login_required
+@event_permission_required("can_change_event_settings")
 @require_http_methods(["POST"])
 def plan_save_layout(request: HttpRequest, organizer: str, event: str, plan_id: int) -> JsonResponse:
-    event_obj = _event_from_url(organizer, event)
-    plan = get_object_or_404(SeatingPlan, id=plan_id, scope_organizer=event_obj.organizer)
-    payload = json.loads(request.body.decode("utf-8"))
+    plan = _plan_for_event(request, plan_id)
+    try:
+        payload = _read_json_body(request)
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError):
+        return JsonResponse({"ok": False, "error": "invalid_payload"}, status=400)
     issues = import_plan(plan, payload, replace_existing=True, save_version=True)
     if issues:
         return JsonResponse({"ok": False, "issues": issues}, status=400)
     return JsonResponse({"ok": True})
 
 
-@login_required
+@event_permission_required("can_change_event_settings")
 @require_http_methods(["GET"])
 def plan_export(request: HttpRequest, organizer: str, event: str, plan_id: int) -> JsonResponse:
-    event_obj = _event_from_url(organizer, event)
-    plan = get_object_or_404(SeatingPlan, id=plan_id, scope_organizer=event_obj.organizer)
+    plan = _plan_for_event(request, plan_id)
     bundle = export_plan(plan)
     return JsonResponse(
         {
@@ -311,11 +376,10 @@ def plan_export(request: HttpRequest, organizer: str, event: str, plan_id: int) 
     )
 
 
-@login_required
+@event_permission_required("can_change_event_settings")
 @require_http_methods(["GET", "POST"])
 def plan_import(request: HttpRequest, organizer: str, event: str, plan_id: int) -> HttpResponse:
-    event_obj = _event_from_url(organizer, event)
-    plan = get_object_or_404(SeatingPlan, id=plan_id, scope_organizer=event_obj.organizer)
+    plan = _plan_for_event(request, plan_id)
     if request.method == "POST":
         form = ImportPlanForm(request.POST)
         if form.is_valid():
@@ -328,7 +392,7 @@ def plan_import(request: HttpRequest, organizer: str, event: str, plan_id: int) 
                 for issue in issues:
                     messages.error(request, f"{issue['code']}: {issue['message']}")
             else:
-                messages.success(request, "Plan imported.")
+                messages.success(request, _("Plan imported."))
                 return redirect(
                     reverse(
                         "plugins:pretix_smartseating:control.plan_editor",
@@ -340,27 +404,90 @@ def plan_import(request: HttpRequest, organizer: str, event: str, plan_id: int) 
     return render(
         request,
         "pretix_smartseating/control/plan_import.html",
-        {"form": form, "event": event_obj, "plan": plan},
+        {"form": form, "event": request.event, "plan": plan},
     )
 
 
-@login_required
+@event_permission_required("can_change_event_settings")
+@require_http_methods(["GET", "POST"])
+def plan_apply(request: HttpRequest, organizer: str, event: str, plan_id: int) -> HttpResponse:
+    """Push a local editor plan to pretix' native seating for this (sub)event.
+
+    Lets the user map each editor seat category to a pretix product, then
+    delegates holds/checkout/orders to pretix core via ``sync_plan_to_event``.
+    """
+    plan = _plan_for_event(request, plan_id)
+    ev = request.event
+    items = list(ev.items.filter(active=True))
+    categories = list(plan.seat_categories.all())
+    has_uncategorized = plan.seats.filter(category__isnull=True, is_hidden=False).exists()
+
+    # Build the list of layout categories the user must map (code + label).
+    mappable = [{"code": c.code, "label": c.name or c.code} for c in categories]
+    if has_uncategorized:
+        mappable.append({"code": DEFAULT_CATEGORY_NAME, "label": _("Uncategorized seats")})
+
+    subevent = None
+    raw_subevent = request.POST.get("subevent") or request.GET.get("subevent")
+    if ev.has_subevents and raw_subevent:
+        subevent = get_object_or_404(SubEvent, event=ev, pk=int(raw_subevent))
+
+    if request.method == "POST":
+        product_map: dict[str, object] = {}
+        for entry in mappable:
+            value = request.POST.get(f"cat_{entry['code']}")
+            if value:
+                product_map[entry["code"]] = next((i for i in items if str(i.pk) == value), None)
+        try:
+            result = sync_plan_to_event(event=ev, plan=plan, product_map=product_map, subevent=subevent)
+        except SeatProtected as exc:
+            messages.error(request, str(exc))
+        except Exception as exc:  # validation / unexpected -> surface, do not 500
+            messages.error(request, _("Could not apply the plan: {error}").format(error=str(exc)))
+        else:
+            messages.success(
+                request,
+                _("Plan applied: {seats} seats generated ({blocked} blocked). "
+                  "Mapped categories: {mapped}. Unmapped: {unmapped}.").format(
+                    seats=result.seat_count,
+                    blocked=result.blocked_count,
+                    mapped=", ".join(result.mapped_categories) or "-",
+                    unmapped=", ".join(result.unmapped_categories) or "-",
+                ),
+            )
+            return redirect(
+                reverse(
+                    "plugins:pretix_smartseating:control.plan_editor",
+                    kwargs={"organizer": organizer, "event": event, "plan_id": plan.id},
+                )
+            )
+
+    return render(
+        request,
+        "pretix_smartseating/control/plan_apply.html",
+        {
+            "event": ev,
+            "plan": plan,
+            "items": items,
+            "mappable": mappable,
+            "subevents": ev.subevents.all() if ev.has_subevents else [],
+            "selected_subevent": subevent,
+        },
+    )
+
+
+@event_permission_required("can_change_event_settings")
 @require_http_methods(["GET"])
 def plan_template_assets(request: HttpRequest, organizer: str, event: str, plan_id: int) -> JsonResponse:
-    event_obj = _event_from_url(organizer, event)
-    plan = get_object_or_404(SeatingPlan, id=plan_id, scope_organizer=event_obj.organizer)
-    assets = [
-        _serialize_template_asset(request, asset)
-        for asset in plan.template_assets.all()
-    ]
+    plan = _plan_for_event(request, plan_id)
+    assets = [_serialize_template_asset(request, asset) for asset in plan.template_assets.all()]
     return JsonResponse({"ok": True, "assets": assets})
 
 
-@login_required
+@event_permission_required("can_change_event_settings")
 @require_http_methods(["POST"])
 def plan_template_asset_upload(request: HttpRequest, organizer: str, event: str, plan_id: int) -> JsonResponse:
-    event_obj = _event_from_url(organizer, event)
-    plan = get_object_or_404(SeatingPlan, id=plan_id, scope_organizer=event_obj.organizer)
+    plan = _plan_for_event(request, plan_id)
     upload = request.FILES.get("file")
     if not upload:
         return JsonResponse({"ok": False, "message": "No file provided."}, status=400)
@@ -368,100 +495,106 @@ def plan_template_asset_upload(request: HttpRequest, organizer: str, event: str,
         return JsonResponse({"ok": False, "message": "File is too large."}, status=400)
 
     file_name = upload.name or "template"
-    source_mime = upload.content_type or ""
+    ext = Path(file_name).suffix.lower()
+    source_mime = (upload.content_type or "").lower()
     content = upload.read()
     requested_name = (request.POST.get("name") or "").strip() or file_name
-    source_kind = SeatingTemplateAsset.SourceKind.IMAGE
 
     try:
-        if file_name.lower().endswith(".pdf") or source_mime == "application/pdf":
-            source_kind = SeatingTemplateAsset.SourceKind.PDF
+        if ext == ".pdf" or source_mime == "application/pdf":
             png_content, width, height = _pdf_to_png_content(content)
-            output_name = f"{file_name.rsplit('.', 1)[0]}-page1.png"
+            output_name = f"{Path(file_name).stem}-page1.png"
             asset = SeatingTemplateAsset.objects.create(
                 plan=plan,
                 name=requested_name,
-                source_kind=source_kind,
+                source_kind=SeatingTemplateAsset.SourceKind.PDF,
                 source_name=file_name,
-                source_mime=source_mime or "application/pdf",
+                source_mime="application/pdf",
                 width=width,
                 height=height,
                 z_index=plan.template_assets.count(),
             )
             asset.image.save(output_name, png_content, save=True)
-        else:
-            if file_name.lower().endswith(".svg") or source_mime == "image/svg+xml":
-                width, height = _svg_dimensions(content)
-            else:
-                width, height = _image_dimensions(content)
-            image_content = ContentFile(content)
+        elif ext == ".svg" or source_mime == "image/svg+xml":
+            sanitized, (width, height) = _sanitize_svg(content)
             asset = SeatingTemplateAsset.objects.create(
                 plan=plan,
                 name=requested_name,
-                source_kind=source_kind,
+                source_kind=SeatingTemplateAsset.SourceKind.IMAGE,
                 source_name=file_name,
-                source_mime=source_mime,
+                source_mime="image/svg+xml",
                 width=width,
                 height=height,
                 z_index=plan.template_assets.count(),
             )
-            asset.image.save(file_name, image_content, save=True)
-    except Exception as exc:
+            asset.image.save(f"{Path(file_name).stem}.svg", ContentFile(sanitized), save=True)
+        elif ext in ALLOWED_RASTER_EXT or source_mime in ALLOWED_RASTER_MIME:
+            width, height = _verify_raster(content)
+            asset = SeatingTemplateAsset.objects.create(
+                plan=plan,
+                name=requested_name,
+                source_kind=SeatingTemplateAsset.SourceKind.IMAGE,
+                source_name=file_name,
+                source_mime=source_mime or "application/octet-stream",
+                width=width,
+                height=height,
+                z_index=plan.template_assets.count(),
+            )
+            asset.image.save(file_name, ContentFile(content), save=True)
+        else:
+            return JsonResponse(
+                {"ok": False, "message": "Unsupported file type. Allowed: PNG, JPG, WEBP, GIF, SVG, PDF."},
+                status=400,
+            )
+    except (ValueError, RuntimeError) as exc:
         return JsonResponse({"ok": False, "message": str(exc)}, status=400)
 
     return JsonResponse({"ok": True, "asset": _serialize_template_asset(request, asset)})
 
 
-@login_required
+@event_permission_required("can_change_event_settings")
 @require_http_methods(["POST"])
 def plan_template_asset_update(
-    request: HttpRequest,
-    organizer: str,
-    event: str,
-    plan_id: int,
-    asset_id: int,
+    request: HttpRequest, organizer: str, event: str, plan_id: int, asset_id: int
 ) -> JsonResponse:
-    event_obj = _event_from_url(organizer, event)
-    plan = get_object_or_404(SeatingPlan, id=plan_id, scope_organizer=event_obj.organizer)
+    plan = _plan_for_event(request, plan_id)
     asset = get_object_or_404(SeatingTemplateAsset, id=asset_id, plan=plan)
     try:
-        payload = json.loads(request.body.decode("utf-8"))
-    except Exception:
+        payload = _read_json_body(request)
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError):
         return JsonResponse({"ok": False, "message": "Invalid JSON payload."}, status=400)
 
-    if "name" in payload:
-        asset.name = str(payload["name"])[:190]
-    if "x" in payload:
-        asset.x = float(payload["x"])
-    if "y" in payload:
-        asset.y = float(payload["y"])
-    if "scale" in payload:
-        asset.scale = max(0.05, min(20.0, float(payload["scale"])))
-    if "rotation" in payload:
-        asset.rotation = float(payload["rotation"])
-    if "opacity" in payload:
-        asset.opacity = max(0.0, min(1.0, float(payload["opacity"])))
-    if "z_index" in payload:
-        asset.z_index = int(payload["z_index"])
-    if "is_visible" in payload:
-        asset.is_visible = bool(payload["is_visible"])
-    if "is_locked" in payload:
-        asset.is_locked = bool(payload["is_locked"])
+    try:
+        if "name" in payload:
+            asset.name = str(payload["name"])[:190]
+        if "x" in payload:
+            asset.x = float(payload["x"])
+        if "y" in payload:
+            asset.y = float(payload["y"])
+        if "scale" in payload:
+            asset.scale = max(0.05, min(20.0, float(payload["scale"])))
+        if "rotation" in payload:
+            asset.rotation = float(payload["rotation"])
+        if "opacity" in payload:
+            asset.opacity = max(0.0, min(1.0, float(payload["opacity"])))
+        if "z_index" in payload:
+            asset.z_index = int(payload["z_index"])
+        if "is_visible" in payload:
+            asset.is_visible = bool(payload["is_visible"])
+        if "is_locked" in payload:
+            asset.is_locked = bool(payload["is_locked"])
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "message": "Invalid value in payload."}, status=400)
     asset.save()
     return JsonResponse({"ok": True, "asset": _serialize_template_asset(request, asset)})
 
 
-@login_required
+@event_permission_required("can_change_event_settings")
 @require_http_methods(["POST"])
 def plan_template_asset_delete(
-    request: HttpRequest,
-    organizer: str,
-    event: str,
-    plan_id: int,
-    asset_id: int,
+    request: HttpRequest, organizer: str, event: str, plan_id: int, asset_id: int
 ) -> JsonResponse:
-    event_obj = _event_from_url(organizer, event)
-    plan = get_object_or_404(SeatingPlan, id=plan_id, scope_organizer=event_obj.organizer)
+    plan = _plan_for_event(request, plan_id)
     asset = get_object_or_404(SeatingTemplateAsset, id=asset_id, plan=plan)
     asset.image.delete(save=False)
     asset.delete()

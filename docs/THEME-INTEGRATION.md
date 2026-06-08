@@ -1,5 +1,10 @@
 # Theme Integration
 
+> **Hinweis (ab 0.3.0):** Diese Anleitung ist **historisch**. Mit der nativen pretix-Integration
+> wird die Sitzauswahl vom pretix-Core gerendert; ein Theme-Override ist **nicht mehr nötig**. Das
+> frühere `{% smartseating_selector %}`-Snippet und die zugehörige Schreib-API wurden entfernt.
+> Veröffentliche den Plan stattdessen über **Smart Seating → Editor → „Apply to event"**.
+
 ## Ziel
 
 Das Shop-Widget soll im gewünschten Schritt der pretix-Presale-Ansicht eingebunden werden.
