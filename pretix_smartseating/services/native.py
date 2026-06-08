@@ -22,9 +22,11 @@ from pretix.base.models.seating import (
     SeatingPlan as PretixSeatingPlan,
     SeatingPlanLayoutValidator,
 )
+from pretix.base.models import Seat as PretixSeat
 from pretix.base.services.seating import SeatProtected, generate_seats
 
 from pretix_smartseating.models import SeatingPlan as LocalPlan
+from pretix_smartseating.services.autoseat import AutoSeatOptions, Candidate, find_seats
 
 # Layout category used for seats that have no explicit category assigned.
 DEFAULT_CATEGORY_NAME = "uncategorized"
@@ -204,12 +206,84 @@ def detach_plan_from_event(*, event: Event, subevent: SubEvent | None = None) ->
         target.save(update_fields=["seating_plan"])
 
 
+@dataclass
+class SeatSuggestion:
+    seat_guid: str
+    label: str
+    x: float | None
+    y: float | None
+
+
+def suggest_seats(
+    *,
+    event: Event,
+    plan: LocalPlan,
+    quantity: int,
+    mode: str = "strict_adjacent",
+    subevent: SubEvent | None = None,
+    category_code: str | None = None,
+    require_accessible: bool = False,
+) -> list[SeatSuggestion]:
+    """Auto-seat over pretix' *native* availability.
+
+    Reuses the editor's geometry/category data (rich ``SeatDefinition`` rows)
+    to run the ranking algorithm, but only considers seats that pretix core
+    currently reports as available (``Seat.is_available()``) — so suggestions
+    never collide with live carts, orders or vouchers. Returns the chosen
+    seats (by native ``seat_guid``); booking still happens through pretix'
+    own cart/checkout. Empty list means no suitable group was found.
+    """
+    with scope(organizer=event.organizer):
+        native = {
+            s.seat_guid: s
+            for s in PretixSeat.objects.filter(event=event, subevent=subevent).select_related("product")
+        }
+        if not native:
+            return []
+
+        available_local = []
+        for seat in plan.seats.select_related("category").all():
+            native_seat = native.get(str(seat.guid))
+            if native_seat is None:
+                continue
+            if not native_seat.is_available():
+                continue
+            available_local.append(seat)
+
+        candidate: Candidate | None = find_seats(
+            available_local,
+            AutoSeatOptions(
+                quantity=quantity,
+                mode=mode,
+                category_code=category_code,
+                require_accessible=require_accessible,
+            ),
+        )
+        if not candidate:
+            return []
+
+        suggestions = []
+        for seat in candidate.seats:
+            native_seat = native[str(seat.guid)]
+            suggestions.append(
+                SeatSuggestion(
+                    seat_guid=str(seat.guid),
+                    label=str(native_seat),
+                    x=seat.x,
+                    y=seat.y,
+                )
+            )
+        return suggestions
+
+
 __all__ = [
     "SyncResult",
+    "SeatSuggestion",
     "SeatProtected",
     "build_pretix_layout",
     "blocked_seat_guids",
     "sync_plan_to_event",
     "detach_plan_from_event",
+    "suggest_seats",
     "DEFAULT_CATEGORY_NAME",
 ]

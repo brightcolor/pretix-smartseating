@@ -6,10 +6,11 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django_scopes import scopes_disabled
 
-from pretix_smartseating.models import SeatDefinition
+from pretix_smartseating.models import EventSeatPlanMapping, SeatDefinition
 from pretix_smartseating.services.native import (
     DEFAULT_CATEGORY_NAME,
     build_pretix_layout,
+    suggest_seats,
     sync_plan_to_event,
 )
 
@@ -157,6 +158,60 @@ def test_native_blocked_seat_not_available(event, item, local_plan):
         blocked = Seat.objects.get(event=event, blocked=True)
         # Default settings allow blocked seats for no sales channel.
         assert blocked.is_available() is False
+
+
+@pytest.mark.django_db
+def test_suggest_seats_returns_available_group(event, item, local_plan):
+    sync_plan_to_event(event=event, plan=local_plan, product_map={"stalls": item})
+    suggestions = suggest_seats(event=event, plan=local_plan, quantity=2, mode="strict_adjacent")
+    assert len(suggestions) == 2
+    guids = {s.seat_guid for s in suggestions}
+    with scopes_disabled():
+        expected = {str(g) for g in local_plan.seats.values_list("guid", flat=True)}
+    assert guids <= expected
+    assert all(s.label for s in suggestions)
+
+
+@pytest.mark.django_db
+def test_suggest_seats_skips_held_seat(event, item, local_plan):
+    from pretix.base.models import CartPosition, Seat
+
+    sync_plan_to_event(event=event, plan=local_plan, product_map={"stalls": item})
+    with scopes_disabled():
+        # Hold one of the two seats via a cart -> only one seat remains free,
+        # so a request for 2 adjacent seats can no longer be satisfied.
+        seat = Seat.objects.filter(event=event).first()
+        CartPosition.objects.create(
+            event=event, cart_id="c1", item=item, price=item.default_price,
+            expires=timezone.now() + timedelta(minutes=10), seat=seat, subevent=None,
+        )
+    assert suggest_seats(event=event, plan=local_plan, quantity=2, mode="strict_adjacent") == []
+    # A single seat is still suggestible.
+    assert len(suggest_seats(event=event, plan=local_plan, quantity=1, mode="best_available")) == 1
+
+
+@pytest.mark.django_db
+def test_suggest_endpoint_read_only(client, event, item, local_plan):
+    sync_plan_to_event(event=event, plan=local_plan, product_map={"stalls": item})
+    with scopes_disabled():
+        EventSeatPlanMapping.objects.get_or_create(event=event, subevent=None, defaults={"plan": local_plan})
+    url = f"/smartseating/{event.organizer.slug}/{event.slug}/autoseat-suggest/?quantity=2&mode=strict_adjacent"
+    resp = client.get(url)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["ok"] is True
+    assert data["count"] == 2
+    assert len(data["seats"]) == 2
+    # POST must not be allowed (read-only endpoint).
+    assert client.post(url).status_code == 405
+
+
+@pytest.mark.django_db
+def test_suggest_endpoint_rejects_bad_quantity(client, event):
+    url = f"/smartseating/{event.organizer.slug}/{event.slug}/autoseat-suggest/?quantity=999"
+    resp = client.get(url)
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "invalid_quantity"
 
 
 @pytest.mark.django_db

@@ -1,6 +1,6 @@
 from django.urls import path
 
-from pretix_smartseating import views_control
+from pretix_smartseating import views_control, views_presale
 
 app_name = "pretix_smartseating"
 
@@ -72,5 +72,11 @@ urlpatterns = [
         "control/event/<str:organizer>/<str:event>/smartseating/<int:plan_id>/assets/<int:asset_id>/delete/",
         views_control.plan_template_asset_delete,
         name="control.plan_template_asset_delete",
+    ),
+    # Public, read-only presale auto-seat suggestion (no writes).
+    path(
+        "smartseating/<str:organizer>/<str:event>/autoseat-suggest/",
+        views_presale.api_suggest,
+        name="presale.autoseat_suggest",
     ),
 ]

@@ -20,7 +20,10 @@ Checkout, den Order-Lifecycle sowie die Anzeige des Sitzplatzes auf Ticket und i
 - **Standort-Presets**: Plan als Preset speichern und für weitere Events kopieren.
 - **Native Veröffentlichung**: „Apply to event" mappt jede Sitzkategorie auf ein pretix-Produkt
   (Item) und erzeugt die `Seat`-Objekte – pro Event oder pro SubEvent.
-- **Auto-Seat-Heuristik** als Service (`strict_adjacent`, `nearby_row_flexible`, `best_available`).
+- **Auto-Seat** über die native Verfügbarkeit: schlägt eine freie Sitzgruppe vor
+  (`strict_adjacent`, `nearby_row_flexible`, `best_available`), berücksichtigt laufende
+  Carts/Orders/Voucher via `Seat.is_available()`. Read-only GET-Endpunkt
+  `…/smartseating/<org>/<event>/autoseat-suggest/`; die Buchung erfolgt über den pretix-Cart.
 
 ## Wie der Verkauf funktioniert (nativ)
 
@@ -89,7 +92,8 @@ DJANGO_SETTINGS_MODULE=pretix.testutils.settings python -m django check
 
 - Die Sitzauswahl im Shop wird von pretix-Core gerendert (seats.pretix.eu-Frontend); ein eigenes
   mobile-first Selector-Widget ist Roadmap.
-- Auto-Seat ist als Service vorhanden, aber noch nicht an die native Sitzauswahl angebunden.
+- Auto-Seat liefert Vorschläge über einen read-only Endpunkt; das Vorbelegen im pretix-Shop-Frontend
+  ist noch nicht automatisch verdrahtet (Frontend-Hook ausstehend).
 - Sehr große Pläne (10k+ Sitze) im Editor: Viewport-Culling ist vorgesehen, derzeit dokumentierte
   Grenze ~2.000 Sitze für flüssiges Editieren.
 
