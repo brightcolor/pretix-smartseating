@@ -32,12 +32,41 @@
   cursor: grab;
 }
 
-.smartseat-shop-seat { stroke: #1b2736; stroke-width: 1; cursor: pointer; }
-.smartseat-shop-seat.taken { fill: #c7ccd6; cursor: not-allowed; }
-.smartseat-shop-seat.blk { fill: #6b7280; cursor: not-allowed; }
-.smartseat-shop-seat.sel { stroke: #0055cc; stroke-width: 3; }
-.smartseat-shop-seat.free:hover { stroke: #0055cc; stroke-width: 2; }
-.smartseat-shop-seat:focus { outline: 2px solid #0055cc; outline-offset: 1px; }
+/* Seats are <g class="smartseat-shop-seat {state}"> with a .smartseat-shop-dotc
+   circle (category colour) + .smartseat-shop-num number. */
+.smartseat-shop-seat { cursor: pointer; outline: none; }
+.smartseat-shop-seat.taken,
+.smartseat-shop-seat.blk { cursor: not-allowed; }
+
+.smartseat-shop-dotc {
+  stroke: rgba(15, 23, 42, 0.28);
+  stroke-width: 1;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+  transition: stroke 0.1s ease, stroke-width 0.1s ease;
+}
+.smartseat-shop-seat.taken .smartseat-shop-dotc { fill: #d8dce2; filter: none; }
+.smartseat-shop-seat.blk .smartseat-shop-dotc { fill: #6b7280; filter: none; }
+
+.smartseat-shop-seat.free:hover .smartseat-shop-dotc { stroke: #0f172a; stroke-width: 2; }
+.smartseat-shop-seat.free:focus .smartseat-shop-dotc { stroke: #0055cc; stroke-width: 2.5; }
+.smartseat-shop-seat.sel .smartseat-shop-dotc {
+  stroke: #0055cc;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 4px rgba(0, 85, 204, 0.6));
+}
+
+.smartseat-shop-num {
+  font-size: 9px;
+  font-weight: 600;
+  fill: rgba(15, 23, 42, 0.72);
+  pointer-events: none;
+  user-select: none;
+}
+.smartseat-shop-seat.taken .smartseat-shop-num,
+.smartseat-shop-seat.blk .smartseat-shop-num { fill: rgba(255, 255, 255, 0.9); }
+
+.smartseat-shop-area { pointer-events: none; }
+.smartseat-shop-area text { font-family: inherit; }
 
 .smartseat-shop-status { margin: 10px 0 6px; font-weight: 600; }
 .smartseat-shop-submit { min-height: 46px; font-size: 16px; }

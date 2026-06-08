@@ -99,12 +99,14 @@ def api_seatmap(request: HttpRequest, organizer: str, event: str) -> JsonRespons
         # Colours / size from the local editor plan, keyed by seat GUID.
         colours: dict[str, str] = {}
         width, height = 1000, 600
+        areas: list = []
         mapping = (
             EventSeatPlanMapping.objects.filter(event=event_obj, subevent=subevent).first()
             or EventSeatPlanMapping.objects.filter(event=event_obj, subevent__isnull=True).first()
         )
         if mapping:
             width, height = mapping.plan.width, mapping.plan.height
+            areas = list(mapping.plan.area_shapes or [])
             for sd in mapping.plan.seats.select_related("category").all():
                 if sd.category_id and sd.category.color:
                     colours[str(sd.guid)] = sd.category.color
@@ -163,5 +165,6 @@ def api_seatmap(request: HttpRequest, organizer: str, event: str) -> JsonRespons
         "size": {"width": width, "height": height},
         "currency": event_obj.currency,
         "products": list(products.values()),
+        "areas": areas,
         "seats": seats,
     })

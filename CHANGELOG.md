@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-06-08
+
+### Changed
+- Prettier shop seat map: seats are coloured by their **category / price zone**
+  (filled circle), show the seat number, and have polished states (subtle
+  shadow, hover, focus, a glowing ring when selected). Decorative areas
+  (stage/bar/labels) from the editor are now drawn in the shop too. The
+  seatmap endpoint returns `areas`.
+
 ## [0.5.2] - 2026-06-08
 
 ### Added
