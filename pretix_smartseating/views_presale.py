@@ -111,6 +111,24 @@ def api_seatmap(request: HttpRequest, organizer: str, event: str) -> JsonRespons
 
         base_qs = Seat.objects.filter(event=event_obj, subevent=subevent)
         annotated = Seat.annotated(base_qs, event_obj.pk, subevent)
+
+        # A seat is only really bookable if its product still has quota left,
+        # otherwise the seat looks free but the cart rejects it. Cache per item.
+        from pretix.base.models import Item, Quota
+        product_ok: dict[int, bool] = {}
+
+        def _product_available(pid: int | None) -> bool:
+            if not pid:
+                return False
+            if pid not in product_ok:
+                try:
+                    item = Item.objects.get(pk=pid, event=event_obj)
+                    flag = item.check_quotas(subevent=subevent, count_waitinglist=False)[0]
+                    product_ok[pid] = flag == Quota.AVAILABILITY_OK
+                except Exception:
+                    product_ok[pid] = False
+            return product_ok[pid]
+
         seats = []
         for s in annotated:
             taken = bool(getattr(s, "has_order", False) or getattr(s, "has_cart", False)
@@ -122,7 +140,7 @@ def api_seatmap(request: HttpRequest, organizer: str, event: str) -> JsonRespons
                 "label": str(s),
                 "product": s.product_id,
                 "color": colours.get(s.seat_guid, "#3B82F6"),
-                "available": bool(s.product_id) and not s.blocked and not taken,
+                "available": (not s.blocked and not taken and _product_available(s.product_id)),
                 "blocked": bool(s.blocked),
             })
 
