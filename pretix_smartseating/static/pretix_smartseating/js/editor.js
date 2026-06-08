@@ -453,6 +453,7 @@
     seats: [],
     areas: [],
     groups: [],
+    zones: [{ name: "Main" }],
     template_assets: [],
     categories: [{ code: "standard", name: "Standard", color: "#3B82F6", price_rank: 100 }],
     bounds: { width, height },
@@ -460,6 +461,7 @@
   };
   let selected = new Set();
   let selectedArea = null; // index into state.areas, or null
+  let activeZone = "Main"; // seats are created in this zone (== block_label)
   const undoStack = [];
   const redoStack = [];
 
@@ -1227,7 +1229,7 @@
     const usedIds = existingExternalIds();
     const seatCount = Math.max(1, Math.floor(parseNumber("gen-seat-count", 20)));
     const seatSpacing = Math.max(5, parseNumber("gen-seat-spacing", 28));
-    const blockLabel = (field("gen-block")?.value || "A").trim() || "A";
+    const blockLabel = activeZone || "Main";
     const categoryCode = field("gen-category")?.value || state.categories[0]?.code || "standard";
     for (let i = 0; i < seatCount; i++) {
       const seatNumber = i + 1;
@@ -1260,7 +1262,7 @@
     const numbering = field("gen-numbering")?.value || "sequential";
     const direction = field("gen-direction")?.value || "ltr";
     const categoryCode = field("gen-category")?.value || state.categories[0]?.code || "standard";
-    const blockLabel = (field("gen-block")?.value || "A").trim() || "A";
+    const blockLabel = activeZone || "Main";
     const rowStartLabel = (field("gen-row-start")?.value || "A").trim() || "A";
 
     saveSnapshot();
@@ -1305,7 +1307,7 @@
     const direction = field("gen-direction")?.value || "ltr";
     const numbering = field("gen-numbering")?.value || "sequential";
     const categoryCode = field("gen-category")?.value || "standard";
-    const blockLabel = (field("gen-block")?.value || "A").trim() || "A";
+    const blockLabel = activeZone || "Main";
     const rowStartLabel = (field("gen-row-start")?.value || "A").trim() || "A";
 
     if (startAngleInput === endAngleInput) {
@@ -1394,10 +1396,12 @@
     state = JSON.parse(undoStack.pop());
     selected.clear();
     selectedArea = null;
+    ensureZones();
     populateCategoryOptions();
     populateInspectorCategorySelect();
     refreshCategoryList();
     refreshGroupList();
+    refreshZoneList();
     draw();
     refreshTemplatePanel();
   };
@@ -1408,10 +1412,12 @@
     state = JSON.parse(redoStack.pop());
     selected.clear();
     selectedArea = null;
+    ensureZones();
     populateCategoryOptions();
     populateInspectorCategorySelect();
     refreshCategoryList();
     refreshGroupList();
+    refreshZoneList();
     draw();
     refreshTemplatePanel();
   };
@@ -1425,6 +1431,7 @@
         categories: state.categories,
         areas: state.areas,
         groups: state.groups,
+        zones: state.zones,
         plan: state.plan,
         bounds: state.bounds,
       }),
@@ -1449,6 +1456,7 @@
           seats: data.seats || [],
           areas: data.areas || [],
           groups: data.groups || [],
+          zones: data.zones && data.zones.length ? data.zones : [{ name: "Main" }],
           template_assets: [],
           bounds: { width: data.plan.width, height: data.plan.height },
         };
@@ -1460,10 +1468,13 @@
     field("gen-center-y").value = Math.round(state.bounds.height / 2);
     if (field("plan-width")) field("plan-width").value = state.bounds.width;
     if (field("plan-height")) field("plan-height").value = state.bounds.height;
+    activeZone = (state.zones && state.zones[0] && state.zones[0].name) || "Main";
+    ensureZones();
     populateCategoryOptions();
     populateInspectorCategorySelect();
     refreshCategoryList();
     refreshGroupList();
+    refreshZoneList();
     await fetchTemplateAssets();
     resetView(); // fit the freshly loaded plan into the viewport (also draws)
   };
@@ -1485,6 +1496,94 @@
       else deleteSelected();
     }
   });
+
+  // ─── Zones (first-class; a seat's block_label is its zone name) ────────────
+  const zoneListEl = document.getElementById("smartseat-zone-list");
+
+  const ensureZones = () => {
+    if (!Array.isArray(state.zones)) state.zones = [];
+    const names = state.zones.map((z) => z.name);
+    state.seats.forEach((s) => {
+      const z = s.block_label || "Main";
+      if (!names.includes(z)) { names.push(z); state.zones.push({ name: z }); }
+    });
+    if (!state.zones.length) state.zones = [{ name: "Main" }];
+    if (!state.zones.some((z) => z.name === activeZone)) activeZone = state.zones[0].name;
+  };
+
+  const uniqueZoneName = (base) => {
+    const used = new Set(state.zones.map((z) => z.name));
+    let name = base, i = 2;
+    while (used.has(name)) name = `${base} ${i++}`;
+    return name;
+  };
+
+  const addZone = () => {
+    saveSnapshot();
+    const name = uniqueZoneName("Zone");
+    state.zones.push({ name });
+    activeZone = name;
+    refreshZoneList();
+  };
+
+  const setActiveZone = (name) => {
+    activeZone = name;
+    // Selecting a zone selects its seats (faithful to seats.pretix.eu).
+    selected = new Set(state.seats.filter((s) => (s.block_label || "Main") === name).map((s) => s.external_id));
+    selectedArea = null;
+    refreshZoneList();
+    draw();
+  };
+
+  const renameZone = (oldName, newName) => {
+    newName = (newName || "").trim();
+    if (!newName || newName === oldName) { refreshZoneList(); return; }
+    if (state.zones.some((z) => z.name === newName)) { refreshZoneList(); return; } // no collision
+    saveSnapshot();
+    state.zones.forEach((z) => { if (z.name === oldName) z.name = newName; });
+    state.seats.forEach((s) => { if ((s.block_label || "Main") === oldName) s.block_label = newName; });
+    if (activeZone === oldName) activeZone = newName;
+    refreshZoneList();
+    draw();
+  };
+
+  const deleteZone = (name) => {
+    if (state.zones.length <= 1) { alert("At least one zone is required."); return; }
+    const count = state.seats.filter((s) => (s.block_label || "Main") === name).length;
+    if (!confirm(`Delete zone "${name}"${count ? ` and its ${count} seat(s)` : ""}?`)) return;
+    saveSnapshot();
+    state.seats = state.seats.filter((s) => (s.block_label || "Main") !== name);
+    state.zones = state.zones.filter((z) => z.name !== name);
+    if (activeZone === name) activeZone = state.zones[0].name;
+    selected = new Set();
+    refreshZoneList();
+    draw();
+  };
+
+  const refreshZoneList = () => {
+    if (!zoneListEl) return;
+    ensureZones();
+    zoneListEl.innerHTML = "";
+    state.zones.forEach((z) => {
+      const count = state.seats.filter((s) => (s.block_label || "Main") === z.name).length;
+      const row = document.createElement("div");
+      row.className = "smartseat-zone-row" + (z.name === activeZone ? " active" : "");
+      const dot = document.createElement("button");
+      dot.type = "button"; dot.className = "smartseat-zone-dot"; dot.title = "Make active & select";
+      dot.textContent = z.name === activeZone ? "◉" : "◯";
+      dot.addEventListener("click", () => setActiveZone(z.name));
+      const name = document.createElement("input");
+      name.type = "text"; name.value = z.name;
+      name.addEventListener("change", () => renameZone(z.name, name.value));
+      const cnt = document.createElement("span");
+      cnt.className = "smartseat-zone-count"; cnt.textContent = String(count);
+      const del = document.createElement("button");
+      del.type = "button"; del.className = "smartseat-zone-del"; del.textContent = "⨯"; del.title = "Delete zone";
+      del.addEventListener("click", () => deleteZone(z.name));
+      row.append(dot, name, cnt, del);
+      zoneListEl.appendChild(row);
+    });
+  };
 
   // ─── Groups (flat + nestable) ──────────────────────────────────────────────
   const groupListEl = document.getElementById("smartseat-group-list");
@@ -1581,6 +1680,7 @@
       case "duplicate-selected": duplicateSelected(); break;
       case "delete-selected": deleteSelected(); break;
       case "group-selected": groupSelected(); break;
+      case "add-zone": addZone(); break;
       case "add-category": addCategory(); break;
       case "delete-area": if (selectedArea !== null) deleteArea(selectedArea); break;
       case "undo": undo(); break;

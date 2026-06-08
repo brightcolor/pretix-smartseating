@@ -316,6 +316,43 @@ def test_import_allows_duplicate_visible_labels_with_unique_guids(local_plan):
 
 
 @pytest.mark.django_db
+def test_zones_persisted_and_derived(local_plan):
+    from pretix_smartseating.services.import_export import export_plan, import_plan
+
+    payload = {
+        "plan": {"width": 1000, "height": 600},
+        "categories": [{"code": "stalls", "name": "Stalls"}],
+        "zones": [{"name": "Balcony"}],  # explicit empty zone persists
+        "seats": [
+            {"external_id": "s1", "block_label": "Ground floor", "row_label": "1",
+             "seat_number": "1", "category_code": "stalls", "x": 10, "y": 10},
+        ],
+        "bounds": {"width": 1000, "height": 600},
+    }
+    with scopes_disabled():
+        assert import_plan(local_plan, payload, replace_existing=True) == []
+        local_plan.refresh_from_db()
+        names = {z["name"] for z in export_plan(local_plan).zones}
+        # explicit zone + the zone derived from a seat's block_label
+        assert "Balcony" in names and "Ground floor" in names
+
+
+def test_layout_from_pretix_extracts_zones():
+    layout = {
+        "name": "Hall", "size": {"width": 800, "height": 400},
+        "categories": [{"name": "a"}],
+        "zones": [
+            {"name": "Ground floor", "position": {"x": 0, "y": 0}, "rows": [
+                {"row_number": "1", "position": {"x": 0, "y": 0}, "seats": [
+                    {"seat_guid": "g1", "seat_number": "1", "category": "a", "position": {"x": 0, "y": 0}}]}]},
+            {"name": "VIP", "position": {"x": 0, "y": 200}, "rows": []},
+        ],
+    }
+    payload = layout_from_pretix(layout)
+    assert [z["name"] for z in payload["zones"]] == ["Ground floor", "VIP"]
+
+
+@pytest.mark.django_db
 def test_groups_import_export_roundtrip(local_plan):
     from pretix_smartseating.services.import_export import export_plan, import_plan
 

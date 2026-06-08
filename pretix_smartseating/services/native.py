@@ -157,10 +157,13 @@ def layout_from_pretix(data: dict) -> dict:
 
     seats: list[dict] = []
     areas: list[dict] = []
+    zones: list[dict] = []
     for zone in data.get("zones", []):
         zpos = zone.get("position", {})
         zx, zy = float(zpos.get("x", 0)), float(zpos.get("y", 0))
         zone_name = zone.get("name") or zone.get("zone_id") or "Main"
+        if zone_name not in [z["name"] for z in zones]:
+            zones.append({"name": zone_name})
         areas.extend(zone.get("areas", []) or [])
         for ri, row in enumerate(zone.get("rows", [])):
             rpos = row.get("position", {})
@@ -188,6 +191,7 @@ def layout_from_pretix(data: dict) -> dict:
         "categories": categories,
         "seats": seats,
         "areas": areas,
+        "zones": zones,
     }
 
 

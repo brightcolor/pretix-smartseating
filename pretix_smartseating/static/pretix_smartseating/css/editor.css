@@ -548,3 +548,37 @@
 /* Background upload form in the sidebar */
 .smartseat-bg-form { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
 .smartseat-bg-form input[type="text"] { border: 1px solid #c7ccd6; border-radius: 4px; padding: 4px 6px; }
+
+/* ─── Zones panel ────────────────────────────────────────────────────────── */
+.smartseat-add-zone {
+  float: right;
+  border: 1px solid #c7ccd6;
+  background: #fff;
+  border-radius: 4px;
+  width: 22px; height: 22px; line-height: 1;
+  cursor: pointer;
+}
+.smartseat-zone-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 4px;
+  margin-bottom: 3px;
+  border-radius: 4px;
+}
+.smartseat-zone-row.active { background: #e8f0fe; }
+.smartseat-zone-dot {
+  border: none; background: none; cursor: pointer;
+  font-size: 14px; color: #0055cc; flex: 0 0 auto; padding: 0; width: 20px;
+}
+.smartseat-zone-row input[type="text"] {
+  flex: 1 1 auto; min-width: 0;
+  border: 1px solid transparent; background: transparent;
+  border-radius: 4px; padding: 3px 5px; font-weight: 600;
+}
+.smartseat-zone-row input[type="text"]:focus { border-color: #c7ccd6; background: #fff; }
+.smartseat-zone-count { font-size: 10px; color: #6b7280; flex: 0 0 auto; }
+.smartseat-zone-del {
+  border: none; background: none; color: #c0392b; cursor: pointer;
+  flex: 0 0 auto; width: 20px; padding: 0;
+}

@@ -36,6 +36,9 @@ class SeatingPlan(models.Model):
     # Editor-only seat groupings (nestable): list of
     #   {id, name, seat_ids: [external_id, ...], parent: id|null}
     seat_groups = models.JSONField(default=list, blank=True)
+    # First-class zones (seats.pretix.eu-style): list of {name}. A seat's
+    # block_label is its zone name; this list also persists empty zones.
+    zones = models.JSONField(default=list, blank=True)
     # Link to the native pretix seating plan generated from this editor plan.
     # When set, pretix core owns checkout/holds/orders for the mapped event(s).
     pretix_plan = models.OneToOneField(

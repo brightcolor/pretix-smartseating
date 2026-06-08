@@ -17,6 +17,23 @@ class ExportBundle:
     metadata: dict[str, Any]
     areas: list[dict[str, Any]]
     groups: list[dict[str, Any]]
+    zones: list[dict[str, Any]]
+
+
+def _zones_for(plan: SeatingPlan, seats: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Zone list = persisted plan.zones, unioned with any block_label actually
+    used by a seat (so imported plans expose their zones even without an
+    explicit zones list). Order: persisted first, then newly seen."""
+    names: list[str] = []
+    for z in (plan.zones or []):
+        name = (z or {}).get("name")
+        if name and name not in names:
+            names.append(name)
+    for seat in seats:
+        name = seat.get("block_label")
+        if name and name not in names:
+            names.append(name)
+    return [{"name": n} for n in names]
 
 
 def export_plan(plan: SeatingPlan) -> ExportBundle:
@@ -69,6 +86,7 @@ def export_plan(plan: SeatingPlan) -> ExportBundle:
         metadata={"export_format": "pretix-smartseating-v1"},
         areas=list(plan.area_shapes or []),
         groups=list(plan.seat_groups or []),
+        zones=_zones_for(plan, seats),
     )
 
 
@@ -97,10 +115,12 @@ def import_plan(
         target_plan.area_shapes = payload["areas"]
     if "groups" in payload and isinstance(payload["groups"], list):
         target_plan.seat_groups = payload["groups"]
+    if "zones" in payload and isinstance(payload["zones"], list):
+        target_plan.zones = payload["zones"]
     target_plan.save(
         update_fields=[
             "width", "height", "grid_size", "snap_enabled",
-            "area_shapes", "seat_groups", "updated_at",
+            "area_shapes", "seat_groups", "zones", "updated_at",
         ]
     )
 

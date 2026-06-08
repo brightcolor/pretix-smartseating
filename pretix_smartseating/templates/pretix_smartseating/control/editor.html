@@ -52,6 +52,13 @@
   </div>
 
   <aside class="smartseat-inspector">
+    {# ── Zones ── #}
+    <section class="smartseat-insp-section">
+      <h4>{% trans "Zones" %} <button type="button" class="smartseat-add-zone" data-action="add-zone" title="{% trans "Add zone" %}">+</button></h4>
+      <div id="smartseat-zone-list"></div>
+      <p class="smartseat-insp-hint">{% trans "New seats are added to the active (◉) zone." %}</p>
+    </section>
+
     {# ── Active tool settings ── #}
     <section class="smartseat-insp-section smartseat-toolsettings">
       <h4 data-role="tool-title">{% trans "Tool" %}</h4>
@@ -59,7 +66,6 @@
       <p class="smartseat-insp-hint" data-tools="stage round label">{% trans "Click the button to add the element at the center of the view, then drag / resize it." %}</p>
 
       <div class="smartseat-gen-grid">
-        <label data-tools="row block arc">{% trans "Block" %}<input data-field="gen-block" type="text" value="A"></label>
         <label data-tools="row block arc">{% trans "Start row label" %}<input data-field="gen-row-start" type="text" value="A"></label>
         <label data-tools="block arc">{% trans "Rows" %}<input data-field="gen-rows" type="number" min="1" max="60" value="5"></label>
         <label data-tools="row block arc">{% trans "Seats / row" %}<input data-field="gen-seat-count" type="number" min="1" max="150" value="20"></label>
