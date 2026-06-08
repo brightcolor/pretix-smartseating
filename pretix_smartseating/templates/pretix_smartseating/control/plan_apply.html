@@ -40,7 +40,7 @@
         <tbody>
         {% for cat in mappable %}
           <tr>
-            <td><code>{{ cat.code }}</code> — {{ cat.label }}</td>
+            <td><strong>{{ cat.label }}</strong></td>
             <td>
               <select name="cat_{{ cat.code }}" class="form-control">
                 <option value="">{% trans "— not sold —" %}</option>

@@ -304,14 +304,19 @@
 .smartseat-cat-row input[type="text"] { flex: 1 1 auto; min-width: 0; }
 .smartseat-cat-row input[type="number"] { width: 56px; flex: 0 0 auto; }
 
-.smartseat-cat-code {
+.smartseat-cat-header {
+  display: flex;
+  gap: 6px;
   font-size: 10px;
-  color: #6b7280;
-  flex: 0 0 auto;
-  max-width: 70px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9aa1ac;
+  margin-bottom: 4px;
 }
+.smartseat-cat-header span:nth-child(1) { flex: 0 0 30px; }
+.smartseat-cat-header span:nth-child(2) { flex: 1 1 auto; }
+.smartseat-cat-header span:nth-child(3) { flex: 0 0 56px; }
+.smartseat-cat-header span:nth-child(4) { flex: 0 0 26px; }
 
 .smartseat-cat-row button[data-k="del"] {
   border: 1px solid #e0a0a0;

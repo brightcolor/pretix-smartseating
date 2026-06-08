@@ -465,15 +465,18 @@
       categoryListEl.innerHTML = '<p class="smartseat-insp-hint">No categories yet.</p>';
       return;
     }
+    const header = document.createElement("div");
+    header.className = "smartseat-cat-header";
+    header.innerHTML = "<span>Colour</span><span>Name</span><span>Sort</span><span></span>";
+    categoryListEl.appendChild(header);
     state.categories.forEach((cat) => {
       const row = document.createElement("div");
       row.className = "smartseat-cat-row";
       const safeName = (cat.name || "").replace(/"/g, "&quot;");
       row.innerHTML = `
-        <input type="color" data-k="color" value="${cat.color || "#3B82F6"}" title="Color">
+        <input type="color" data-k="color" value="${cat.color || "#3B82F6"}" title="Colour">
         <input type="text" data-k="name" value="${safeName}" placeholder="Name">
-        <input type="number" data-k="price_rank" value="${cat.price_rank ?? 100}" title="Price rank">
-        <code class="smartseat-cat-code">${cat.code}</code>
+        <input type="number" data-k="price_rank" value="${cat.price_rank ?? 100}" title="Sort order (lower = first)">
         <button type="button" data-k="del" title="Delete category">&times;</button>
       `;
       row.querySelectorAll("input[data-k]").forEach((inp) => {
