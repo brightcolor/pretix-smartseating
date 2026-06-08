@@ -86,3 +86,67 @@
 }
 .smartseat-shop-price { display: inline-flex; align-items: center; gap: 5px; }
 .smartseat-shop-price .smartseat-shop-dot { border: 1px solid #1b2736; }
+
+/* ─── Zoom controls overlay ──────────────────────────────────────────────── */
+.smartseat-shop-canvas { position: relative; }
+.smartseat-shop-zoom {
+  position: absolute;
+  top: 10px; right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.smartseat-zoom-btn {
+  width: 34px; height: 34px;
+  border: 1px solid #c7ccd6;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 7px;
+  font-size: 18px; line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.smartseat-zoom-btn:hover { background: #eef2ff; }
+
+/* ─── Hover tooltip ──────────────────────────────────────────────────────── */
+.smartseat-shop-tip {
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+  background: #0f172a;
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* ─── Sticky action bar ──────────────────────────────────────────────────── */
+.smartseat-shop-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 0;
+}
+.smartseat-shop-bestwrap { display: flex; gap: 6px; align-items: center; }
+.smartseat-shop-qty { width: 64px; min-height: 38px; padding: 4px 8px; }
+.smartseat-shop-status { margin: 0; flex: 1 1 auto; font-weight: 600; }
+.smartseat-shop-submit { min-height: 44px; font-size: 16px; }
+
+@media (max-width: 768px) {
+  .smartseat-shop-bar {
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    border-top: 1px solid #d7d9dd;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+    padding: 10px;
+    margin: 10px -10px 0;
+    z-index: 30;
+  }
+  .smartseat-shop-submit { width: 100%; order: 3; }
+  .smartseat-shop-status { order: 2; flex-basis: 100%; }
+  .smartseat-shop-bestwrap { order: 1; }
+}
