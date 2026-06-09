@@ -1232,10 +1232,11 @@
     const usedIds = existingExternalIds();
     const seatCount = Math.max(1, Math.floor(parseNumber("gen-seat-count", 20)));
     const seatSpacing = Math.max(5, parseNumber("gen-seat-spacing", 28));
+    const numbering = field("gen-numbering")?.value || "sequential";
     const blockLabel = activeZone || "Main";
     const categoryCode = field("gen-category")?.value || state.categories[0]?.code || "standard";
     for (let i = 0; i < seatCount; i++) {
-      const seatNumber = i + 1;
+      const seatNumber = seatNumberForPosition(i, seatCount, numbering);
       const externalId = makeUniqueExternalId(`${blockLabel}-${rowLabel}-${seatNumber}`, usedIds);
       state.seats.push(
         createSeat({
@@ -1443,9 +1444,10 @@
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       showSaveFeedback(false, (data.issues || []).map((i) => i.message || i.code).join(" · ") || "Save failed");
-      return;
+      return false;
     }
     showSaveFeedback(true);
+    return true;
   };
 
   // Transient saved overlay with an animated check mark (replaces alert()).
@@ -1764,6 +1766,18 @@
 
   setTool("select");
   setSidebarTab("build");
+
+  // "Apply to event" must use the latest edits → save first, then navigate.
+  var applyLink = document.getElementById("smartseat-apply");
+  if (applyLink) {
+    applyLink.addEventListener("click", function (event) {
+      event.preventDefault();
+      var href = applyLink.getAttribute("href");
+      Promise.resolve(save()).then(function (ok) {
+        if (ok) window.location.href = href;
+      });
+    });
+  }
 
   field("insp-category")?.addEventListener("change", (event) => {
     const code = event.target.value;

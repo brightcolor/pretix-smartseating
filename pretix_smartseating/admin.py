@@ -18,7 +18,7 @@ class SeatDefinitionAdmin(admin.ModelAdmin):
 
 @admin.register(models.EventSeatPlanMapping)
 class EventSeatPlanMappingAdmin(admin.ModelAdmin):
-    list_display = ("id", "event", "subevent", "plan", "hold_timeout_seconds", "updated_at")
+    list_display = ("id", "event", "subevent", "plan", "updated_at")
     list_filter = ("event",)
 
 

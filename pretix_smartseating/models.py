@@ -1,11 +1,9 @@
 import uuid
-from datetime import timedelta
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from pretix.base.models import Event, Organizer, SubEvent
 
@@ -214,17 +212,6 @@ class EventSeatPlanMapping(models.Model):
         related_name="smartseat_mappings",
     )
     plan = models.ForeignKey(SeatingPlan, on_delete=models.PROTECT, related_name="event_mappings")
-    active_version = models.ForeignKey(
-        SeatingPlanVersion,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="+",
-    )
-    allow_nearby_mode = models.BooleanField(default=True)
-    prefer_center = models.BooleanField(default=True)
-    prefer_front = models.BooleanField(default=False)
-    hold_timeout_seconds = models.PositiveIntegerField(default=600)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -239,6 +226,3 @@ class EventSeatPlanMapping(models.Model):
     def clean(self):
         if self.subevent and self.subevent.event_id != self.event_id:
             raise ValidationError(_("Subevent must belong to event."))
-
-    def get_hold_expiry(self):
-        return timezone.now() + timedelta(seconds=self.hold_timeout_seconds)

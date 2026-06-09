@@ -14,7 +14,7 @@
 <div class="smartseat-topbar">
   <div class="smartseat-tb-group">
     <button class="btn btn-primary btn-sm" data-action="save" title="{% trans "Save" %}">{% trans "Save" %}</button>
-    <a class="btn btn-success btn-sm" href="{% url "plugins:pretix_smartseating:control.plan_apply" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Apply to event" %}</a>
+    <a class="btn btn-success btn-sm" id="smartseat-apply" href="{% url "plugins:pretix_smartseating:control.plan_apply" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Apply to event" %}</a>
   </div>
   <div class="smartseat-tb-group">
     <button class="btn btn-default btn-sm" data-action="undo" title="{% trans "Undo" %}">↶</button>

@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-06-08
+
+### Fixed
+- "Row" generator now respects the **Numbering** setting (sequential / odd-even),
+  consistent with the block and arc generators (it previously ignored it).
+- "Apply to event" now **saves the editor first**, so it always applies the
+  current layout instead of the last saved version.
+
+### Removed
+- Redundant standalone shop auto-seat helper (`seatingframe_html_head` +
+  `shop_autoseat.js/css`) — superseded by the interactive seat map's
+  "Best available" button (it was showing twice on the full-screen seating page).
+- Dead leftovers from the old custom hold system: `EventSeatPlanMapping`
+  fields `active_version`, `allow_nearby_mode`, `prefer_center`, `prefer_front`,
+  `hold_timeout_seconds` (migration 0006) and the unused `AutoSeatForm`.
+
 ## [0.5.7] - 2026-06-08
 
 ### Changed
