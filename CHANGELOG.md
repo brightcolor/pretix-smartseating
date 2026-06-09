@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.7] - 2026-06-10
+
+### Changed
+- Grouping is now **visible and tangible** on the canvas: each group draws a
+  dashed boundary with its name, and **clicking any seat selects its whole
+  group** (so a placed table/block moves as one). Alt-click selects a single
+  seat (e.g. to recolour one chair); Shift-click toggles a whole group.
+
+### Fixed
+- Auto-grouped tables/blocks (0.6.6) appeared to "do nothing" because the group
+  list lives on the hidden *Plan* tab — the grouping happened but was invisible.
+  Groups are now shown directly on the plan.
+
 ## [0.6.6] - 2026-06-10
 
 ### Changed

@@ -236,6 +236,7 @@
         startSvgX: svgPt.x,
         startSvgY: svgPt.y,
         shiftKey: event.shiftKey,
+        altKey: event.altKey,
       };
       return;
     }
@@ -304,9 +305,9 @@
       if (moved < DRAG_THRESHOLD && pointerMode === "seat-wait") return;
 
       if (pointerMode === "seat-wait") {
-        // Elevate to drag: make the dragged seat selected if it wasn't.
+        // Elevate to drag: make the dragged seat (or its whole group) selected.
         if (!selected.has(pointerData.seat.external_id)) {
-          selected = new Set([pointerData.seat.external_id]);
+          selected = new Set(groupAwareIds(pointerData.seat.external_id, pointerData.altKey));
           scheduleDraw();
         }
         // Snapshot positions of all selected seats at drag start + collect the
@@ -505,14 +506,13 @@
         scheduleDraw();
       }
       if (pointerData.shiftKey) {
-        if (selected.has(pointerData.seat.external_id)) selected.delete(pointerData.seat.external_id);
-        else selected.add(pointerData.seat.external_id);
-        applySelectionClass(pointerData.seat.external_id);
+        const ids = groupAwareIds(pointerData.seat.external_id, pointerData.altKey);
+        const allSelected = ids.every((id) => selected.has(id));
+        ids.forEach((id) => { allSelected ? selected.delete(id) : selected.add(id); });
+        scheduleDraw();
       } else {
-        const prev = Array.from(selected);
-        selected = new Set([pointerData.seat.external_id]);
-        prev.forEach(applySelectionClass);
-        applySelectionClass(pointerData.seat.external_id);
+        selected = new Set(groupAwareIds(pointerData.seat.external_id, pointerData.altKey));
+        scheduleDraw();
       }
       refreshInspector();
       if (selected.size) setSidebarTab("edit");
@@ -1207,6 +1207,40 @@
     svg.appendChild(rot);
   };
 
+  // Dashed boundary + name around every top-level group, so grouping is visible
+  // on the canvas (purely decorative → no pointer events).
+  const renderGroupOutlines = () => {
+    const groups = (state.groups || []).filter((g) => !g.parent);
+    if (!groups.length) return;
+    const byId = new Map(state.seats.map((s) => [s.external_id, s]));
+    const PAD = 14;
+    for (const g of groups) {
+      let mnx = Infinity, mny = Infinity, mxx = -Infinity, mxy = -Infinity, n = 0;
+      for (const id of groupSeatIds(g)) {
+        const s = byId.get(id);
+        if (!s) continue;
+        n++;
+        mnx = Math.min(mnx, s.x); mxx = Math.max(mxx, s.x);
+        mny = Math.min(mny, s.y); mxy = Math.max(mxy, s.y);
+      }
+      if (!n) continue;
+      const x = mnx - PAD, y = mny - PAD;
+      const w = (mxx - mnx) + PAD * 2, h = (mxy - mny) + PAD * 2;
+      const selectedGroup = groupSeatIds(g).some((id) => selected.has(id));
+      const rect = document.createElementNS(SVGNS, "rect");
+      rect.setAttribute("x", x); rect.setAttribute("y", y);
+      rect.setAttribute("width", w); rect.setAttribute("height", h);
+      rect.setAttribute("rx", 12); rect.setAttribute("ry", 12);
+      rect.setAttribute("class", "smartseat-group-outline" + (selectedGroup ? " selected" : ""));
+      svg.appendChild(rect);
+      const label = document.createElementNS(SVGNS, "text");
+      label.setAttribute("x", x + 7); label.setAttribute("y", y - 5);
+      label.setAttribute("class", "smartseat-group-label" + (selectedGroup ? " selected" : ""));
+      label.textContent = g.name || "Group";
+      svg.appendChild(label);
+    }
+  };
+
   const draw = () => {
     while (svg.firstChild) svg.removeChild(svg.firstChild);
     renderedNodes.clear();
@@ -1252,6 +1286,7 @@
         svg.appendChild(label);
       }
     }
+    renderGroupOutlines();
     // Resize handles for the selected area, on top of seats.
     if (selectedArea !== null && state.areas[selectedArea]) {
       renderAreaHandles(state.areas[selectedArea], selectedArea);
@@ -1876,6 +1911,33 @@
     return ids;
   };
   const newGroupId = () => "g" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+  // The outermost (top-level) group a seat belongs to, or null.
+  const topGroupForSeat = (seatId) => {
+    const groups = state.groups || [];
+    let found = null;
+    for (const g of groups) {
+      if (groupSeatIds(g).includes(seatId)) { found = g; break; }
+    }
+    if (!found) return null;
+    let top = found, guard = 0;
+    while (top.parent && guard++ < 50) {
+      const p = groups.find((x) => x.id === top.parent);
+      if (!p) break;
+      top = p;
+    }
+    return top;
+  };
+
+  // Seat ids to select when a seat is clicked: its whole group, unless Alt is
+  // held (then just the single seat, e.g. to recolour one chair of a table).
+  const groupAwareIds = (seatId, alt) => {
+    if (alt) return [seatId];
+    const g = topGroupForSeat(seatId);
+    if (!g) return [seatId];
+    const live = groupSeatIds(g).filter((id) => state.seats.some((s) => s.external_id === id));
+    return live.length ? live : [seatId];
+  };
 
   // Create a group straight from a list of seat ids (used by the table / block
   // generators so a placed table or block is grouped right away).

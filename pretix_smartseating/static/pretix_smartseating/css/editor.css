@@ -354,6 +354,24 @@
 
 .smartseat-area { cursor: move; }
 
+/* Group boundary on the canvas (decorative, never intercepts pointer events) */
+.smartseat-group-outline {
+  fill: none;
+  stroke: #94a3b8;
+  stroke-width: 1.5;
+  stroke-dasharray: 6 5;
+  pointer-events: none;
+}
+.smartseat-group-outline.selected { stroke: #4f46e5; stroke-width: 2; }
+.smartseat-group-label {
+  font-size: 11px;
+  font-weight: 600;
+  fill: #64748b;
+  pointer-events: none;
+  user-select: none;
+}
+.smartseat-group-label.selected { fill: #4f46e5; }
+
 .smartseat-area.selected rect,
 .smartseat-area.selected ellipse,
 .smartseat-area.selected circle,
