@@ -20,6 +20,11 @@ Checkout, den Order-Lifecycle sowie die Anzeige des Sitzplatzes auf Ticket und i
   - Tische und Blöcke werden beim Platzieren **automatisch gruppiert**; Gruppen
     werden mit gestricheltem Rahmen + Namen im Plan angezeigt, ein Klick wählt die
     ganze Gruppe (Alt-Klick = einzelner Sitz), sodass sie als Einheit verschiebbar ist
+  - **Gruppe betreten (Photoshop-Stil):** Doppelklick öffnet die Gruppe zum Bearbeiten
+    einzelner Sitze (Esc / Klick ausserhalb verlässt sie wieder); der Rahmen folgt den
+    Elementen beim Verschieben
+  - **Canvas-Grenzen:** Verschieben, Skalieren und Platzieren sind auf die definierte
+    Canvas-Größe begrenzt — nichts kann ausserhalb landen
   - Rotations-Anfasser (Fläche oder Mehrfach-Auswahl, Shift = 15°-Raster) + Ausricht-Hilfslinien
   - Sitzreihen-Generator, Bogen-/Halbrund-Generator (Center/Radius/Winkel, mehrere Reihen)
   - Hintergrund-Vorlagen (PNG/JPG/WEBP/GIF/SVG/PDF) als Layer mit Position/Skalierung/Rotation/Opacity

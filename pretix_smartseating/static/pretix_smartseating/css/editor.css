@@ -363,6 +363,12 @@
   pointer-events: none;
 }
 .smartseat-group-outline.selected { stroke: #4f46e5; stroke-width: 2; }
+.smartseat-group-outline.active {
+  stroke: #4f46e5;
+  stroke-width: 2.5;
+  stroke-dasharray: none;
+  fill: rgba(79, 70, 229, 0.06);
+}
 .smartseat-group-label {
   font-size: 11px;
   font-weight: 600;
@@ -370,7 +376,8 @@
   pointer-events: none;
   user-select: none;
 }
-.smartseat-group-label.selected { fill: #4f46e5; }
+.smartseat-group-label.selected,
+.smartseat-group-label.active { fill: #4f46e5; }
 
 .smartseat-area.selected rect,
 .smartseat-area.selected ellipse,

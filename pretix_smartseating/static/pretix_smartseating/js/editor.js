@@ -32,6 +32,37 @@
   };
   applyViewBox();
 
+  // Effective canvas size (editable via the Plan tab) + clamps so nothing can
+  // be dragged / resized / placed outside the defined canvas area.
+  const canvasW = () => Number((state && state.bounds && state.bounds.width) || width);
+  const canvasH = () => Number((state && state.bounds && state.bounds.height) || height);
+  const clampX = (x) => Math.max(0, Math.min(canvasW(), x));
+  const clampY = (y) => Math.max(0, Math.min(canvasH(), y));
+
+  // How far an area extends from its `position` in local (unrotated) space.
+  // Used to clamp dragging/resizing so an area can't poke outside the canvas.
+  const areaLocalExtent = (area) => {
+    if (area.shape === "rectangle" && area.rectangle) {
+      return { left: 0, right: area.rectangle.width || 0, top: 0, bottom: area.rectangle.height || 0 };
+    }
+    if (area.shape === "circle" && area.circle) {
+      const r = area.circle.radius || 0;
+      return { left: -r, right: r, top: -r, bottom: r };
+    }
+    if (area.shape === "ellipse" && area.ellipse) {
+      const rx = area.ellipse.radius?.x || 0, ry = area.ellipse.radius?.y || 0;
+      return { left: -rx, right: rx, top: -ry, bottom: ry };
+    }
+    return { left: 0, right: 0, top: 0, bottom: 0 };
+  };
+  // Clamp an area position so its (unrotated) extent stays within the canvas.
+  const clampAreaPos = (area, x, y) => {
+    const e = areaLocalExtent(area);
+    const nx = Math.max(-e.left, Math.min(canvasW() - e.right, x));
+    const ny = Math.max(-e.top, Math.min(canvasH() - e.bottom, y));
+    return { x: e.right - e.left > canvasW() ? -e.left : nx, y: e.bottom - e.top > canvasH() ? -e.top : ny };
+  };
+
   const scheduleDraw = () => {
     if (drawScheduled) return;
     drawScheduled = true;
@@ -131,6 +162,9 @@
   let pointerMode = null; // 'pan' | 'rubber' | 'seat-wait' | 'seat-drag'
   let pointerData = {};
   let activeTool = "select";
+  // Photoshop-style: the group we have "entered" via double-click. While set,
+  // clicks select individual seats inside it; clicking elsewhere / Esc exits.
+  let activeGroup = null;
   // When set (by a click-to-place on the canvas), generators anchor here
   // instead of the viewport centre / the sidebar's X/Y fields.
   let placePoint = null;
@@ -147,9 +181,15 @@
       spaceDown = true;
       svg.classList.add("smartseat-space");
     }
-    // Esc leaves any creation tool and returns to Select.
-    if (e.key === "Escape" && activeTool !== "select" && typeof setTool === "function") {
-      setTool("select");
+    // Esc: leave an entered group first, then any creation tool.
+    if (e.key === "Escape") {
+      if (activeGroup) {
+        activeGroup = null;
+        selected = new Set();
+        scheduleDraw();
+      } else if (activeTool !== "select" && typeof setTool === "function") {
+        setTool("select");
+      }
     }
   });
   window.addEventListener("keyup", (e) => {
@@ -260,7 +300,7 @@
       // A creation tool is active → click-to-place at the cursor.
       const action = GENERATOR_TOOLS[activeTool];
       if (action) {
-        placePoint = { x: snap(svgPt.x), y: snap(svgPt.y) };
+        placePoint = { x: clampX(snap(svgPt.x)), y: clampY(snap(svgPt.y)) };
         handleAction(action);
         placePoint = null;
         return; // consumed: no rubber-band, no pointer capture
@@ -314,15 +354,19 @@
         // x/y of all *other* seats as alignment guide candidates.
         pointerData.origPositions = {};
         const axs = [], ays = [];
+        let mnx = Infinity, mny = Infinity, mxx = -Infinity, mxy = -Infinity;
         for (const s of state.seats) {
           if (selected.has(s.external_id)) {
             pointerData.origPositions[s.external_id] = { x: s.x, y: s.y };
+            mnx = Math.min(mnx, s.x); mxx = Math.max(mxx, s.x);
+            mny = Math.min(mny, s.y); mxy = Math.max(mxy, s.y);
           } else {
             axs.push(s.x); ays.push(s.y);
           }
         }
         pointerData.alignXs = axs;
         pointerData.alignYs = ays;
+        pointerData.dragBBox = { mnx, mny, mxx, mxy };
         svg.classList.add("smartseat-dragging");
         pointerMode = "seat-drag";
       }
@@ -351,6 +395,13 @@
         guideH.setAttribute("display", "");
       } else { guideH.setAttribute("display", "none"); }
 
+      // Keep the whole selection inside the canvas (no falling off the edge).
+      const bb = pointerData.dragBBox;
+      if (bb) {
+        effDx = Math.max(-bb.mnx, Math.min(canvasW() - bb.mxx, effDx));
+        effDy = Math.max(-bb.mny, Math.min(canvasH() - bb.mxy, effDy));
+      }
+
       // Move circle nodes directly (fast – no full redraw on every pixel).
       for (const s of state.seats) {
         if (!selected.has(s.external_id)) continue;
@@ -362,6 +413,7 @@
           node.setAttribute("cy", orig.y + effDy);
         }
       }
+      updateGroupOutlinesLive(); // keep group boundaries glued to their seats
       return;
     }
 
@@ -376,8 +428,10 @@
         pointerMode = "area-drag";
       }
       const cur = clientToSvg(event.clientX, event.clientY);
-      const nx = snap(pointerData.orig.x + (cur.x - pointerData.startSvgX));
-      const ny = snap(pointerData.orig.y + (cur.y - pointerData.startSvgY));
+      const raw = clampAreaPos(area,
+        snap(pointerData.orig.x + (cur.x - pointerData.startSvgX)),
+        snap(pointerData.orig.y + (cur.y - pointerData.startSvgY)));
+      const nx = raw.x, ny = raw.y;
       pointerData.pendingPos = { x: nx, y: ny };
       if (pointerData.node) {
         pointerData.node.setAttribute("transform", `translate(${nx} ${ny}) rotate(${Number(area.rotation || 0)})`);
@@ -423,6 +477,29 @@
           if (dir.includes("e") || dir.includes("w")) rx = lx;
           if (dir.includes("n") || dir.includes("s")) ry = ly;
           area.ellipse.radius = { x: Math.max(MIN, rx), y: Math.max(MIN, ry) };
+        }
+      }
+      // Keep the resized area inside the canvas (axis-aligned areas only).
+      if (Math.abs(Number(area.rotation || 0)) < 0.5) {
+        const W = canvasW(), H = canvasH();
+        if (area.shape === "rectangle") {
+          let px = area.position.x, py = area.position.y;
+          let w = area.rectangle.width, h = area.rectangle.height;
+          if (px < 0) { w += px; px = 0; }
+          if (py < 0) { h += py; py = 0; }
+          area.rectangle.width = Math.max(MIN, Math.min(w, W - px));
+          area.rectangle.height = Math.max(MIN, Math.min(h, H - py));
+          area.position = { x: px, y: py };
+        } else if (area.shape === "circle") {
+          const cx = area.position.x, cy = area.position.y;
+          const maxR = Math.min(cx, W - cx, cy, H - cy);
+          area.circle.radius = Math.max(MIN, Math.min(area.circle.radius, maxR));
+        } else if (area.shape === "ellipse") {
+          const cx = area.position.x, cy = area.position.y;
+          area.ellipse.radius = {
+            x: Math.max(MIN, Math.min(area.ellipse.radius.x, cx, W - cx)),
+            y: Math.max(MIN, Math.min(area.ellipse.radius.y, cy, H - cy)),
+          };
         }
       }
       scheduleDraw();
@@ -475,10 +552,11 @@
       rubberRect.setAttribute("display", "none");
       const moved = Math.hypot(event.clientX - pointerData.startClientX, event.clientY - pointerData.startClientY);
       if (moved < DRAG_THRESHOLD) {
-        // Treated as a click on the canvas → clear selection.
-        if (selected.size || selectedArea !== null) {
+        // Treated as a click on the canvas → clear selection and leave group.
+        if (selected.size || selectedArea !== null || activeGroup) {
           selected = new Set();
           selectedArea = null;
+          activeGroup = null;
           scheduleDraw();
         }
         return;
@@ -577,7 +655,23 @@
 
   svg.addEventListener("pointerup", endPointer);
   svg.addEventListener("pointercancel", endPointer);
-  svg.addEventListener("dblclick", resetView);
+  svg.addEventListener("dblclick", (event) => {
+    // Double-click a grouped seat → "enter" the group to edit single seats.
+    const seatId = event.target?.getAttribute?.("data-id");
+    if (seatId) {
+      const g = topGroupForSeat(seatId);
+      if (g) {
+        activeGroup = g.id;
+        selected = new Set([seatId]);
+        selectedArea = null;
+        draw();
+        setSidebarTab("edit");
+        return;
+      }
+    }
+    // Otherwise the double-click fits the plan to the viewport.
+    resetView();
+  });
 
   let state = {
     seats: [],
@@ -1208,37 +1302,72 @@
   };
 
   // Dashed boundary + name around every top-level group, so grouping is visible
-  // on the canvas (purely decorative → no pointer events).
-  const renderGroupOutlines = () => {
-    const groups = (state.groups || []).filter((g) => !g.parent);
-    if (!groups.length) return;
-    const byId = new Map(state.seats.map((s) => [s.external_id, s]));
-    const PAD = 14;
-    for (const g of groups) {
-      let mnx = Infinity, mny = Infinity, mxx = -Infinity, mxy = -Infinity, n = 0;
-      for (const id of groupSeatIds(g)) {
-        const s = byId.get(id);
+  // on the canvas (purely decorative → no pointer events). DOM nodes are kept
+  // per group id so the outline can be moved live while dragging seats.
+  const GROUP_PAD = 14;
+  const groupOutlineNodes = new Map(); // gid -> { rect, label }
+
+  // Bounding box of a group's seats. `live` reads moved positions straight from
+  // the rendered circles (used during a drag); otherwise the committed state.
+  const groupBBox = (g, live) => {
+    let mnx = Infinity, mny = Infinity, mxx = -Infinity, mxy = -Infinity, n = 0;
+    for (const id of groupSeatIds(g)) {
+      let sx, sy;
+      const node = live ? renderedNodes.get(id) : null;
+      if (node) { sx = parseFloat(node.getAttribute("cx")); sy = parseFloat(node.getAttribute("cy")); }
+      else {
+        const s = state.seats.find((x) => x.external_id === id);
         if (!s) continue;
-        n++;
-        mnx = Math.min(mnx, s.x); mxx = Math.max(mxx, s.x);
-        mny = Math.min(mny, s.y); mxy = Math.max(mxy, s.y);
+        sx = s.x; sy = s.y;
       }
-      if (!n) continue;
-      const x = mnx - PAD, y = mny - PAD;
-      const w = (mxx - mnx) + PAD * 2, h = (mxy - mny) + PAD * 2;
-      const selectedGroup = groupSeatIds(g).some((id) => selected.has(id));
+      n++;
+      mnx = Math.min(mnx, sx); mxx = Math.max(mxx, sx);
+      mny = Math.min(mny, sy); mxy = Math.max(mxy, sy);
+    }
+    return n ? { mnx, mny, mxx, mxy } : null;
+  };
+
+  const renderGroupOutlines = () => {
+    groupOutlineNodes.clear();
+    const groups = (state.groups || []).filter((g) => !g.parent);
+    for (const g of groups) {
+      const bb = groupBBox(g, false);
+      if (!bb) continue;
+      const x = bb.mnx - GROUP_PAD, y = bb.mny - GROUP_PAD;
+      const w = (bb.mxx - bb.mnx) + GROUP_PAD * 2, h = (bb.mxy - bb.mny) + GROUP_PAD * 2;
+      const isActive = g.id === activeGroup;
+      const selectedGroup = !isActive && groupSeatIds(g).some((id) => selected.has(id));
+      const state2 = isActive ? " active" : (selectedGroup ? " selected" : "");
       const rect = document.createElementNS(SVGNS, "rect");
       rect.setAttribute("x", x); rect.setAttribute("y", y);
       rect.setAttribute("width", w); rect.setAttribute("height", h);
       rect.setAttribute("rx", 12); rect.setAttribute("ry", 12);
-      rect.setAttribute("class", "smartseat-group-outline" + (selectedGroup ? " selected" : ""));
+      rect.setAttribute("class", "smartseat-group-outline" + state2);
       svg.appendChild(rect);
       const label = document.createElementNS(SVGNS, "text");
       label.setAttribute("x", x + 7); label.setAttribute("y", y - 5);
-      label.setAttribute("class", "smartseat-group-label" + (selectedGroup ? " selected" : ""));
-      label.textContent = g.name || "Group";
+      label.setAttribute("class", "smartseat-group-label" + state2);
+      label.textContent = (g.name || "Group") + (isActive ? " — editing" : "");
       svg.appendChild(label);
+      groupOutlineNodes.set(g.id, { rect, label });
     }
+  };
+
+  // Reposition group outlines to follow seats that are being dragged, without a
+  // full redraw (keeps the boundary glued to its contents).
+  const updateGroupOutlinesLive = () => {
+    if (!groupOutlineNodes.size) return;
+    groupOutlineNodes.forEach((nodes, gid) => {
+      const g = (state.groups || []).find((x) => x.id === gid);
+      if (!g) return;
+      const bb = groupBBox(g, true);
+      if (!bb) return;
+      const x = bb.mnx - GROUP_PAD, y = bb.mny - GROUP_PAD;
+      nodes.rect.setAttribute("x", x); nodes.rect.setAttribute("y", y);
+      nodes.rect.setAttribute("width", (bb.mxx - bb.mnx) + GROUP_PAD * 2);
+      nodes.rect.setAttribute("height", (bb.mxy - bb.mny) + GROUP_PAD * 2);
+      nodes.label.setAttribute("x", x + 7); nodes.label.setAttribute("y", y - 5);
+    });
   };
 
   const draw = () => {
@@ -1929,12 +2058,16 @@
     return top;
   };
 
-  // Seat ids to select when a seat is clicked: its whole group, unless Alt is
-  // held (then just the single seat, e.g. to recolour one chair of a table).
+  // Seat ids to select when a seat is clicked.
+  //  - Alt held → always just the single seat.
+  //  - We're inside this seat's group (double-clicked into it) → single seat.
+  //  - Otherwise → the whole group (and we leave any entered group).
   const groupAwareIds = (seatId, alt) => {
     if (alt) return [seatId];
     const g = topGroupForSeat(seatId);
-    if (!g) return [seatId];
+    if (!g) { activeGroup = null; return [seatId]; }
+    if (activeGroup === g.id) return [seatId];
+    activeGroup = null;
     const live = groupSeatIds(g).filter((id) => state.seats.some((s) => s.external_id === id));
     return live.length ? live : [seatId];
   };

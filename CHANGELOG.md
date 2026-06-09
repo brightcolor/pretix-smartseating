@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.8] - 2026-06-10
+
+### Added
+- **Enter a group (Photoshop-style):** double-click a group to step inside it
+  and edit single seats; its boundary turns solid and is labelled "… — editing".
+  Click outside or press Esc to leave the group again.
+
+### Fixed
+- Group boundary now **follows its seats while dragging** (it used to stay put,
+  so the group area appeared to grow).
+- **Canvas bounds are enforced:** dragging a selection/area, resizing an area,
+  and click-to-place are all clamped so nothing can be moved or scaled outside
+  the defined canvas. Only the canvas area is usable.
+
 ## [0.6.7] - 2026-06-10
 
 ### Changed
