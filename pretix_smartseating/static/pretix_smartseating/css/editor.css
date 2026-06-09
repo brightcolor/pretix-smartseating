@@ -159,6 +159,7 @@
   cursor: crosshair;  /* default = rubber-band selection mode */
 }
 
+#smartseat-editor svg.smartseat-placing  { cursor: copy;     } /* creation tool = click to place */
 #smartseat-editor svg.smartseat-space    { cursor: grab;     } /* Space held = pan ready */
 #smartseat-editor svg.smartseat-panning  { cursor: grabbing; } /* actively panning */
 #smartseat-editor svg.smartseat-dragging { cursor: move;     } /* dragging seats */

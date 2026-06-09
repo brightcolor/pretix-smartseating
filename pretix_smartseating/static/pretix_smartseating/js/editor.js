@@ -130,12 +130,26 @@
   let spaceDown = false;
   let pointerMode = null; // 'pan' | 'rubber' | 'seat-wait' | 'seat-drag'
   let pointerData = {};
+  let activeTool = "select";
+  // When set (by a click-to-place on the canvas), generators anchor here
+  // instead of the viewport centre / the sidebar's X/Y fields.
+  let placePoint = null;
+  // Creation tools → the action they trigger when you click on the canvas.
+  const GENERATOR_TOOLS = {
+    row: "add-row", block: "generate-block", arc: "generate-arc",
+    table: "generate-table", stage: "add-stage", round: "add-ellipse",
+    label: "add-label",
+  };
 
   window.addEventListener("keydown", (e) => {
     if (e.key === " " && document.activeElement === document.body) {
       e.preventDefault();
       spaceDown = true;
       svg.classList.add("smartseat-space");
+    }
+    // Esc leaves any creation tool and returns to Select.
+    if (e.key === "Escape" && activeTool !== "select" && typeof setTool === "function") {
+      setTool("select");
     }
   });
   window.addEventListener("keyup", (e) => {
@@ -242,7 +256,15 @@
     }
 
     if (event.target === svg) {
-      // Empty canvas – start rubber-band.
+      // A creation tool is active → click-to-place at the cursor.
+      const action = GENERATOR_TOOLS[activeTool];
+      if (action) {
+        placePoint = { x: snap(svgPt.x), y: snap(svgPt.y) };
+        handleAction(action);
+        placePoint = null;
+        return; // consumed: no rubber-band, no pointer capture
+      }
+      // Select tool on empty canvas – start rubber-band.
       svg.setPointerCapture(event.pointerId);
       pointerMode = "rubber";
       pointerData = { startClientX: event.clientX, startClientY: event.clientY, startSvgX: svgPt.x, startSvgY: svgPt.y };
@@ -1009,8 +1031,8 @@
   const SVGNS = "http://www.w3.org/2000/svg";
 
   const newArea = (shape) => {
-    const cx = view.x + view.w / 2;
-    const cy = view.y + view.h / 2;
+    const cx = placePoint ? placePoint.x : view.x + view.w / 2;
+    const cy = placePoint ? placePoint.y : view.y + view.h / 2;
     const base = { shape, position: { x: snap(cx), y: snap(cy) }, rotation: 0 };
     if (shape === "rectangle") {
       return { ...base, color: "#cbd5e1", border_color: "#64748b", rectangle: { width: 200, height: 80 } };
@@ -1383,6 +1405,8 @@
     const numbering = field("gen-numbering")?.value || "sequential";
     const blockLabel = activeZone || "Main";
     const categoryCode = field("gen-category")?.value || state.categories[0]?.code || "standard";
+    const baseX = placePoint ? placePoint.x : 120;
+    const baseY = placePoint ? placePoint.y : 100 + rowIndex * seatSpacing;
     for (let i = 0; i < seatCount; i++) {
       const seatNumber = seatNumberForPosition(i, seatCount, numbering);
       const externalId = makeUniqueExternalId(`${blockLabel}-${rowLabel}-${seatNumber}`, usedIds);
@@ -1394,8 +1418,8 @@
           seat_number: String(seatNumber),
           seat_index: i,
           row_index: rowIndex,
-          x: snap(120 + i * seatSpacing),
-          y: snap(100 + rowIndex * seatSpacing),
+          x: snap(baseX + i * seatSpacing),
+          y: snap(baseY),
           rotation: 0,
           category_code: categoryCode,
         })
@@ -1409,8 +1433,8 @@
     const seatCount = Math.max(1, Math.floor(parseNumber("gen-seat-count", 20)));
     const rowSpacing = Math.max(5, parseNumber("gen-row-spacing", 28));
     const seatSpacing = Math.max(5, parseNumber("gen-seat-spacing", 28));
-    const startX = parseNumber("gen-start-x", 120);
-    const startY = parseNumber("gen-start-y", 100);
+    const startX = placePoint ? placePoint.x : parseNumber("gen-start-x", 120);
+    const startY = placePoint ? placePoint.y : parseNumber("gen-start-y", 100);
     const numbering = field("gen-numbering")?.value || "sequential";
     const direction = field("gen-direction")?.value || "ltr";
     const categoryCode = field("gen-category")?.value || state.categories[0]?.code || "standard";
@@ -1455,8 +1479,8 @@
     const numbering = field("gen-numbering")?.value || "sequential";
     const tableLabel = (field("gen-table-label")?.value || "T1").trim() || "T1";
     const categoryCode = field("gen-category")?.value || state.categories[0]?.code || "standard";
-    const cx = snap(view.x + view.w / 2);
-    const cy = snap(view.y + view.h / 2);
+    const cx = snap(placePoint ? placePoint.x : view.x + view.w / 2);
+    const cy = snap(placePoint ? placePoint.y : view.y + view.h / 2);
 
     saveSnapshot();
 
@@ -1520,8 +1544,8 @@
   const generateArcRows = ({ semicircle = false } = {}) => {
     const rowCount = Math.max(1, Math.floor(parseNumber("gen-rows", 1)));
     const seatCount = Math.max(1, Math.floor(parseNumber("gen-seat-count", 20)));
-    const centerX = parseNumber("gen-center-x", width / 2);
-    const centerY = parseNumber("gen-center-y", height / 2);
+    const centerX = placePoint ? placePoint.x : parseNumber("gen-center-x", width / 2);
+    const centerY = placePoint ? placePoint.y : parseNumber("gen-center-y", height / 2);
     const radiusStart = Math.max(20, parseNumber("gen-radius-start", 200));
     const rowSpacing = Math.max(5, parseNumber("gen-row-spacing", 26));
     const startAngleInput = semicircle ? -90 : parseNumber("gen-angle-start", -70);
@@ -1953,6 +1977,7 @@
     stage: "Add stage / area", round: "Add round area", label: "Add label",
   };
   const setTool = (tool) => {
+    activeTool = tool;
     document.querySelectorAll(".smartseat-tool").forEach((b) =>
       b.classList.toggle("active", b.getAttribute("data-tool") === tool));
     document.querySelectorAll("[data-tools]").forEach((el) => {
@@ -1961,6 +1986,8 @@
     });
     const title = document.querySelector('[data-role="tool-title"]');
     if (title) title.textContent = TOOL_TITLES[tool] || "Tool";
+    // A creation tool turns the canvas into a "click to place" surface.
+    svg.classList.toggle("smartseat-placing", !!GENERATOR_TOOLS[tool]);
   };
   document.querySelectorAll(".smartseat-tool").forEach((b) => {
     b.addEventListener("click", () => {

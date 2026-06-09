@@ -36,7 +36,7 @@
     <a class="btn btn-default btn-sm" href="{% url "plugins:pretix_smartseating:control.plan_import" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Import" %}</a>
   </div>
 </div>
-<p class="help-block smartseat-hint">{% trans "Wheel zooms · drag seats to move · drag empty canvas = select · middle-mouse / Space+drag = pan · double-click fits" %}</p>
+<p class="help-block smartseat-hint">{% trans "Pick a tool, then click the plan to place it · wheel zooms · drag seats to move · middle-mouse / Space+drag = pan · double-click fits · Esc = Select" %}</p>
 
 {# ── Workspace: canvas + tabbed sidebar ───────────────────────────────────── #}
 <div class="smartseat-workspace">
@@ -69,7 +69,7 @@
     <section class="smartseat-insp-section smartseat-toolsettings" data-tab="build">
       <h4 data-role="tool-title">{% trans "Tool" %}</h4>
       <p class="smartseat-insp-hint" data-tools="select">{% trans "Click a seat to select. Drag on empty canvas to rubber-band select. Shift-click toggles." %}</p>
-      <p class="smartseat-insp-hint" data-tools="stage round label">{% trans "Click the button to add the element at the center of the view, then drag / resize it." %}</p>
+      <p class="smartseat-insp-hint" data-tools="row block arc table stage round label">{% trans "Set the options below, then click on the plan where it should go. Esc returns to Select. (The button drops it in the centre instead.)" %}</p>
 
       <div class="smartseat-gen-grid">
         <label data-tools="row block arc">{% trans "Start row label" %}<input data-field="gen-row-start" type="text" value="A"></label>

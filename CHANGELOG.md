@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.4] - 2026-06-09
+
+### Changed
+- Editor creation tools are now **click-to-place**: pick a tool (Row, Block,
+  Arc, Table, Stage, Round, Label), set its options in the sidebar, then click
+  on the plan exactly where it should go — no more "appears in the centre, then
+  drag it" detour. The cursor turns into a copy crosshair while a creation tool
+  is active, and **Esc** returns to the Select tool. The sidebar buttons still
+  work as a fallback (they drop the element in the centre of the view).
+
+### Fixed
+- Table tool, rotation handle and area resize "did nothing" for some users:
+  the browser was serving a **stale cached `editor.js`**. Documented the
+  dev-server cache-busting step (`collectstatic` + hard reload); production
+  deployments already cache-bust via hashed static URLs. No code was broken —
+  the features work once the current script is loaded.
+
 ## [0.6.3] - 2026-06-08
 
 ### Added
