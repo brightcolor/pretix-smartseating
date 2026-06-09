@@ -168,9 +168,13 @@
   // When set (by a click-to-place on the canvas), generators anchor here
   // instead of the viewport centre / the sidebar's X/Y fields.
   let placePoint = null;
-  // Polygon tool: vertices placed so far + the live cursor point for preview.
+  // Polygon / curve tool: vertices placed so far + the live cursor point.
   let polyPoints = null;
   let polyCursor = null;
+  let polyMode = "polygon"; // "polygon" (straight edges) | "curve" (smooth)
+  // Global toggle: temporarily make locked "decoration" areas selectable again.
+  let editDeco = false;
+  const isPolyTool = () => activeTool === "polygon" || activeTool === "curve";
   // Creation tools → the action they trigger when you click on the canvas.
   const GENERATOR_TOOLS = {
     row: "add-row", block: "generate-block", arc: "generate-arc",
@@ -184,15 +188,15 @@
       spaceDown = true;
       svg.classList.add("smartseat-space");
     }
-    // Enter finishes a polygon that's being drawn.
-    if (e.key === "Enter" && activeTool === "polygon" && polyPoints) {
+    // Enter finishes a polygon/curve that's being drawn.
+    if (e.key === "Enter" && isPolyTool() && polyPoints) {
       e.preventDefault();
       finalizePolygon();
       return;
     }
     // Esc: cancel a polygon draft, then leave an entered group, then a tool.
     if (e.key === "Escape") {
-      if (activeTool === "polygon" && polyPoints) {
+      if (isPolyTool() && polyPoints) {
         cancelPolygon();
       } else if (activeGroup) {
         activeGroup = null;
@@ -227,9 +231,11 @@
 
     const svgPt = clientToSvg(event.clientX, event.clientY);
 
-    // Polygon tool: every click drops a corner (clicking the first corner again
-    // closes the shape). Handled before everything else so it works over seats.
-    if (activeTool === "polygon") {
+    // Polygon / curve tool: every click drops a point (clicking the first point
+    // again closes the shape). Handled before everything else so it works over
+    // seats. Curve mode smooths the points into a rounded outline on finish.
+    if (isPolyTool()) {
+      if (!polyPoints) polyMode = activeTool === "curve" ? "curve" : "polygon";
       const pt = { x: clampX(snap(svgPt.x)), y: clampY(snap(svgPt.y)) };
       if (polyPoints && polyPoints.length >= 3) {
         const f = polyPoints[0];
@@ -340,8 +346,8 @@
   });
 
   svg.addEventListener("pointermove", (event) => {
-    // Polygon tool: rubber-line preview from the last corner to the cursor.
-    if (activeTool === "polygon" && polyPoints && polyPoints.length) {
+    // Polygon / curve tool: rubber-line preview from the last point to cursor.
+    if (isPolyTool() && polyPoints && polyPoints.length) {
       const p = clientToSvg(event.clientX, event.clientY);
       polyCursor = { x: clampX(p.x), y: clampY(p.y) };
       scheduleDraw();
@@ -690,8 +696,8 @@
   svg.addEventListener("pointerup", endPointer);
   svg.addEventListener("pointercancel", endPointer);
   svg.addEventListener("dblclick", (event) => {
-    // Finishing a polygon takes priority while the polygon tool is drawing.
-    if (activeTool === "polygon" && polyPoints) { finalizePolygon(); return; }
+    // Finishing a polygon/curve takes priority while that tool is drawing.
+    if (isPolyTool() && polyPoints) { finalizePolygon(); return; }
     // Double-click a grouped seat → "enter" the group to edit single seats.
     const seatId = event.target?.getAttribute?.("data-id");
     if (seatId) {
@@ -1070,6 +1076,22 @@
     typeLine.textContent = "Type: " + area.shape;
     areaFieldsEl.appendChild(typeLine);
 
+    // Editor role: a clickable/editable object vs a locked decoration marking.
+    const roleWrap = document.createElement("label");
+    roleWrap.className = "smartseat-area-field";
+    roleWrap.textContent = "Use as";
+    const roleSel = document.createElement("select");
+    [["interactive", "Interactive (clickable / editable)"], ["decoration", "Decoration (locked marking)"]]
+      .forEach(([val, label]) => {
+        const o = document.createElement("option");
+        o.value = val; o.textContent = label;
+        roleSel.appendChild(o);
+      });
+    roleSel.value = area.role || "interactive";
+    roleSel.addEventListener("change", () => { area.role = roleSel.value; commitArea(); });
+    roleWrap.appendChild(roleSel);
+    areaFieldsEl.appendChild(roleWrap);
+
     if (area.shape === "text") {
       const wrap = document.createElement("label");
       wrap.className = "smartseat-area-field";
@@ -1188,13 +1210,37 @@
   // ─── Polygon tool ─────────────────────────────────────────────────────────
   const cancelPolygon = () => { polyPoints = null; polyCursor = null; scheduleDraw(); };
 
+  // Smooth a set of points into a closed Catmull-Rom curve, sampled back into
+  // polygon points (so curves stay representable as native polygon areas).
+  const sampleClosedCurve = (pts, perSeg = 16) => {
+    const n = pts.length;
+    if (n < 3) return pts.map((p) => ({ x: p.x, y: p.y }));
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+      for (let t = 0; t < perSeg; t++) {
+        const s = t / perSeg, s2 = s * s, s3 = s2 * s;
+        const x = 0.5 * (2 * p1.x + (-p0.x + p2.x) * s + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * s2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * s3);
+        const y = 0.5 * (2 * p1.y + (-p0.y + p2.y) * s + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * s2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * s3);
+        out.push({ x: Math.round(x), y: Math.round(y) });
+      }
+    }
+    return out;
+  };
+
   const finalizePolygon = () => {
     if (!polyPoints || polyPoints.length < 3) { cancelPolygon(); return; }
     saveSnapshot();
+    const curve = polyMode === "curve";
+    const points = curve ? sampleClosedCurve(polyPoints) : polyPoints.map((p) => ({ x: p.x, y: p.y }));
     state.areas.push({
-      shape: "polygon", position: { x: 0, y: 0 }, rotation: 0,
-      color: "#cbd5e1", border_color: "#64748b",
-      polygon: { points: polyPoints.map((p) => ({ x: p.x, y: p.y })) },
+      // Curves default to a decorative marking; polygons start interactive.
+      shape: "polygon",
+      role: curve ? "decoration" : "interactive",
+      position: { x: 0, y: 0 }, rotation: 0,
+      color: curve ? "rgba(148,163,184,0.35)" : "#cbd5e1",
+      border_color: "#64748b",
+      polygon: { points },
     });
     selectedArea = state.areas.length - 1;
     selected = new Set();
@@ -1244,7 +1290,13 @@
     const py = Number(area.position?.y || 0);
     g.setAttribute("transform", `translate(${px} ${py}) rotate(${Number(area.rotation || 0)})`);
     g.setAttribute("data-area-index", String(index));
-    g.setAttribute("class", `smartseat-area${index === selectedArea ? " selected" : ""}`);
+    const deco = (area.role || "interactive") === "decoration";
+    let cls = "smartseat-area" + (index === selectedArea ? " selected" : "");
+    if (deco) cls += " smartseat-area-deco";
+    // Locked decorations are click-through (don't block seat selection) unless
+    // the "edit decorations" toggle is on.
+    if (deco && !editDeco) cls += " smartseat-area-locked";
+    g.setAttribute("class", cls);
 
     const fill = area.color || "rgba(148,163,184,0.5)";
     const stroke = area.border_color || "#64748b";
@@ -2275,10 +2327,10 @@
     select: "Select / move", row: "Add row", block: "Add block",
     arc: "Add arc / semicircle", table: "Add table",
     stage: "Add stage / area", round: "Add round area", label: "Add label",
-    polygon: "Draw polygon",
+    polygon: "Draw polygon", curve: "Draw curve (decoration)",
   };
   const setTool = (tool) => {
-    if (activeTool === "polygon" && tool !== "polygon" && polyPoints) cancelPolygon();
+    if (isPolyTool() && tool !== "polygon" && tool !== "curve" && polyPoints) cancelPolygon();
     activeTool = tool;
     document.querySelectorAll(".smartseat-tool").forEach((b) =>
       b.classList.toggle("active", b.getAttribute("data-tool") === tool));
@@ -2289,7 +2341,7 @@
     const title = document.querySelector('[data-role="tool-title"]');
     if (title) title.textContent = TOOL_TITLES[tool] || "Tool";
     // A creation tool turns the canvas into a "click to place" surface.
-    svg.classList.toggle("smartseat-placing", !!GENERATOR_TOOLS[tool] || tool === "polygon");
+    svg.classList.toggle("smartseat-placing", !!GENERATOR_TOOLS[tool] || tool === "polygon" || tool === "curve");
   };
   document.querySelectorAll(".smartseat-tool").forEach((b) => {
     b.addEventListener("click", () => {
@@ -2314,6 +2366,10 @@
 
   setTool("select");
   setSidebarTab("build");
+
+  // Global "edit locked decorations" toggle.
+  const editDecoCb = field("edit-deco");
+  if (editDecoCb) editDecoCb.addEventListener("change", () => { editDeco = editDecoCb.checked; draw(); });
 
   // "Apply to event" must use the latest edits → save first, then navigate.
   var applyLink = document.getElementById("smartseat-apply");

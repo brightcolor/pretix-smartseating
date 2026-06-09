@@ -30,6 +30,7 @@
     <button type="button" class="smartseat-tool" data-tool="round" title="{% trans "Add round area" %}">{% trans "Round" %}</button>
     <button type="button" class="smartseat-tool" data-tool="label" title="{% trans "Add text label" %}">{% trans "Label" %}</button>
     <button type="button" class="smartseat-tool" data-tool="polygon" title="{% trans "Draw a polygon: click to add points, double-click / Enter to finish" %}">{% trans "Polygon" %}</button>
+    <button type="button" class="smartseat-tool" data-tool="curve" title="{% trans "Draw a rounded (curved) decoration: click points, double-click / Enter to finish" %}">{% trans "Curve" %}</button>
   </div>
   <div class="smartseat-tb-group">
     <a class="btn btn-default btn-sm" href="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export" %}</a>
@@ -170,7 +171,9 @@
 
     <section class="smartseat-insp-section" data-tab="edit" hidden>
       <h4>{% trans "Area" %}</h4>
-      <p class="smartseat-insp-hint" data-role="area-empty">{% trans "No area selected. Add a Stage / Round / Label, then click it." %}</p>
+      <label class="smartseat-check"><input type="checkbox" data-field="edit-deco"> {% trans "Edit locked decorations" %}</label>
+      <p class="smartseat-insp-hint">{% trans "Decorations are click-through markings; enable this to re-select and edit them." %}</p>
+      <p class="smartseat-insp-hint" data-role="area-empty">{% trans "No area selected. Add a Stage / Round / Label / Polygon, then click it." %}</p>
       <div data-role="area-body" hidden>
         <div id="smartseat-area-fields"></div>
         <button type="button" class="btn btn-danger btn-sm" data-action="delete-area">{% trans "Delete area" %}</button>

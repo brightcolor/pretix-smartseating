@@ -34,8 +34,11 @@ Checkout, den Order-Lifecycle sowie die Anzeige des Sitzplatzes auf Ticket und i
   - Rechteck-Block-Generator + Bogen/Halbkreis-Generator
   - Flächen & Beschriftungen (Bühne, Bar, runde Flächen, **Polygone**, Textlabels) — wie
     seats.pretix.eu, werden auch im Shop angezeigt
-  - **Polygon-Werkzeug**: eigene Flächen per Klick-für-Klick zeichnen (Doppelklick/Enter
-    schliesst, Esc bricht ab)
+  - **Polygon- & Kurven-Werkzeug**: eigene Flächen per Klick-für-Klick zeichnen
+    (Doppelklick/Enter schliesst, Esc bricht ab); die Kurve glättet die Punkte zu Rundungen
+  - **Flächen-Rolle (nur Editor)**: jede Fläche/Polygon wahlweise **Interaktiv** (anklick-/
+    bearbeitbar) oder **Deko** (gesperrte, klick-durchlässige Markierung); globaler Schalter
+    „Deko bearbeiten" zum erneuten Selektieren
   - Kategorie-/Preiszonen-Verwaltung im Editor; Sitz-Eigenschaften (Kategorie, Sitztyp) für die Auswahl
   - Ausrichten & Verteilen mehrerer Sitze
   - Import/Export im plugin-eigenen **und** im seats.pretix.eu-/pretix-nativen JSON-Format

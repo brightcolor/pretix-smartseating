@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-06-10
+
+### Added
+- **Curve tool:** draw rounded decorative markings — click points, double-click
+  / Enter to finish. The points are smoothed into a closed curve (Catmull-Rom)
+  and stored as a native-compatible polygon. Curves default to *decoration*.
+- **Area role (editor-only): Interactive vs Decoration.** Every area (incl.
+  polygons) can be switched between *Interactive* (clickable / editable object)
+  and *Decoration* (a locked, click-through background marking that never steals
+  clicks meant for seats). Toggle per area in the inspector; a global "Edit
+  locked decorations" checkbox makes locked decorations selectable again.
+
+### Notes
+- Roles are editor-only metadata; the ``role`` flag is stripped before building
+  the native pretix layout (no effect on the shop / checkout).
+
 ## [0.6.9] - 2026-06-10
 
 ### Fixed

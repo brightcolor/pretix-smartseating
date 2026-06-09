@@ -109,7 +109,11 @@ def build_pretix_layout(plan: LocalPlan) -> dict:
     ]
 
     # Decorative areas (stage/bar/labels) go into a dedicated zone with no rows.
-    area_shapes = list(plan.area_shapes or [])
+    # ``role`` is editor-only metadata (interactive vs decoration) and is not
+    # part of pretix' native area schema, so strip it before validation.
+    def _native_area(a):
+        return {k: v for k, v in a.items() if k != "role"} if isinstance(a, dict) else a
+    area_shapes = [_native_area(a) for a in (plan.area_shapes or [])]
     if area_shapes:
         zone_list.append({
             "name": "Decorations",

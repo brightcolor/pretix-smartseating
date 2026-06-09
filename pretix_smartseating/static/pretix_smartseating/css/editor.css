@@ -362,6 +362,10 @@
 
 .smartseat-area { cursor: move; }
 
+/* Decoration areas: dashed "marking" look; locked ones are click-through */
+.smartseat-area-deco > * { stroke-dasharray: 7 5; opacity: 0.9; }
+.smartseat-area-locked { pointer-events: none; }
+
 /* Polygon tool draft (in-progress drawing) */
 .smartseat-poly-draft {
   fill: rgba(79, 70, 229, 0.10);

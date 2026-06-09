@@ -228,6 +228,23 @@ def test_build_layout_includes_areas(local_plan):
     assert decor and decor[0]["areas"][0]["shape"] == "rectangle"
 
 
+@pytest.mark.django_db
+def test_build_layout_strips_editor_only_role(local_plan):
+    """Polygon areas may carry an editor-only ``role`` flag (interactive vs
+    decoration); it must be stripped before native validation."""
+    with scopes_disabled():
+        local_plan.area_shapes = [
+            {"shape": "polygon", "role": "decoration", "position": {"x": 0, "y": 0},
+             "polygon": {"points": [{"x": 0, "y": 0}, {"x": 50, "y": 0}, {"x": 25, "y": 40}]},
+             "color": "#000000"},
+        ]
+        local_plan.save()
+    layout = build_pretix_layout(local_plan)  # must not raise on the extra key
+    decor = [z for z in layout["zones"] if z.get("areas")][0]
+    assert "role" not in decor["areas"][0]
+    assert decor["areas"][0]["shape"] == "polygon"
+
+
 def test_layout_from_pretix_roundtrip():
     pretix_layout = {
         "name": "Imported Hall",
