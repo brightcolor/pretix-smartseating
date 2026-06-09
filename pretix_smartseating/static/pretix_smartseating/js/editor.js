@@ -1299,6 +1299,76 @@
     draw();
   };
 
+  const generateTable = () => {
+    const seatCount = Math.max(1, Math.floor(parseNumber("gen-seat-count", 8)));
+    const size = Math.max(15, parseNumber("gen-table-size", 45));
+    const gap = Math.max(6, parseNumber("gen-table-gap", 20));
+    const shape = field("gen-table-shape")?.value || "round";
+    const numbering = field("gen-numbering")?.value || "sequential";
+    const tableLabel = (field("gen-table-label")?.value || "T1").trim() || "T1";
+    const categoryCode = field("gen-category")?.value || state.categories[0]?.code || "standard";
+    const cx = snap(view.x + view.w / 2);
+    const cy = snap(view.y + view.h / 2);
+
+    saveSnapshot();
+
+    // Table shape as a decorative area.
+    if (shape === "rect") {
+      state.areas.push({
+        shape: "rectangle", position: { x: cx - size, y: cy - size * 0.66 }, rotation: 0,
+        color: "#7f1d1d", border_color: "#b91c1c", rectangle: { width: size * 2, height: size * 1.32 },
+      });
+    } else {
+      state.areas.push({
+        shape: "circle", position: { x: cx, y: cy }, rotation: 0,
+        color: "#7f1d1d", border_color: "#b91c1c", circle: { radius: size },
+      });
+    }
+
+    const usedIds = existingExternalIds();
+    const radius = size + gap;
+    const rowIndex = nextRowIndex();
+    const newIds = [];
+    for (let i = 0; i < seatCount; i++) {
+      const seatNumber = seatNumberForPosition(i, seatCount, numbering);
+      const externalId = makeUniqueExternalId(`${activeZone}-${tableLabel}-${seatNumber}`, usedIds);
+      newIds.push(externalId);
+      let x, y;
+      if (shape === "rect") {
+        // distribute along the rectangle perimeter
+        const per = seatCount, t = i / per;
+        const w = size * 2 + gap, h = size * 1.32 + gap;
+        const peri = 2 * (w + h), d = t * peri;
+        if (d < w) { x = cx - w / 2 + d; y = cy - h / 2; }
+        else if (d < w + h) { x = cx + w / 2; y = cy - h / 2 + (d - w); }
+        else if (d < 2 * w + h) { x = cx + w / 2 - (d - w - h); y = cy + h / 2; }
+        else { x = cx - w / 2; y = cy + h / 2 - (d - 2 * w - h); }
+      } else {
+        const ang = (i / seatCount) * 2 * Math.PI - Math.PI / 2;
+        x = cx + Math.cos(ang) * radius;
+        y = cy + Math.sin(ang) * radius;
+      }
+      state.seats.push(
+        createSeat({
+          external_id: externalId,
+          block_label: activeZone || "Main",
+          row_label: tableLabel,
+          seat_number: seatNumber,
+          seat_index: i,
+          row_index: rowIndex,
+          x: snap(x),
+          y: snap(y),
+          rotation: 0,
+          category_code: categoryCode,
+        })
+      );
+    }
+    selected = new Set(newIds);
+    selectedArea = null;
+    ensureZones();
+    draw();
+  };
+
   const generateArcRows = ({ semicircle = false } = {}) => {
     const rowCount = Math.max(1, Math.floor(parseNumber("gen-rows", 1)));
     const seatCount = Math.max(1, Math.floor(parseNumber("gen-seat-count", 20)));
@@ -1705,6 +1775,7 @@
       case "generate-block": generateBlock(); break;
       case "generate-arc": generateArcRows({ semicircle: false }); break;
       case "generate-semicircle": generateArcRows({ semicircle: true }); break;
+      case "generate-table": generateTable(); break;
       case "add-stage": addArea("rectangle"); break;
       case "add-ellipse": addArea("ellipse"); break;
       case "add-label": addArea("text"); break;
@@ -1730,8 +1801,8 @@
   // ─── Tool palette ──────────────────────────────────────────────────────────
   const TOOL_TITLES = {
     select: "Select / move", row: "Add row", block: "Add block",
-    arc: "Add arc / semicircle", stage: "Add stage / area",
-    round: "Add round area", label: "Add label",
+    arc: "Add arc / semicircle", table: "Add table",
+    stage: "Add stage / area", round: "Add round area", label: "Add label",
   };
   const setTool = (tool) => {
     document.querySelectorAll(".smartseat-tool").forEach((b) =>

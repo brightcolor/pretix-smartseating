@@ -25,6 +25,7 @@
     <button type="button" class="smartseat-tool" data-tool="row" title="{% trans "Add a row" %}">{% trans "Row" %}</button>
     <button type="button" class="smartseat-tool" data-tool="block" title="{% trans "Add a rectangular block" %}">{% trans "Block" %}</button>
     <button type="button" class="smartseat-tool" data-tool="arc" title="{% trans "Add an arc / semicircle" %}">{% trans "Arc" %}</button>
+    <button type="button" class="smartseat-tool" data-tool="table" title="{% trans "Add a table with seats around it" %}">{% trans "Table" %}</button>
     <button type="button" class="smartseat-tool" data-tool="stage" title="{% trans "Add stage / area" %}">{% trans "Stage" %}</button>
     <button type="button" class="smartseat-tool" data-tool="round" title="{% trans "Add round area" %}">{% trans "Round" %}</button>
     <button type="button" class="smartseat-tool" data-tool="label" title="{% trans "Add text label" %}">{% trans "Label" %}</button>
@@ -73,7 +74,16 @@
       <div class="smartseat-gen-grid">
         <label data-tools="row block arc">{% trans "Start row label" %}<input data-field="gen-row-start" type="text" value="A"></label>
         <label data-tools="block arc">{% trans "Rows" %}<input data-field="gen-rows" type="number" min="1" max="60" value="5"></label>
-        <label data-tools="row block arc">{% trans "Seats / row" %}<input data-field="gen-seat-count" type="number" min="1" max="150" value="20"></label>
+        <label data-tools="row block arc table">{% trans "Seats" %}<input data-field="gen-seat-count" type="number" min="1" max="150" value="20"></label>
+        <label data-tools="table">{% trans "Table label" %}<input data-field="gen-table-label" type="text" value="T1"></label>
+        <label data-tools="table">{% trans "Table shape" %}
+          <select data-field="gen-table-shape">
+            <option value="round">{% trans "Round" %}</option>
+            <option value="rect">{% trans "Rectangular" %}</option>
+          </select>
+        </label>
+        <label data-tools="table">{% trans "Table size" %}<input data-field="gen-table-size" type="number" min="15" value="45"></label>
+        <label data-tools="table">{% trans "Seat gap" %}<input data-field="gen-table-gap" type="number" min="6" value="20"></label>
         <label data-tools="block arc">{% trans "Row spacing" %}<input data-field="gen-row-spacing" type="number" min="5" value="28"></label>
         <label data-tools="row block">{% trans "Seat spacing" %}<input data-field="gen-seat-spacing" type="number" min="5" value="28"></label>
         <label data-tools="block">{% trans "Start X" %}<input data-field="gen-start-x" type="number" value="120"></label>
@@ -95,13 +105,14 @@
             <option value="odd_even">{% trans "Odd/Even split" %}</option>
           </select>
         </label>
-        <label data-tools="row block arc">{% trans "Category" %}
+        <label data-tools="row block arc table">{% trans "Category" %}
           <select data-field="gen-category"></select>
         </label>
       </div>
 
       <div class="smartseat-tool-actions">
         <button type="button" class="btn btn-primary btn-sm" data-tool-action="add-row" data-tools="row">{% trans "Add row" %}</button>
+        <button type="button" class="btn btn-primary btn-sm" data-tool-action="generate-table" data-tools="table">{% trans "Add table" %}</button>
         <button type="button" class="btn btn-primary btn-sm" data-tool-action="generate-block" data-tools="block">{% trans "Generate block" %}</button>
         <button type="button" class="btn btn-primary btn-sm" data-tool-action="generate-arc" data-tools="arc">{% trans "Generate arc" %}</button>
         <button type="button" class="btn btn-default btn-sm" data-tool-action="generate-semicircle" data-tools="arc">{% trans "Semicircle" %}</button>

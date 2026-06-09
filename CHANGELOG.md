@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.2] - 2026-06-08
+
+### Added
+- Editor **Table** tool (seats.io-style): drops a round or rectangular table
+  (decorative area) with N seats arranged around it in one action; seats use
+  the table label as their row and the active zone.
+
 ## [0.6.1] - 2026-06-08
 
 ### Changed
