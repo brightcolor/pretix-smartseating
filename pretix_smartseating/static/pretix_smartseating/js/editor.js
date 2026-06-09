@@ -1444,6 +1444,7 @@
     saveSnapshot();
     const baseRowIndex = nextRowIndex();
     const usedIds = existingExternalIds();
+    const newIds = [];
 
     for (let r = 0; r < rowCount; r++) {
       const rowLabel = buildRowLabel(rowStartLabel, r);
@@ -1452,6 +1453,7 @@
         const column = direction === "rtl" ? seatCount - 1 - i : i;
         const seatNumber = seatNumberForPosition(i, seatCount, numbering);
         const externalId = makeUniqueExternalId(`${blockLabel}-${rowLabel}-${seatNumber}`, usedIds);
+        newIds.push(externalId);
         state.seats.push(
           createSeat({
             external_id: externalId,
@@ -1468,6 +1470,9 @@
         );
       }
     }
+    selected = new Set(newIds);
+    selectedArea = null;
+    createGroupFromIds(newIds, "Block " + rowStartLabel);
     draw();
   };
 
@@ -1541,6 +1546,7 @@
     selected = new Set(newIds);
     selectedArea = null;
     ensureZones();
+    createGroupFromIds(newIds, "Table " + tableLabel);
     draw();
   };
 
@@ -1870,6 +1876,20 @@
     return ids;
   };
   const newGroupId = () => "g" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+  // Create a group straight from a list of seat ids (used by the table / block
+  // generators so a placed table or block is grouped right away).
+  const createGroupFromIds = (ids, name) => {
+    if (!ids || !ids.length) return null;
+    if (!state.groups) state.groups = [];
+    const id = newGroupId();
+    state.groups.push({
+      id, parent: null, seat_ids: [...ids],
+      name: name || "Group " + (state.groups.length + 1),
+    });
+    refreshGroupList();
+    return id;
+  };
 
   const groupSelected = () => {
     if (!selected.size) return;
