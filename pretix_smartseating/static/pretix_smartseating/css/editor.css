@@ -807,3 +807,16 @@
 }
 .smartseat-align-btns button { border: 1px solid #e5e7eb; background: #fff; transition: background 0.12s ease; }
 .smartseat-align-btns button:hover { background: #eef2ff; border-color: #c7d2fe; }
+
+/* Rotation handle */
+.smartseat-rot-line { stroke: #ff8f00; stroke-width: 1.5; }
+.smartseat-rot-handle {
+  fill: #fff;
+  stroke: #ff8f00;
+  stroke-width: 1.5;
+  cursor: grab;
+}
+.smartseat-rot-handle:hover { fill: #fff3e0; }
+
+/* Alignment guides while dragging seats */
+.smartseat-guide { stroke: #ec4899; stroke-width: 1; stroke-dasharray: 4 3; opacity: 0.9; }

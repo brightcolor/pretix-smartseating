@@ -109,6 +109,24 @@
   rubberRect.setAttribute("display", "none");
   rubberRect.setAttribute("pointer-events", "none");
 
+  // Alignment guide lines (shown while dragging seats).
+  const mkGuide = () => {
+    const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    l.setAttribute("class", "smartseat-guide");
+    l.setAttribute("display", "none");
+    l.setAttribute("pointer-events", "none");
+    return l;
+  };
+  const guideV = mkGuide();
+  const guideH = mkGuide();
+  const ALIGN_TOL = 5; // user units: snap to a neighbour's x/y within this distance
+  const hideGuides = () => { guideV.setAttribute("display", "none"); guideH.setAttribute("display", "none"); };
+  const nearest = (vals, target) => {
+    let best = null, bestD = ALIGN_TOL + 1;
+    for (const v of vals) { const d = Math.abs(v - target); if (d < bestD) { bestD = d; best = v; } }
+    return best;
+  };
+
   let spaceDown = false;
   let pointerMode = null; // 'pan' | 'rubber' | 'seat-wait' | 'seat-drag'
   let pointerData = {};
@@ -144,7 +162,34 @@
 
     const svgPt = clientToSvg(event.clientX, event.clientY);
 
-    // Resize handle of the selected area takes priority over everything.
+    // Rotation handle (area or seat selection) takes top priority.
+    const rotEl = event.target?.closest?.("[data-rotate]");
+    if (rotEl) {
+      svg.setPointerCapture(event.pointerId);
+      const kind = rotEl.getAttribute("data-rotate");
+      if (kind === "area" && selectedArea !== null) {
+        const a = state.areas[selectedArea];
+        const pivot = { x: Number(a.position?.x || 0), y: Number(a.position?.y || 0) };
+        pointerMode = "rotate-area";
+        pointerData = {
+          pivot, startAngle: Math.atan2(svgPt.y - pivot.y, svgPt.x - pivot.x),
+          origRot: Number(a.rotation || 0), snapshotted: false,
+        };
+      } else if (kind === "seats") {
+        const sel = state.seats.filter((s) => selected.has(s.external_id));
+        let mnx = Infinity, mxx = -Infinity, mny = Infinity, mxy = -Infinity;
+        sel.forEach((s) => { mnx = Math.min(mnx, s.x); mxx = Math.max(mxx, s.x); mny = Math.min(mny, s.y); mxy = Math.max(mxy, s.y); });
+        const pivot = { x: (mnx + mxx) / 2, y: (mny + mxy) / 2 };
+        pointerMode = "rotate-seats";
+        pointerData = {
+          pivot, startAngle: Math.atan2(svgPt.y - pivot.y, svgPt.x - pivot.x),
+          orig: sel.map((s) => ({ id: s.external_id, x: s.x, y: s.y })), snapshotted: false,
+        };
+      }
+      return;
+    }
+
+    // Resize handle of the selected area takes priority over seats/canvas.
     const handleEl = event.target?.closest?.("[data-handle]");
     if (handleEl && selectedArea !== null) {
       const area = state.areas[selectedArea];
@@ -242,13 +287,19 @@
           selected = new Set([pointerData.seat.external_id]);
           scheduleDraw();
         }
-        // Snapshot positions of all selected seats at drag start.
+        // Snapshot positions of all selected seats at drag start + collect the
+        // x/y of all *other* seats as alignment guide candidates.
         pointerData.origPositions = {};
+        const axs = [], ays = [];
         for (const s of state.seats) {
           if (selected.has(s.external_id)) {
             pointerData.origPositions[s.external_id] = { x: s.x, y: s.y };
+          } else {
+            axs.push(s.x); ays.push(s.y);
           }
         }
+        pointerData.alignXs = axs;
+        pointerData.alignYs = ays;
         svg.classList.add("smartseat-dragging");
         pointerMode = "seat-drag";
       }
@@ -258,8 +309,24 @@
       const rawDx = cur.x - pointerData.startSvgX;
       const rawDy = cur.y - pointerData.startSvgY;
       const leadOrig = pointerData.origPositions[pointerData.seat.external_id];
-      const effDx = snap(leadOrig.x + rawDx) - leadOrig.x;
-      const effDy = snap(leadOrig.y + rawDy) - leadOrig.y;
+      let effDx = snap(leadOrig.x + rawDx) - leadOrig.x;
+      let effDy = snap(leadOrig.y + rawDy) - leadOrig.y;
+
+      // Alignment guides: snap the lead seat to a neighbour's x / y when close.
+      const ax = nearest(pointerData.alignXs, leadOrig.x + effDx);
+      const ay = nearest(pointerData.alignYs, leadOrig.y + effDy);
+      if (ax !== null) {
+        effDx = ax - leadOrig.x;
+        guideV.setAttribute("x1", ax); guideV.setAttribute("x2", ax);
+        guideV.setAttribute("y1", view.y); guideV.setAttribute("y2", view.y + view.h);
+        guideV.setAttribute("display", "");
+      } else { guideV.setAttribute("display", "none"); }
+      if (ay !== null) {
+        effDy = ay - leadOrig.y;
+        guideH.setAttribute("y1", ay); guideH.setAttribute("y2", ay);
+        guideH.setAttribute("x1", view.x); guideH.setAttribute("x2", view.x + view.w);
+        guideH.setAttribute("display", "");
+      } else { guideH.setAttribute("display", "none"); }
 
       // Move circle nodes directly (fast – no full redraw on every pixel).
       for (const s of state.seats) {
@@ -336,6 +403,37 @@
         }
       }
       scheduleDraw();
+      return;
+    }
+
+    if (pointerMode === "rotate-area") {
+      const a = state.areas[selectedArea];
+      if (!a) return;
+      if (!pointerData.snapshotted) { saveSnapshot(); pointerData.snapshotted = true; }
+      const cur = clientToSvg(event.clientX, event.clientY);
+      const ang = Math.atan2(cur.y - pointerData.pivot.y, cur.x - pointerData.pivot.x);
+      let deg = pointerData.origRot + ((ang - pointerData.startAngle) * 180) / Math.PI;
+      if (event.shiftKey) deg = Math.round(deg / 15) * 15;
+      a.rotation = Math.round(deg * 10) / 10;
+      scheduleDraw();
+      return;
+    }
+
+    if (pointerMode === "rotate-seats") {
+      if (!pointerData.snapshotted) { saveSnapshot(); pointerData.snapshotted = true; }
+      const cur = clientToSvg(event.clientX, event.clientY);
+      let delta = Math.atan2(cur.y - pointerData.pivot.y, cur.x - pointerData.pivot.x) - pointerData.startAngle;
+      if (event.shiftKey) delta = (Math.round((delta * 180 / Math.PI) / 15) * 15) * Math.PI / 180;
+      const cosd = Math.cos(delta), sind = Math.sin(delta);
+      pointerData.orig.forEach((o) => {
+        const seat = state.seats.find((s) => s.external_id === o.id);
+        if (!seat) return;
+        const dx = o.x - pointerData.pivot.x, dy = o.y - pointerData.pivot.y;
+        seat.x = pointerData.pivot.x + dx * cosd - dy * sind;
+        seat.y = pointerData.pivot.y + dx * sind + dy * cosd;
+      });
+      scheduleDraw();
+      return;
     }
   });
 
@@ -402,6 +500,7 @@
     if (pointerMode === "seat-drag") {
       pointerMode = null;
       svg.classList.remove("smartseat-dragging");
+      hideGuides();
       // Commit new positions into state.seats.
       saveSnapshot();
       for (const s of state.seats) {
@@ -442,6 +541,12 @@
     if (pointerMode === "area-resize") {
       pointerMode = null;
       draw(); // sync inspector fields with the new size
+      return;
+    }
+
+    if (pointerMode === "rotate-area" || pointerMode === "rotate-seats") {
+      pointerMode = null;
+      draw();
       return;
     }
 
@@ -1038,7 +1143,46 @@
       rect.setAttribute("data-area-index", String(index));
       g.appendChild(rect);
     });
+    // Rotation handle above the top edge.
+    const cxLocal = bbox.x0 + bbox.w / 2;
+    const off = (HANDLE_PX * 2.4) / (screenScale().sx || 1);
+    const line = document.createElementNS(SVGNS, "line");
+    line.setAttribute("x1", cxLocal); line.setAttribute("y1", bbox.y0);
+    line.setAttribute("x2", cxLocal); line.setAttribute("y2", bbox.y0 - off);
+    line.setAttribute("class", "smartseat-rot-line");
+    g.appendChild(line);
+    const rot = document.createElementNS(SVGNS, "circle");
+    rot.setAttribute("cx", cxLocal); rot.setAttribute("cy", bbox.y0 - off);
+    rot.setAttribute("r", hs * 0.6);
+    rot.setAttribute("class", "smartseat-rot-handle");
+    rot.setAttribute("data-rotate", "area");
+    rot.setAttribute("data-area-index", String(index));
+    g.appendChild(rot);
     svg.appendChild(g);
+  };
+
+  // Rotation handle for a multi-seat selection (rendered at the selection bbox).
+  const renderSeatRotateHandle = () => {
+    const sel = state.seats.filter((s) => selected.has(s.external_id));
+    if (sel.length < 2) return;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    sel.forEach((s) => {
+      minX = Math.min(minX, s.x); maxX = Math.max(maxX, s.x);
+      minY = Math.min(minY, s.y); maxY = Math.max(maxY, s.y);
+    });
+    const cx = (minX + maxX) / 2;
+    const off = (HANDLE_PX * 2.6) / (screenScale().sx || 1);
+    const line = document.createElementNS(SVGNS, "line");
+    line.setAttribute("x1", cx); line.setAttribute("y1", minY);
+    line.setAttribute("x2", cx); line.setAttribute("y2", minY - off);
+    line.setAttribute("class", "smartseat-rot-line");
+    svg.appendChild(line);
+    const rot = document.createElementNS(SVGNS, "circle");
+    rot.setAttribute("cx", cx); rot.setAttribute("cy", minY - off);
+    rot.setAttribute("r", (HANDLE_PX * 0.6) / (screenScale().sx || 1));
+    rot.setAttribute("class", "smartseat-rot-handle");
+    rot.setAttribute("data-rotate", "seats");
+    svg.appendChild(rot);
   };
 
   const draw = () => {
@@ -1089,8 +1233,12 @@
     // Resize handles for the selected area, on top of seats.
     if (selectedArea !== null && state.areas[selectedArea]) {
       renderAreaHandles(state.areas[selectedArea], selectedArea);
+    } else if (selected.size >= 2) {
+      renderSeatRotateHandle();
     }
-    // Keep rubber-band rect on top of everything.
+    // Keep alignment guides + rubber-band rect on top of everything.
+    svg.appendChild(guideV);
+    svg.appendChild(guideH);
     svg.appendChild(rubberRect);
     refreshInspector();
     refreshAreaInspector();

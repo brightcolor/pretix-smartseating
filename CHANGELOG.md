@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.3] - 2026-06-08
+
+### Added
+- Editor **rotation handle**: rotate a selected area, or a multi-seat
+  selection around its centroid, by dragging a handle above the bounding box
+  (hold Shift to snap to 15°).
+- Editor **alignment guides**: while dragging seats, the lead seat snaps to a
+  neighbour's x / y when close and a pink guide line is shown.
+
 ## [0.6.2] - 2026-06-08
 
 ### Added
