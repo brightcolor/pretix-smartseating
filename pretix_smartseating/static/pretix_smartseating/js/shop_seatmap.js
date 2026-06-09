@@ -165,14 +165,42 @@
         .catch(function () { best.disabled = false; status.textContent = t("The suggestion service is unavailable."); });
     }
 
+    function textOn(bg) {
+      // pick black/white text for contrast on a hex colour
+      var c = (bg || "").replace("#", "");
+      if (c.length === 3) c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
+      var r = parseInt(c.substr(0, 2), 16), g = parseInt(c.substr(2, 2), 16), b = parseInt(c.substr(4, 2), 16);
+      if (isNaN(r)) return "#fff";
+      return (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? "#1f2937" : "#ffffff";
+    }
+
     function showTip(evt, seat) {
       var price = fmtPrice(seat.price, currency);
-      tip.textContent = (seat.label || "") + (price ? " · " + price : "")
-        + (seat.available ? "" : " — " + t("unavailable"));
+      var headCells = "";
+      if (seat.row) headCells += '<div class="cell"><span class="lbl">' + t("Row") + '</span><span class="val">' + seat.row + "</span></div>";
+      headCells += '<div class="cell"><span class="lbl">' + t("Seat") + '</span><span class="val">' + (seat.number || "?") + "</span></div>";
+      tip.innerHTML =
+        '<div class="smartseat-tip-head">' + headCells + "</div>" +
+        '<div class="smartseat-tip-cat"><span class="nm"></span><span class="pr"></span></div>';
+      var head = tip.querySelector(".smartseat-tip-head");
+      var cat = tip.querySelector(".smartseat-tip-cat");
+      cat.querySelector(".nm").textContent = seat.available ? (seat.cat || t("Seat")) : t("Unavailable");
+      cat.querySelector(".pr").textContent = seat.available ? price : "";
+      var bg = seat.available ? (seat.color || "#6b7280") : "#6b7280";
+      cat.style.backgroundColor = bg;          // CSSOM (CSP-safe), unlike a style="" attribute
+      cat.style.color = textOn(bg);
+      head.style.display = seat.row || seat.number ? "" : "none";
+
       tip.hidden = false;
       var hr = host.getBoundingClientRect();
-      tip.style.left = (evt.clientX - hr.left + 12) + "px";
-      tip.style.top = (evt.clientY - hr.top + 12) + "px";
+      var tw = tip.offsetWidth, th = tip.offsetHeight;
+      var x = evt.clientX - hr.left, y = evt.clientY - hr.top;
+      // anchor centered above the cursor; flip below if not enough room
+      var left = Math.max(4, Math.min(x - tw / 2, hr.width - tw - 4));
+      var top = y - th - 14;
+      if (top < 0) top = y + 18;
+      tip.style.left = left + "px";
+      tip.style.top = top + "px";
     }
     function hideTip() { tip.hidden = true; }
 

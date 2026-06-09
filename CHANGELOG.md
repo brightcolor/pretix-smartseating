@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-06-08
+
+### Changed
+- Shop tooltip redesigned as a seats.io-style card: a dark header with two
+  cells (Row | Seat, big values) and a category-coloured footer strip showing
+  the price zone name + price (text colour auto-contrasts). Anchors centred
+  above the cursor and flips below near the top edge. Seatmap endpoint now
+  returns per-seat `row`, `number` and `cat`.
+
 ## [0.6.0] - 2026-06-08
 
 ### Fixed
