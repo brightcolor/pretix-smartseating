@@ -157,7 +157,15 @@
   height: 640px;
   touch-action: none;
   cursor: crosshair;  /* default = rubber-band selection mode */
+  /* Stop the browser from starting a text selection on the SVG labels while
+     dragging: that selection highlights the labels (blue) and, worse, steals
+     the pointer so the drag "sticks" after a few pixels. */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
+#smartseat-editor svg text { user-select: none; -webkit-user-select: none; }
 
 #smartseat-editor svg.smartseat-placing  { cursor: copy;     } /* creation tool = click to place */
 #smartseat-editor svg.smartseat-space    { cursor: grab;     } /* Space held = pan ready */
@@ -353,6 +361,27 @@
 }
 
 .smartseat-area { cursor: move; }
+
+/* Polygon tool draft (in-progress drawing) */
+.smartseat-poly-draft {
+  fill: rgba(79, 70, 229, 0.10);
+  stroke: #4f46e5;
+  stroke-width: 2;
+  pointer-events: none;
+}
+.smartseat-poly-close {
+  stroke: #4f46e5;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  pointer-events: none;
+}
+.smartseat-poly-vertex {
+  fill: #fff;
+  stroke: #4f46e5;
+  stroke-width: 2;
+  pointer-events: none;
+}
+.smartseat-poly-vertex.first { fill: #4f46e5; }
 
 /* Group boundary on the canvas (decorative, never intercepts pointer events) */
 .smartseat-group-outline {

@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.9] - 2026-06-10
+
+### Fixed
+- **Dragging "stuck after a few pixels" + highlighted labels:** the browser was
+  starting a text selection on the SVG labels when you began dragging, which
+  highlighted them (blue) and stole the pointer so the drag stopped. Added
+  `user-select: none` to the editor canvas — dragging is now smooth and nothing
+  gets text-selected.
+
+### Added
+- **Polygon tool:** draw custom areas by clicking corners on the plan; click the
+  first corner again, double-click, or press Enter to finish (Esc cancels). A
+  live preview shows the shape while drawing. Polygons can be selected and moved
+  like other areas.
+
 ## [0.6.8] - 2026-06-10
 
 ### Added

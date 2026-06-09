@@ -29,6 +29,7 @@
     <button type="button" class="smartseat-tool" data-tool="stage" title="{% trans "Add stage / area" %}">{% trans "Stage" %}</button>
     <button type="button" class="smartseat-tool" data-tool="round" title="{% trans "Add round area" %}">{% trans "Round" %}</button>
     <button type="button" class="smartseat-tool" data-tool="label" title="{% trans "Add text label" %}">{% trans "Label" %}</button>
+    <button type="button" class="smartseat-tool" data-tool="polygon" title="{% trans "Draw a polygon: click to add points, double-click / Enter to finish" %}">{% trans "Polygon" %}</button>
   </div>
   <div class="smartseat-tb-group">
     <a class="btn btn-default btn-sm" href="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export" %}</a>
@@ -70,6 +71,7 @@
       <h4 data-role="tool-title">{% trans "Tool" %}</h4>
       <p class="smartseat-insp-hint" data-tools="select">{% trans "Click selects a seat's whole group. Double-click enters the group to edit single seats (Esc / click outside exits). Alt-click picks one seat; drag empty canvas = rubber-band; Shift-click toggles." %}</p>
       <p class="smartseat-insp-hint" data-tools="row block arc table stage round label">{% trans "Set the options below, then click on the plan where it should go. Esc returns to Select. (The button drops it in the centre instead.)" %}</p>
+      <p class="smartseat-insp-hint" data-tools="polygon">{% trans "Click on the plan to drop polygon corners. Click the first point again, double-click or press Enter to finish; Esc cancels." %}</p>
 
       <div class="smartseat-gen-grid">
         <label data-tools="row block arc">{% trans "Start row label" %}<input data-field="gen-row-start" type="text" value="A"></label>

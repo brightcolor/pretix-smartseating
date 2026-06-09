@@ -168,6 +168,9 @@
   // When set (by a click-to-place on the canvas), generators anchor here
   // instead of the viewport centre / the sidebar's X/Y fields.
   let placePoint = null;
+  // Polygon tool: vertices placed so far + the live cursor point for preview.
+  let polyPoints = null;
+  let polyCursor = null;
   // Creation tools → the action they trigger when you click on the canvas.
   const GENERATOR_TOOLS = {
     row: "add-row", block: "generate-block", arc: "generate-arc",
@@ -181,9 +184,17 @@
       spaceDown = true;
       svg.classList.add("smartseat-space");
     }
-    // Esc: leave an entered group first, then any creation tool.
+    // Enter finishes a polygon that's being drawn.
+    if (e.key === "Enter" && activeTool === "polygon" && polyPoints) {
+      e.preventDefault();
+      finalizePolygon();
+      return;
+    }
+    // Esc: cancel a polygon draft, then leave an entered group, then a tool.
     if (e.key === "Escape") {
-      if (activeGroup) {
+      if (activeTool === "polygon" && polyPoints) {
+        cancelPolygon();
+      } else if (activeGroup) {
         activeGroup = null;
         selected = new Set();
         scheduleDraw();
@@ -215,6 +226,22 @@
     if (event.button !== 0) return;
 
     const svgPt = clientToSvg(event.clientX, event.clientY);
+
+    // Polygon tool: every click drops a corner (clicking the first corner again
+    // closes the shape). Handled before everything else so it works over seats.
+    if (activeTool === "polygon") {
+      const pt = { x: clampX(snap(svgPt.x)), y: clampY(snap(svgPt.y)) };
+      if (polyPoints && polyPoints.length >= 3) {
+        const f = polyPoints[0];
+        const near = Math.hypot(pt.x - f.x, pt.y - f.y) * (screenScale().sx || 1);
+        if (near < 12) { finalizePolygon(); return; }
+      }
+      if (!polyPoints) polyPoints = [];
+      polyPoints.push(pt);
+      polyCursor = pt;
+      scheduleDraw();
+      return;
+    }
 
     // Rotation handle (area or seat selection) takes top priority.
     const rotEl = event.target?.closest?.("[data-rotate]");
@@ -313,6 +340,13 @@
   });
 
   svg.addEventListener("pointermove", (event) => {
+    // Polygon tool: rubber-line preview from the last corner to the cursor.
+    if (activeTool === "polygon" && polyPoints && polyPoints.length) {
+      const p = clientToSvg(event.clientX, event.clientY);
+      polyCursor = { x: clampX(p.x), y: clampY(p.y) };
+      scheduleDraw();
+      return;
+    }
     if (!pointerMode) return;
 
     if (pointerMode === "pan") {
@@ -656,6 +690,8 @@
   svg.addEventListener("pointerup", endPointer);
   svg.addEventListener("pointercancel", endPointer);
   svg.addEventListener("dblclick", (event) => {
+    // Finishing a polygon takes priority while the polygon tool is drawing.
+    if (activeTool === "polygon" && polyPoints) { finalizePolygon(); return; }
     // Double-click a grouped seat → "enter" the group to edit single seats.
     const seatId = event.target?.getAttribute?.("data-id");
     if (seatId) {
@@ -1149,6 +1185,51 @@
     draw();
   };
 
+  // ─── Polygon tool ─────────────────────────────────────────────────────────
+  const cancelPolygon = () => { polyPoints = null; polyCursor = null; scheduleDraw(); };
+
+  const finalizePolygon = () => {
+    if (!polyPoints || polyPoints.length < 3) { cancelPolygon(); return; }
+    saveSnapshot();
+    state.areas.push({
+      shape: "polygon", position: { x: 0, y: 0 }, rotation: 0,
+      color: "#cbd5e1", border_color: "#64748b",
+      polygon: { points: polyPoints.map((p) => ({ x: p.x, y: p.y })) },
+    });
+    selectedArea = state.areas.length - 1;
+    selected = new Set();
+    polyPoints = null; polyCursor = null;
+    draw();
+    setSidebarTab("edit");
+    setTool("select");
+  };
+
+  // Live preview of the polygon being drawn (committed edges + rubber line to
+  // the cursor + a closing hint back to the first vertex + vertex dots).
+  const renderPolygonDraft = () => {
+    if (!polyPoints || !polyPoints.length) return;
+    const sc = screenScale().sx || 1;
+    const pts = polyPoints.map((p) => `${p.x},${p.y}`).join(" ");
+    const line = document.createElementNS(SVGNS, "polyline");
+    line.setAttribute("points", pts + (polyCursor ? ` ${polyCursor.x},${polyCursor.y}` : ""));
+    line.setAttribute("class", "smartseat-poly-draft");
+    svg.appendChild(line);
+    if (polyPoints.length >= 2 && polyCursor) {
+      const close = document.createElementNS(SVGNS, "line");
+      close.setAttribute("x1", polyCursor.x); close.setAttribute("y1", polyCursor.y);
+      close.setAttribute("x2", polyPoints[0].x); close.setAttribute("y2", polyPoints[0].y);
+      close.setAttribute("class", "smartseat-poly-close");
+      svg.appendChild(close);
+    }
+    polyPoints.forEach((p, i) => {
+      const dot = document.createElementNS(SVGNS, "circle");
+      dot.setAttribute("cx", p.x); dot.setAttribute("cy", p.y);
+      dot.setAttribute("r", (i === 0 ? 6 : 4) / sc);
+      dot.setAttribute("class", "smartseat-poly-vertex" + (i === 0 ? " first" : ""));
+      svg.appendChild(dot);
+    });
+  };
+
   const deleteArea = (index) => {
     if (index == null || !state.areas[index]) return;
     saveSnapshot();
@@ -1416,6 +1497,7 @@
       }
     }
     renderGroupOutlines();
+    renderPolygonDraft();
     // Resize handles for the selected area, on top of seats.
     if (selectedArea !== null && state.areas[selectedArea]) {
       renderAreaHandles(state.areas[selectedArea], selectedArea);
@@ -2193,8 +2275,10 @@
     select: "Select / move", row: "Add row", block: "Add block",
     arc: "Add arc / semicircle", table: "Add table",
     stage: "Add stage / area", round: "Add round area", label: "Add label",
+    polygon: "Draw polygon",
   };
   const setTool = (tool) => {
+    if (activeTool === "polygon" && tool !== "polygon" && polyPoints) cancelPolygon();
     activeTool = tool;
     document.querySelectorAll(".smartseat-tool").forEach((b) =>
       b.classList.toggle("active", b.getAttribute("data-tool") === tool));
@@ -2205,7 +2289,7 @@
     const title = document.querySelector('[data-role="tool-title"]');
     if (title) title.textContent = TOOL_TITLES[tool] || "Tool";
     // A creation tool turns the canvas into a "click to place" surface.
-    svg.classList.toggle("smartseat-placing", !!GENERATOR_TOOLS[tool]);
+    svg.classList.toggle("smartseat-placing", !!GENERATOR_TOOLS[tool] || tool === "polygon");
   };
   document.querySelectorAll(".smartseat-tool").forEach((b) => {
     b.addEventListener("click", () => {
