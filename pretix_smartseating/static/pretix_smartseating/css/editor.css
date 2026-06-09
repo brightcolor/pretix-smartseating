@@ -652,3 +652,158 @@
 }
 .smartseat-tab:hover { color: #2f3947; }
 .smartseat-tab.active { color: #0055cc; border-bottom-color: #0055cc; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   DESIGN REFRESH (overrides earlier rules — keep at end of file)
+   Palette: ink #1f2937 · muted #6b7280 · line #e5e7eb · surface #fff
+            bg #f7f8fa · accent #4f46e5 · accent-weak #eef2ff
+   ════════════════════════════════════════════════════════════════════════ */
+.smartseat-h1 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 4px 0 14px;
+  color: #1f2937;
+}
+
+/* ── Top toolbar ── */
+.smartseat-topbar {
+  gap: 8px;
+  padding: 8px 10px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+.smartseat-tb-group { gap: 6px; padding-right: 10px; margin-right: 4px; border-right: 1px solid #eef0f3; }
+.smartseat-topbar .btn,
+.smartseat-topbar .smartseat-tool {
+  border-radius: 9px;
+  border: 1px solid #e5e7eb;
+  font-weight: 500;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+.smartseat-topbar .btn-default { background: #fff; color: #374151; }
+.smartseat-topbar .btn-default:hover { background: #f3f4f6; border-color: #d1d5db; }
+.smartseat-topbar .smartseat-tool { background: #fff; color: #374151; padding: 6px 13px; }
+.smartseat-topbar .smartseat-tool:hover { background: #f3f4f6; }
+.smartseat-topbar .smartseat-tool.active {
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.35);
+}
+.smartseat-topbar .btn-primary { background: #4f46e5; border-color: #4f46e5; }
+.smartseat-topbar .btn-primary:hover { background: #4338ca; border-color: #4338ca; }
+.smartseat-topbar .btn-success { background: #16a34a; border-color: #16a34a; }
+.smartseat-topbar .btn-success:hover { background: #15803d; border-color: #15803d; }
+.smartseat-hint { color: #9ca3af; font-size: 12px; margin: 8px 2px 12px; }
+
+/* ── Canvas ── */
+#smartseat-editor {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at center, rgba(99, 102, 241, 0.12) 1px, transparent 1.4px) 0 0 / 22px 22px,
+    linear-gradient(180deg, #fbfcfe, #f4f6f9);
+  box-shadow: inset 0 1px 3px rgba(16, 24, 40, 0.05);
+}
+
+/* ── Sidebar as a clean card ── */
+.smartseat-inspector {
+  flex-basis: 300px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 0 14px 14px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+.smartseat-insp-section { margin-bottom: 20px; }
+.smartseat-insp-section h4 {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.smartseat-insp-hint { color: #9ca3af; font-size: 12px; line-height: 1.4; }
+
+/* ── Tabs ── */
+.smartseat-tabs {
+  margin: 0 -14px 16px;
+  padding: 0 6px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fbfcfe;
+  border-radius: 12px 12px 0 0;
+}
+.smartseat-tab { padding: 13px 8px; font-size: 13px; color: #9ca3af; }
+.smartseat-tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+.smartseat-tab:hover { color: #4b5563; }
+
+/* ── Unified inputs/selects ── */
+.smartseat-inspector input[type="text"],
+.smartseat-inspector input[type="number"],
+.smartseat-inspector select,
+.smartseat-gen-grid input,
+.smartseat-gen-grid select {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 7px 9px;
+  font-size: 13px;
+  background: #fff;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.smartseat-inspector input:focus,
+.smartseat-inspector select:focus,
+.smartseat-gen-grid input:focus,
+.smartseat-gen-grid select:focus {
+  outline: none;
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+.smartseat-gen-grid label,
+.smartseat-insp-fields label,
+.smartseat-plan-grid label { font-weight: 600; color: #4b5563; font-size: 12px; }
+
+/* ── Buttons inside the sidebar ── */
+.smartseat-inspector .btn {
+  border-radius: 8px;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+}
+.smartseat-inspector .btn-primary { background: #4f46e5; border-color: #4f46e5; }
+.smartseat-inspector .btn-primary:hover { background: #4338ca; }
+.smartseat-inspector .btn-default { background: #fff; color: #374151; }
+.smartseat-inspector .btn-default:hover { background: #f3f4f6; }
+
+/* ── Zone / category rows ── */
+.smartseat-zone-row { padding: 5px 6px; border-radius: 8px; gap: 7px; }
+.smartseat-zone-row.active { background: #eef2ff; box-shadow: inset 0 0 0 1px #c7d2fe; }
+.smartseat-zone-dot { color: #4f46e5; }
+.smartseat-cat-row { gap: 7px; padding: 2px 0; }
+.smartseat-cat-row input[type="color"] { border-radius: 6px; width: 28px; height: 28px; }
+.smartseat-add-zone {
+  border-radius: 7px; border: 1px solid #e5e7eb; background: #fff;
+  width: 24px; height: 24px; color: #4f46e5; font-weight: 700;
+}
+.smartseat-add-zone:hover { background: #eef2ff; }
+
+/* ── Selection badge & seats ── */
+.smartseat-badge { background: #4f46e5; border-radius: 999px; }
+.smartseat-seat { transition: stroke-width 0.08s ease; }
+.smartseat-seat.selected { stroke: #4f46e5; }
+
+/* ── Collapsibles (preset etc.) ── */
+.smartseat-details { border: 1px solid #e5e7eb; border-radius: 10px; }
+.smartseat-details summary { background: #fbfcfe; font-weight: 600; color: #374151; }
+
+/* ── Align / quick-action buttons ── */
+.smartseat-align-btns button,
+.smartseat-selection-actions .btn {
+  border-radius: 8px;
+}
+.smartseat-align-btns button { border: 1px solid #e5e7eb; background: #fff; transition: background 0.12s ease; }
+.smartseat-align-btns button:hover { background: #eef2ff; border-color: #c7d2fe; }
