@@ -15,7 +15,8 @@ Checkout, den Order-Lifecycle sowie die Anzeige des Sitzplatzes auf Ticket und i
   - **Click-to-Place**: Werkzeug wählen (Reihe, Block, Bogen, Tisch, Bühne, runde Fläche, Label),
     Optionen in der Sidebar einstellen, dann an die gewünschte Stelle im Plan klicken. `Esc` =
     zurück zum Auswahl-Werkzeug; die Sidebar-Buttons platzieren als Fallback in der Mitte.
-  - Tisch-Werkzeug (rund/rechteckig) mit automatisch umlaufenden Sitzen
+  - Tisch-Werkzeug (rund/rechteckig) mit **einstellbarer Stuhlanzahl** je Tisch
+    („Seats at table"); runde Tische wachsen bei vielen Stühlen automatisch mit
   - Rotations-Anfasser (Fläche oder Mehrfach-Auswahl, Shift = 15°-Raster) + Ausricht-Hilfslinien
   - Sitzreihen-Generator, Bogen-/Halbrund-Generator (Center/Radius/Winkel, mehrere Reihen)
   - Hintergrund-Vorlagen (PNG/JPG/WEBP/GIF/SVG/PDF) als Layer mit Position/Skalierung/Rotation/Opacity

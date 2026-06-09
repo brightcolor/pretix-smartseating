@@ -1472,7 +1472,7 @@
   };
 
   const generateTable = () => {
-    const seatCount = Math.max(1, Math.floor(parseNumber("gen-seat-count", 8)));
+    const seatCount = Math.max(1, Math.floor(parseNumber("gen-table-seats", 8)));
     const size = Math.max(15, parseNumber("gen-table-size", 45));
     const gap = Math.max(6, parseNumber("gen-table-gap", 20));
     const shape = field("gen-table-shape")?.value || "round";
@@ -1498,7 +1498,10 @@
     }
 
     const usedIds = existingExternalIds();
-    const radius = size + gap;
+    // Place seats outside the table; for round tables grow the ring so a high
+    // seat count never overlaps (≈20px arc length per seat as the minimum).
+    const minRingRadius = (seatCount * 20) / (2 * Math.PI);
+    const radius = Math.max(size + gap, minRingRadius);
     const rowIndex = nextRowIndex();
     const newIds = [];
     for (let i = 0; i < seatCount; i++) {
