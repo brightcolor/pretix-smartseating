@@ -714,10 +714,7 @@
       el.indeterminate = v === null;
       el.checked = v === true;
     };
-    setCheck("insp-accessible", (s) => !!s.is_accessible);
-    setCheck("insp-companion", (s) => !!s.is_companion);
     setCheck("insp-blocked", (s) => !!s.is_blocked);
-    setCheck("insp-technical", (s) => !!s.is_technical_blocked);
   };
 
   const applyToSelection = (mutator) => {
@@ -1781,23 +1778,19 @@
     if (type === "") return;
     applyToSelection((s) => {
       s.seat_type = type;
-      if (type === "wheelchair") s.is_accessible = true;
-      if (type === "companion") s.is_companion = true;
-      if (type === "technical") s.is_technical_blocked = true;
+      // Seat type is the single source of truth; derive the legacy flags so
+      // rendering and the native export (blocked) stay consistent.
+      s.is_accessible = type === "wheelchair";
+      s.is_companion = type === "companion";
+      s.is_technical_blocked = type === "technical";
     });
   });
 
-  const wireFlag = (fieldName, prop) => {
-    field(fieldName)?.addEventListener("change", (event) => {
-      applyToSelection((s) => {
-        s[prop] = event.target.checked;
-      });
-    });
-  };
-  wireFlag("insp-accessible", "is_accessible");
-  wireFlag("insp-companion", "is_companion");
-  wireFlag("insp-blocked", "is_blocked");
-  wireFlag("insp-technical", "is_technical_blocked");
+  // "Blocked (not sold)" is an independent status (e.g. a broken seat),
+  // separate from the seat type.
+  field("insp-blocked")?.addEventListener("change", (event) => {
+    applyToSelection((s) => { s.is_blocked = event.target.checked; });
+  });
 
   const wirePlanDim = (fieldName, key) => {
     field(fieldName)?.addEventListener("change", (event) => {

@@ -123,16 +123,14 @@
           <select data-field="insp-seat-type" class="form-control input-sm">
             <option value="">— {% trans "mixed / keep" %} —</option>
             <option value="normal">{% trans "Normal" %}</option>
-            <option value="wheelchair">{% trans "Wheelchair" %}</option>
+            <option value="wheelchair">{% trans "Wheelchair (accessible)" %}</option>
             <option value="companion">{% trans "Companion" %}</option>
-            <option value="technical">{% trans "Technical" %}</option>
+            <option value="technical">{% trans "Technical (not sold)" %}</option>
             <option value="vip">{% trans "VIP" %}</option>
           </select>
         </label>
-        <label class="smartseat-check"><input type="checkbox" data-field="insp-accessible"> {% trans "Accessible / wheelchair" %}</label>
-        <label class="smartseat-check"><input type="checkbox" data-field="insp-companion"> {% trans "Companion seat" %}</label>
         <label class="smartseat-check"><input type="checkbox" data-field="insp-blocked"> {% trans "Blocked (not sold)" %}</label>
-        <label class="smartseat-check"><input type="checkbox" data-field="insp-technical"> {% trans "Technical block" %}</label>
+        <p class="smartseat-insp-hint">{% trans "The type covers wheelchair / companion / technical. \"Blocked\" takes a normal seat off sale (e.g. broken)." %}</p>
 
         <div class="smartseat-selection-actions">
           <button type="button" class="btn btn-default btn-sm" data-action="group-selected">{% trans "Group" %}</button>
