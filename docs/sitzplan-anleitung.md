@@ -78,10 +78,13 @@ mit gestricheltem Rahmen + Namen angezeigt.
 2. Unter **„Fill with seats“** *Number of seats* und *Category* wählen.
 3. **„Fill with seats“** klicken – Sitze werden gleichmäßig innerhalb der Form verteilt und als Gruppe angelegt.
 
-## 8. Flächen-Rollen: Interaktiv vs. Deko
-Im Edit-Reiter unter **„Use as“**:
+## 8. Flächen-Rollen: Interaktiv / Deko / Produkt
+Im Edit-Reiter unter **„Use as”**:
 - **Interactive** – anklick-/bearbeitbares Objekt.
 - **Decoration** – gesperrte, **klick-durchlässige** Markierung (stört die Sitzauswahl nicht). Kurven sind standardmäßig Deko.
+- **Product area (standing / GA)** – eine **Stehplatz-/Bereichsfläche ohne Einzelsitze**. Verknüpfe ein
+  pretix-Produkt; im Shop ist die Fläche klickbar und legt das Produkt **mengenweise** in den Warenkorb
+  (Shift/Alt-Klick entfernt eins). Bitte ein **nicht-bestuhltes** Produkt wählen.
 
 Gesperrte Deko wieder bearbeiten: **„Edit locked decorations“** im Edit-Reiter aktivieren.
 

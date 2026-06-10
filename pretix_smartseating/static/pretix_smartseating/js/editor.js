@@ -4,6 +4,9 @@
 
   const width = Number(host.dataset.width || 1200);
   const height = Number(host.dataset.height || 800);
+  // Event products the editor can attach to a "product area" (standing/GA region).
+  let PRODUCTS = [];
+  try { PRODUCTS = JSON.parse(document.getElementById("smartseat-products")?.textContent || "[]"); } catch (_) { PRODUCTS = []; }
   const saveUrl = host.dataset.saveUrl;
   const exportUrl = host.dataset.exportUrl;
   const assetsUrl = host.dataset.assetsUrl;
@@ -1143,16 +1146,47 @@
     roleWrap.className = "smartseat-area-field";
     roleWrap.textContent = "Use as";
     const roleSel = document.createElement("select");
-    [["interactive", "Interactive (clickable / editable)"], ["decoration", "Decoration (locked marking)"]]
+    [["interactive", "Interactive (clickable / editable)"],
+     ["decoration", "Decoration (locked marking)"],
+     ["product", "Product area (standing / GA)"]]
       .forEach(([val, label]) => {
         const o = document.createElement("option");
         o.value = val; o.textContent = label;
         roleSel.appendChild(o);
       });
     roleSel.value = area.role || "interactive";
-    roleSel.addEventListener("change", () => { area.role = roleSel.value; commitArea(); });
+    roleSel.addEventListener("change", () => { area.role = roleSel.value; commitArea(); refreshAreaInspector(); });
     roleWrap.appendChild(roleSel);
     areaFieldsEl.appendChild(roleWrap);
+
+    // Product areas (standing / general admission): pick the pretix product that
+    // a click in the shop will add to the cart (by quantity).
+    if (area.role === "product") {
+      const pWrap = document.createElement("label");
+      pWrap.className = "smartseat-area-field";
+      pWrap.textContent = "Product (ticket)";
+      const pSel = document.createElement("select");
+      const none = document.createElement("option");
+      none.value = ""; none.textContent = PRODUCTS.length ? "— choose —" : "(no products in this event)";
+      pSel.appendChild(none);
+      PRODUCTS.forEach((p) => {
+        const o = document.createElement("option");
+        o.value = String(p.id); o.textContent = p.name;
+        pSel.appendChild(o);
+      });
+      pSel.value = area.product != null ? String(area.product) : "";
+      pSel.addEventListener("change", () => {
+        area.product = pSel.value ? Number(pSel.value) : null;
+        area.product_name = pSel.value ? (PRODUCTS.find((p) => String(p.id) === pSel.value)?.name || "") : "";
+        commitArea();
+      });
+      pWrap.appendChild(pSel);
+      areaFieldsEl.appendChild(pWrap);
+      const hint = document.createElement("p");
+      hint.className = "smartseat-insp-hint";
+      hint.textContent = "Shoppers click this region to add the product to the cart. No individual seats.";
+      areaFieldsEl.appendChild(hint);
+    }
 
     if (area.shape === "text") {
       const wrap = document.createElement("label");
@@ -1484,11 +1518,13 @@
     const py = Number(area.position?.y || 0);
     g.setAttribute("transform", `translate(${px} ${py}) rotate(${Number(area.rotation || 0)})`);
     g.setAttribute("data-area-index", String(index));
-    const deco = (area.role || "interactive") === "decoration";
+    const role = area.role || "interactive";
+    const deco = role === "decoration";
     let cls = "smartseat-area" + (index === selectedArea ? " selected" : "");
     // Decorations get a muted dashed look but stay selectable. They render
     // behind the seats, so seats always win a click where they overlap.
     if (deco) cls += " smartseat-area-deco";
+    if (role === "product") cls += " smartseat-area-product";
     g.setAttribute("class", cls);
 
     const fill = area.color || "rgba(148,163,184,0.5)";
@@ -1529,6 +1565,20 @@
       shapeEl.setAttribute("stroke-width", "1");
     }
     g.appendChild(shapeEl);
+
+    // Product areas show their product name (or a hint to pick one) in the centre.
+    if (role === "product") {
+      const bb = areaBBox(area);
+      const cx = bb ? bb.x0 + bb.w / 2 : 0;
+      const cy = bb ? bb.y0 + bb.h / 2 : 0;
+      const label = document.createElementNS(SVGNS, "text");
+      label.setAttribute("x", cx); label.setAttribute("y", cy);
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("class", "smartseat-area-product-label");
+      label.textContent = area.product_name || (area.product ? "Product #" + area.product : "⚠ pick a product");
+      g.appendChild(label);
+    }
+
     svg.appendChild(g);
   };
 

@@ -381,6 +381,20 @@
 /* Decoration areas: dashed "marking" look (still selectable, rendered behind seats) */
 .smartseat-area-deco > * { stroke-dasharray: 7 5; opacity: 0.9; }
 
+/* Product (standing / GA) areas: solid accent so they read as bookable regions */
+.smartseat-area-product > rect,
+.smartseat-area-product > circle,
+.smartseat-area-product > ellipse,
+.smartseat-area-product > polygon {
+  fill: rgba(16, 185, 129, 0.22);
+  stroke: #059669;
+  stroke-width: 2;
+}
+.smartseat-area-product-label {
+  font-size: 13px; font-weight: 700; fill: #065f46;
+  pointer-events: none; user-select: none; dominant-baseline: middle;
+}
+
 /* Polygon tool draft (in-progress drawing) */
 .smartseat-poly-draft {
   fill: rgba(79, 70, 229, 0.10);

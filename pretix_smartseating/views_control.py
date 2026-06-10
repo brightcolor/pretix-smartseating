@@ -330,10 +330,15 @@ def plan_create_from_preset(request: HttpRequest, organizer: str, event: str) ->
 @require_http_methods(["GET"])
 def plan_editor(request: HttpRequest, organizer: str, event: str, plan_id: int) -> HttpResponse:
     plan = _plan_for_event(request, plan_id)
+    # Products the editor can attach to a "product area" (standing / GA region).
+    products = [
+        {"id": item.pk, "name": str(item.name)}
+        for item in request.event.items.filter(active=True).order_by("position", "id")
+    ]
     return render(
         request,
         "pretix_smartseating/control/editor.html",
-        {"event": request.event, "plan": plan},
+        {"event": request.event, "plan": plan, "products": products},
     )
 
 

@@ -41,6 +41,9 @@ Checkout, den Order-Lifecycle sowie die Anzeige des Sitzplatzes auf Ticket und i
     „Deko bearbeiten" zum erneuten Selektieren
   - **Fläche mit Sitzen füllen**: beliebige Fläche auswählen, Anzahl + Kategorie angeben →
     Sitze werden gleichmäßig innerhalb der Form verteilt und gruppiert
+  - **Produkt-/Stehplatz-Flächen**: Fläche auf Rolle „Produkt" setzen + pretix-Produkt
+    verknüpfen → im Shop klickbare Region, die das Produkt mengenweise (natives `item_<id>`)
+    in den Warenkorb legt (keine Einzelsitze; ein nicht-bestuhltes Produkt verwenden)
 
 > 📖 Ausführliche Bedienungsanleitung: [`docs/sitzplan-anleitung.md`](docs/sitzplan-anleitung.md)
 > (auch als BookStack-importierbare `docs/sitzplan-anleitung.html`).

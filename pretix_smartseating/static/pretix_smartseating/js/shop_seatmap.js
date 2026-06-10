@@ -104,6 +104,8 @@
     var seatsByGuid = {};        // guid -> seat data
     var currency = "";
     var priceByProduct = {};
+    var productCounts = {};       // pretix item id -> chosen quantity (product areas)
+    var productAreas = {};        // pretix item id -> { info, badge update fn }
 
     function applyViewBox() { svg.setAttribute("viewBox", view.x + " " + view.y + " " + view.w + " " + view.h); }
     function fit() { view = { x: fullView.x, y: fullView.y, w: fullView.w, h: fullView.h }; applyViewBox(); }
@@ -126,16 +128,41 @@
           inp.name = "seat_" + selected[guid]; inp.value = guid;
           form.appendChild(inp);
         });
+        // Product areas → pretix' native `item_<id>` quantity fields. Reuse an
+        // existing field if pretix already renders one for the product, else add
+        // a hidden field so the same cart-add submit books it.
+        Array.prototype.slice.call(form.querySelectorAll(".smartseat-product-input")).forEach(function (i) { i.remove(); });
+        Object.keys(productCounts).forEach(function (pid) {
+          var qty = productCounts[pid];
+          if (!qty) return;
+          var existing = form.querySelector('[name="item_' + pid + '"]');
+          if (existing) { existing.value = qty; return; }
+          var inp = document.createElement("input");
+          inp.type = "hidden"; inp.className = "smartseat-product-input";
+          inp.name = "item_" + pid; inp.value = qty;
+          form.appendChild(inp);
+        });
       }
-      var n = Object.keys(selected).length;
+      var nSeats = Object.keys(selected).length;
+      var nProducts = 0, prodTotal = 0;
+      Object.keys(productCounts).forEach(function (pid) {
+        var q = productCounts[pid]; if (!q) return;
+        nProducts += q;
+        var pa = productAreas[pid];
+        if (pa && pa.info && pa.info.price != null) prodTotal += (parseFloat(pa.info.price) || 0) * q;
+      });
+      var n = nSeats + nProducts;
       submit.disabled = n === 0;
       if (!n) { status.textContent = t("Pick your seats on the map."); return; }
-      var total = 0, haveAll = true;
+      var total = prodTotal, haveAll = true;
       Object.keys(selected).forEach(function (guid) {
         var p = priceByProduct[selected[guid]];
         if (p && p.price != null) total += parseFloat(p.price) || 0; else haveAll = false;
       });
-      status.textContent = t("Selected seats:") + " " + n
+      var parts = [];
+      if (nSeats) parts.push(t("Selected seats:") + " " + nSeats);
+      if (nProducts) parts.push(t("Tickets:") + " " + nProducts);
+      status.textContent = parts.join(" · ")
         + (haveAll ? " · " + t("Total:") + " " + fmtPrice(total.toFixed(2), currency) : "");
     }
 
@@ -210,10 +237,13 @@
       var px = (a.position && a.position.x) || 0, py = (a.position && a.position.y) || 0;
       g.setAttribute("transform", "translate(" + px + "," + py + ") rotate(" + (a.rotation || 0) + ")");
       var fill = a.color || "rgba(148,163,184,0.5)", stroke = a.border_color || "#64748b", sh = null;
+      var center = { x: 0, y: 0 };
       if (a.shape === "rectangle" && a.rectangle) {
+        var w = a.rectangle.width || 100, h = a.rectangle.height || 40;
         sh = document.createElementNS(SVGNS, "rect");
         sh.setAttribute("x", 0); sh.setAttribute("y", 0); sh.setAttribute("rx", 6);
-        sh.setAttribute("width", a.rectangle.width || 100); sh.setAttribute("height", a.rectangle.height || 40);
+        sh.setAttribute("width", w); sh.setAttribute("height", h);
+        center = { x: w / 2, y: h / 2 };
       } else if (a.shape === "circle" && a.circle) {
         sh = document.createElementNS(SVGNS, "circle");
         sh.setAttribute("cx", 0); sh.setAttribute("cy", 0); sh.setAttribute("r", a.circle.radius || 50);
@@ -222,6 +252,15 @@
         sh.setAttribute("cx", 0); sh.setAttribute("cy", 0);
         sh.setAttribute("rx", (a.ellipse.radius && a.ellipse.radius.x) || 80);
         sh.setAttribute("ry", (a.ellipse.radius && a.ellipse.radius.y) || 50);
+      } else if (a.shape === "polygon" && a.polygon) {
+        var pts = a.polygon.points || [];
+        sh = document.createElementNS(SVGNS, "polygon");
+        sh.setAttribute("points", pts.map(function (p) { return p.x + "," + p.y; }).join(" "));
+        if (pts.length) {
+          var sx = 0, sy = 0;
+          pts.forEach(function (p) { sx += p.x; sy += p.y; });
+          center = { x: sx / pts.length, y: sy / pts.length };
+        }
       } else if (a.shape === "text" && a.text) {
         sh = document.createElementNS(SVGNS, "text");
         sh.setAttribute("x", (a.text.position && a.text.position.x) || 0);
@@ -233,12 +272,51 @@
       }
       if (!sh) return;
       if (a.shape !== "text") { sh.setAttribute("fill", fill); sh.setAttribute("stroke", stroke); }
-      g.appendChild(sh); svg.appendChild(g);
+      g.appendChild(sh);
+
+      // Product area (standing / GA): clickable region that adds a product by qty.
+      if (a.role === "product" && a.product_info && a.product_info.id) {
+        drawProductArea(g, a, center);
+      }
+      svg.appendChild(g);
+    }
+
+    function drawProductArea(g, a, center) {
+      var info = a.product_info;
+      var pid = info.id;
+      productAreas[pid] = { info: info };
+      var avail = !!info.available;
+      g.setAttribute("class", "smartseat-shop-area smartseat-shop-product" + (avail ? "" : " unavail"));
+      var lbl = document.createElementNS(SVGNS, "text");
+      lbl.setAttribute("x", center.x); lbl.setAttribute("y", center.y);
+      lbl.setAttribute("text-anchor", "middle");
+      lbl.setAttribute("class", "smartseat-shop-product-label");
+      function priceTxt() { return info.price != null ? fmtPrice(info.price, currency) : ""; }
+      function refresh() {
+        var q = productCounts[pid] || 0;
+        lbl.textContent = (info.name || t("Tickets")) + (priceTxt() ? " · " + priceTxt() : "")
+          + (q ? "  ×" + q : "");
+        if (q) g.classList.add("chosen"); else g.classList.remove("chosen");
+      }
+      productAreas[pid].refresh = refresh;
+      g.appendChild(lbl);
+      refresh();
+      if (!avail) return;
+      g.style.cursor = "pointer";
+      g.addEventListener("click", function (e) {
+        e.preventDefault(); e.stopPropagation();
+        var q = productCounts[pid] || 0;
+        // Plain click adds one; Shift/Alt-click removes one.
+        q = (e.shiftKey || e.altKey) ? Math.max(0, q - 1) : q + 1;
+        productCounts[pid] = q;
+        refresh();
+        syncForm();
+      });
     }
 
     function render(data) {
       while (svg.firstChild) svg.removeChild(svg.firstChild);
-      nodes = {}; seatsByGuid = {};
+      nodes = {}; seatsByGuid = {}; productAreas = {};
       currency = data.currency || "";
       priceByProduct = {};
       (data.products || []).forEach(function (p) { priceByProduct[p.id] = p; });

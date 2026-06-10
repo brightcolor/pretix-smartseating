@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-06-10
+
+### Added
+- **Product areas (standing / general admission).** An area can now be set to
+  role *Product* and linked to a pretix product. In the shop it renders as a
+  clickable region (name + price); clicking adds the product to the cart by
+  quantity (Shift/Alt-click removes one) via pretix' native `item_<id>` field —
+  no individual seats, full checkout stays native.
+  - Editor: products are passed to the editor; the area inspector gains a
+    "Product area" role + product picker; product areas show the product name
+    on the plan.
+  - Shop: `api_seatmap` enriches product areas with live name/price/availability;
+    `shop_seatmap.js` renders them clickable with a quantity badge and writes the
+    `item_<id>` field into pretix' cart-add form. Polygon areas now render in the
+    shop too.
+  - `role` / `product` / `product_name` are editor-only and stripped before the
+    native pretix layout is built.
+
+### Note
+- Use a **non-seated** product for standing areas — a product that itself uses
+  seats is booked via seat selection, not by quantity.
+
 ## [0.8.0] - 2026-06-10
 
 ### Added

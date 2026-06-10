@@ -171,6 +171,23 @@ def api_seatmap(request: HttpRequest, organizer: str, event: str) -> JsonRespons
                 "blocked": bool(s.blocked),
             })
 
+        # Enrich "product area" shapes (standing / GA regions) with live product
+        # name, price and availability so the shop can render them as bookable.
+        for area in areas:
+            if not isinstance(area, dict) or area.get("role") != "product":
+                continue
+            pid = area.get("product")
+            if not pid:
+                area["product_info"] = None
+                continue
+            info = _item(pid)
+            area["product_info"] = {
+                "id": pid,
+                "name": info["name"],
+                "price": info["price"],
+                "available": _product_available(pid),
+            }
+
     return JsonResponse({
         "ok": True,
         "size": {"width": width, "height": height},

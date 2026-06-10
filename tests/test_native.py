@@ -234,15 +234,16 @@ def test_build_layout_strips_editor_only_role(local_plan):
     decoration); it must be stripped before native validation."""
     with scopes_disabled():
         local_plan.area_shapes = [
-            {"shape": "polygon", "role": "decoration", "position": {"x": 0, "y": 0},
+            {"shape": "polygon", "role": "product", "product": 42, "product_name": "Standing",
+             "position": {"x": 0, "y": 0},
              "polygon": {"points": [{"x": 0, "y": 0}, {"x": 50, "y": 0}, {"x": 25, "y": 40}]},
              "color": "#000000"},
         ]
         local_plan.save()
-    layout = build_pretix_layout(local_plan)  # must not raise on the extra key
-    decor = [z for z in layout["zones"] if z.get("areas")][0]
-    assert "role" not in decor["areas"][0]
-    assert decor["areas"][0]["shape"] == "polygon"
+    layout = build_pretix_layout(local_plan)  # must not raise on the extra keys
+    area = [z for z in layout["zones"] if z.get("areas")][0]["areas"][0]
+    assert "role" not in area and "product" not in area and "product_name" not in area
+    assert area["shape"] == "polygon"
 
 
 def test_layout_from_pretix_roundtrip():

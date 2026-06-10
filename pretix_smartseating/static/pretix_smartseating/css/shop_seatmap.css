@@ -69,6 +69,35 @@
 .smartseat-shop-area { pointer-events: none; }
 .smartseat-shop-area text { font-family: inherit; }
 
+/* Product (standing / GA) areas — clickable bookable regions */
+.smartseat-shop-product { pointer-events: auto; cursor: pointer; }
+.smartseat-shop-product > rect,
+.smartseat-shop-product > circle,
+.smartseat-shop-product > ellipse,
+.smartseat-shop-product > polygon {
+  fill: rgba(16, 185, 129, 0.18);
+  stroke: #059669;
+  stroke-width: 2;
+  transition: fill 0.1s ease;
+}
+.smartseat-shop-product:hover > rect,
+.smartseat-shop-product:hover > circle,
+.smartseat-shop-product:hover > ellipse,
+.smartseat-shop-product:hover > polygon { fill: rgba(16, 185, 129, 0.30); }
+.smartseat-shop-product.chosen > rect,
+.smartseat-shop-product.chosen > circle,
+.smartseat-shop-product.chosen > ellipse,
+.smartseat-shop-product.chosen > polygon { fill: rgba(5, 150, 105, 0.40); stroke-width: 3; }
+.smartseat-shop-product.unavail { cursor: not-allowed; }
+.smartseat-shop-product.unavail > rect,
+.smartseat-shop-product.unavail > circle,
+.smartseat-shop-product.unavail > ellipse,
+.smartseat-shop-product.unavail > polygon { fill: rgba(148,163,184,0.30); stroke: #94a3b8; }
+.smartseat-shop-product-label {
+  font-size: 14px; font-weight: 700; fill: #065f46;
+  pointer-events: none; user-select: none; dominant-baseline: middle;
+}
+
 .smartseat-shop-status { margin: 10px 0 6px; font-weight: 600; }
 .smartseat-shop-submit { min-height: 46px; font-size: 16px; }
 
