@@ -1961,11 +1961,12 @@
       renderedNodes.set(seat.external_id, circle);
 
       if (showLabels) {
+        // Seat number rendered ON the seat (like the shop), not beside it.
         const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        label.setAttribute("x", seat.x + 10);
-        label.setAttribute("y", seat.y + 4);
-        label.setAttribute("font-size", "10");
-        label.textContent = `${seat.row_label}${seat.seat_number}`;
+        label.setAttribute("x", seat.x);
+        label.setAttribute("y", seat.y);
+        label.setAttribute("class", "smartseat-seat-num");
+        label.textContent = seat.seat_number;
         svg.appendChild(label);
       }
     }

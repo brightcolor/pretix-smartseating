@@ -362,6 +362,20 @@
 
 .smartseat-area { cursor: move; }
 
+/* Seat number rendered on the seat circle */
+.smartseat-seat-num {
+  font-size: 8px;
+  font-weight: 600;
+  fill: #fff;
+  paint-order: stroke;
+  stroke: rgba(15, 23, 42, 0.45);
+  stroke-width: 2px;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  user-select: none;
+}
+
 /* Validation report */
 .smartseat-validation { margin: 8px 0; display: flex; flex-direction: column; gap: 5px; }
 .smartseat-valid-ok { color: #15803d; font-weight: 600; margin: 6px 0; }
