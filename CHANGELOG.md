@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.2] - 2026-06-10
+
+### Fixed
+- **Decoration areas are selectable again.** They no longer swallow clicks – a
+  filled curve / polygon set to "Decoration" can be clicked and edited. (Seats
+  still win where they overlap, since they render on top.) The now-pointless
+  "Edit locked decorations" toggle was removed.
+
+### Changed
+- **Context-aware Edit panel:** the Edit tab now shows *only* what the current
+  selection needs – the Selection block for seats, the Area block for an area,
+  and a short hint when nothing is selected. No more empty placeholder blocks.
+- **Decluttered the Build tab:** the redundant per-tool generate buttons
+  ("Add row", "Add table", …) are gone – click-to-place on the plan is the way.
+  Arc vs. Semicircle is now a small "Arc shape" dropdown.
+
 ## [0.7.1] - 2026-06-10
 
 ### Added

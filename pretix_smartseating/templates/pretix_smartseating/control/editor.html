@@ -71,11 +71,17 @@
     <section class="smartseat-insp-section smartseat-toolsettings" data-tab="build">
       <h4 data-role="tool-title">{% trans "Tool" %}</h4>
       <p class="smartseat-insp-hint" data-tools="select">{% trans "Click selects a seat's whole group. Double-click enters the group to edit single seats (Esc / click outside exits). Alt-click picks one seat; drag empty canvas = rubber-band; Shift-click toggles." %}</p>
-      <p class="smartseat-insp-hint" data-tools="row block arc table stage round label">{% trans "Set the options below, then click on the plan where it should go. Esc returns to Select. (The button drops it in the centre instead.)" %}</p>
+      <p class="smartseat-insp-hint" data-tools="row block arc table stage round label">{% trans "Set the options below, then click on the plan where it should go. Esc returns to Select." %}</p>
       <p class="smartseat-insp-hint" data-tools="polygon">{% trans "Click on the plan to drop polygon corners. Click the first point again, double-click or press Enter to finish; Esc cancels." %}</p>
 
       <div class="smartseat-gen-grid">
         <label data-tools="row block arc">{% trans "Start row label" %}<input data-field="gen-row-start" type="text" value="A"></label>
+        <label data-tools="arc">{% trans "Arc shape" %}
+          <select data-field="gen-arc-shape">
+            <option value="arc">{% trans "Arc" %}</option>
+            <option value="semicircle">{% trans "Semicircle" %}</option>
+          </select>
+        </label>
         <label data-tools="block arc">{% trans "Rows" %}<input data-field="gen-rows" type="number" min="1" max="60" value="5"></label>
         <label data-tools="row block arc">{% trans "Seats" %}<input data-field="gen-seat-count" type="number" min="1" max="150" value="20"></label>
         <label data-tools="table">{% trans "Seats at table" %}<input data-field="gen-table-seats" type="number" min="1" max="40" value="8"></label>
@@ -114,23 +120,16 @@
         </label>
       </div>
 
-      <div class="smartseat-tool-actions">
-        <button type="button" class="btn btn-primary btn-sm" data-tool-action="add-row" data-tools="row">{% trans "Add row" %}</button>
-        <button type="button" class="btn btn-primary btn-sm" data-tool-action="generate-table" data-tools="table">{% trans "Add table" %}</button>
-        <button type="button" class="btn btn-primary btn-sm" data-tool-action="generate-block" data-tools="block">{% trans "Generate block" %}</button>
-        <button type="button" class="btn btn-primary btn-sm" data-tool-action="generate-arc" data-tools="arc">{% trans "Generate arc" %}</button>
-        <button type="button" class="btn btn-default btn-sm" data-tool-action="generate-semicircle" data-tools="arc">{% trans "Semicircle" %}</button>
-        <button type="button" class="btn btn-primary btn-sm" data-tool-action="add-stage" data-tools="stage">{% trans "Add stage / area" %}</button>
-        <button type="button" class="btn btn-primary btn-sm" data-tool-action="add-ellipse" data-tools="round">{% trans "Add round area" %}</button>
-        <button type="button" class="btn btn-primary btn-sm" data-tool-action="add-label" data-tools="label">{% trans "Add label" %}</button>
-      </div>
     </section>
 
     {# ════════ TAB: EDIT (selection + area) ════════ #}
-    <section class="smartseat-insp-section" data-tab="edit" hidden>
+    <section class="smartseat-insp-section" data-tab="edit" data-role="edit-empty-section" hidden>
+      <p class="smartseat-insp-hint">{% trans "Nothing selected. Click a seat or an area on the plan to edit it." %}</p>
+    </section>
+
+    <section class="smartseat-insp-section" data-tab="edit" data-role="selection-section" hidden>
       <h4>{% trans "Selection" %} <span class="smartseat-badge" data-role="sel-count">0</span></h4>
-      <p class="smartseat-insp-hint" data-role="sel-empty">{% trans "Select seats to edit their category and type." %}</p>
-      <div class="smartseat-insp-fields" data-role="sel-fields" hidden>
+      <div class="smartseat-insp-fields" data-role="sel-fields">
         <label>{% trans "Category (price zone)" %}
           <select data-field="insp-category" class="form-control input-sm"></select>
         </label>
@@ -169,12 +168,9 @@
       </div>
     </section>
 
-    <section class="smartseat-insp-section" data-tab="edit" hidden>
+    <section class="smartseat-insp-section" data-tab="edit" data-role="area-section" hidden>
       <h4>{% trans "Area" %}</h4>
-      <label class="smartseat-check"><input type="checkbox" data-field="edit-deco"> {% trans "Edit locked decorations" %}</label>
-      <p class="smartseat-insp-hint">{% trans "Decorations are click-through markings; enable this to re-select and edit them." %}</p>
-      <p class="smartseat-insp-hint" data-role="area-empty">{% trans "No area selected. Add a Stage / Round / Label / Polygon, then click it." %}</p>
-      <div data-role="area-body" hidden>
+      <div data-role="area-body">
         <div id="smartseat-area-fields"></div>
         <button type="button" class="btn btn-danger btn-sm" data-action="delete-area">{% trans "Delete area" %}</button>
       </div>

@@ -172,8 +172,6 @@
   let polyPoints = null;
   let polyCursor = null;
   let polyMode = "polygon"; // "polygon" (straight edges) | "curve" (smooth)
-  // Global toggle: temporarily make locked "decoration" areas selectable again.
-  let editDeco = false;
   const isPolyTool = () => activeTool === "polygon" || activeTool === "curve";
   // Creation tools → the action they trigger when you click on the canvas.
   const GENERATOR_TOOLS = {
@@ -970,20 +968,29 @@
     if (sc) sc.textContent = String(state.seats.length);
   };
 
+  // Show only what the current selection needs in the Edit tab: the Selection
+  // block when seats are selected, the Area block when an area is selected, and
+  // a short hint when nothing is selected.
+  const editActive = () => document.querySelector('[data-tab-btn="edit"]')?.classList.contains("active");
+  const applyEditContext = () => {
+    if (!editActive()) return;
+    const hasSel = selected.size > 0;
+    const hasArea = selectedArea !== null;
+    const selSec = document.querySelector('[data-role="selection-section"]');
+    const areaSec = document.querySelector('[data-role="area-section"]');
+    const emptySec = document.querySelector('[data-role="edit-empty-section"]');
+    if (selSec) selSec.hidden = !hasSel;
+    if (areaSec) areaSec.hidden = !hasArea;
+    if (emptySec) emptySec.hidden = hasSel || hasArea;
+  };
+
   const refreshInspector = () => {
     refreshPlanInfo();
+    applyEditContext();
     const fields = document.querySelector('[data-role="sel-fields"]');
-    const empty = document.querySelector('[data-role="sel-empty"]');
     const count = document.querySelector('[data-role="sel-count"]');
     if (count) count.textContent = String(selected.size);
-    if (!fields || !empty) return;
-    if (!selected.size) {
-      fields.hidden = true;
-      empty.hidden = false;
-      return;
-    }
-    fields.hidden = false;
-    empty.hidden = true;
+    if (!fields || !selected.size) return;
     const sel = state.seats.filter((s) => selected.has(s.external_id));
     const common = (getter) => {
       const vals = new Set(sel.map(getter));
@@ -1080,18 +1087,10 @@
   };
 
   const refreshAreaInspector = () => {
-    const body = document.querySelector('[data-role="area-body"]');
-    const empty = document.querySelector('[data-role="area-empty"]');
+    applyEditContext();
     if (!areaFieldsEl) return;
     const area = selectedArea !== null ? state.areas[selectedArea] : null;
-    if (!area) {
-      if (body) body.hidden = true;
-      if (empty) empty.hidden = false;
-      areaFieldsEl.innerHTML = "";
-      return;
-    }
-    if (body) body.hidden = false;
-    if (empty) empty.hidden = true;
+    if (!area) { areaFieldsEl.innerHTML = ""; return; }
     areaFieldsEl.innerHTML = "";
 
     const typeLine = document.createElement("p");
@@ -1447,10 +1446,9 @@
     g.setAttribute("data-area-index", String(index));
     const deco = (area.role || "interactive") === "decoration";
     let cls = "smartseat-area" + (index === selectedArea ? " selected" : "");
+    // Decorations get a muted dashed look but stay selectable. They render
+    // behind the seats, so seats always win a click where they overlap.
     if (deco) cls += " smartseat-area-deco";
-    // Locked decorations are click-through (don't block seat selection) unless
-    // the "edit decorations" toggle is on.
-    if (deco && !editDeco) cls += " smartseat-area-locked";
     g.setAttribute("class", cls);
 
     const fill = area.color || "rgba(148,163,184,0.5)";
@@ -2004,6 +2002,10 @@
   };
 
   const generateArcRows = ({ semicircle = false } = {}) => {
+    // The "Arc shape" dropdown (Arc / Semicircle) is the single source now that
+    // the separate generate buttons are gone.
+    const shapeField = field("gen-arc-shape");
+    if (shapeField) semicircle = shapeField.value === "semicircle";
     const rowCount = Math.max(1, Math.floor(parseNumber("gen-rows", 1)));
     const seatCount = Math.max(1, Math.floor(parseNumber("gen-seat-count", 20)));
     const centerX = placePoint ? placePoint.x : parseNumber("gen-center-x", width / 2);
@@ -2514,6 +2516,7 @@
     document.querySelectorAll("[data-tab]").forEach((sec) => {
       sec.hidden = sec.getAttribute("data-tab") !== name;
     });
+    if (name === "edit") applyEditContext();
   };
   document.querySelectorAll("[data-tab-btn]").forEach((b) => {
     b.addEventListener("click", () => setSidebarTab(b.getAttribute("data-tab-btn")));
@@ -2521,10 +2524,6 @@
 
   setTool("select");
   setSidebarTab("build");
-
-  // Global "edit locked decorations" toggle.
-  const editDecoCb = field("edit-deco");
-  if (editDecoCb) editDecoCb.addEventListener("change", () => { editDeco = editDecoCb.checked; draw(); });
 
   // "Apply to event" must use the latest edits → save first, then navigate.
   var applyLink = document.getElementById("smartseat-apply");
