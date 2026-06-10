@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2026-06-10
+
+### Added
+- **Fill an area with seats:** select any area (polygon / rectangle / circle /
+  ellipse), enter a seat count + category and the editor distributes that many
+  seats evenly *inside* the shape (point-in-shape clipped, rotation-aware) and
+  groups them.
+- **Manual:** `docs/sitzplan-anleitung.html` (self-contained, BookStack-importable)
+  and `docs/sitzplan-anleitung.md` — a full German guide to the seat-plan editor.
+
+### Fixed
+- **Double-click to enter a group now works reliably:** it used to require hitting
+  a tiny seat circle exactly; double-clicking anywhere inside the group's outline
+  (the table, the gaps between seats) now enters the group and selects the nearest
+  seat.
+
 ## [0.7.0] - 2026-06-10
 
 ### Added

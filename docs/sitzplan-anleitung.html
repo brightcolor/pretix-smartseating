@@ -1,0 +1,311 @@
+<!--
+  Smart Seating – Anleitung Sitzplan-Editor
+  ------------------------------------------
+  In BookStack importierbar:
+    • Neue Seite anlegen → Editor auf "WYSIWYG" → Werkzeug "Quellcode/<>" öffnen
+      → Inhalt dieser Datei (am besten alles zwischen <body>…</body>) einfügen.
+    • Oder: BookStack Markdown-Editor + die beiliegende sitzplan-anleitung.md.
+  Die Hinweisboxen sind inline gestylt, damit sie auch nach dem Import erhalten
+  bleiben (BookStack übernimmt den <head>/<style> beim Einfügen i. d. R. nicht).
+-->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Smart Seating – Sitzplan-Editor: Anleitung</title>
+</head>
+<body>
+
+<h1>Sitzplan-Editor – die komplette Anleitung</h1>
+
+<p style="font-size:1.05em;color:#334155;">
+Mit <strong>Smart Seating</strong> baust du in pretix grafische Saalpläne: Sitzreihen,
+Tische, Blöcke, Bögen, Bühnen und freie Flächen. Du weist jedem Bereich eine
+<em>Preiskategorie</em> zu, veröffentlichst den Plan auf dein Event – und im Shop
+wählen deine Gäste ihre Plätze direkt auf der Karte aus. Dieser Leitfaden führt dich
+Schritt für Schritt durch alles: vom ersten Plan bis zum fertigen Verkauf.
+</p>
+
+<div style="border-left:4px solid #4f46e5;background:#eef2ff;padding:12px 16px;border-radius:6px;margin:18px 0;">
+<strong>In 30 Sekunden verstanden:</strong> Smart Seating ist <em>kein</em> eigenes
+Verkaufssystem. Es füttert das <strong>native Seating von pretix</strong>. Heißt:
+Verfügbarkeit, Warenkorb, Bezahlung und Tickets laufen komplett über pretix – der
+Editor liefert nur den schönen Plan und die Zuordnung „welcher Sitz = welches Produkt“.
+</div>
+
+<hr>
+
+<h2>1. Überblick: die drei Bausteine</h2>
+<ul>
+  <li><strong>Plan (Editor):</strong> Hier zeichnest du den Saal. Ein Plan ist pro
+      Veranstalter wiederverwendbar (als Standort-Preset).</li>
+  <li><strong>Kategorien (Preiszonen):</strong> Farbige Gruppen wie „Stalls“, „Balkon“,
+      „Stehplatz“. Jede Kategorie wird beim Veröffentlichen auf ein pretix-Produkt
+      gemappt.</li>
+  <li><strong>Veröffentlichen („Apply to event“):</strong> Überträgt den Plan ins native
+      pretix-Seating und erzeugt die echten, buchbaren Sitze.</li>
+</ul>
+
+<h2>2. Schnellstart</h2>
+<ol>
+  <li>Im Veranstalter-Backend links auf <strong>Smart Seating</strong> klicken.</li>
+  <li><strong>„Create plan“</strong> (oder aus einem Standort-Preset erzeugen).</li>
+  <li>In der Plan-Liste auf <strong>„Edit“</strong> – der Editor öffnet sich.</li>
+  <li>Werkzeug wählen, auf die Fläche klicken, Plätze setzen.</li>
+  <li>Kategorien anlegen und Sitzen zuweisen.</li>
+  <li><strong>„Save“</strong>, dann <strong>„Apply to event“</strong> – fertig für den Verkauf.</li>
+</ol>
+
+<div style="border-left:4px solid #0ea5e9;background:#e0f2fe;padding:12px 16px;border-radius:6px;margin:18px 0;">
+<strong>Plan-Liste:</strong> zeigt alle Pläne mit Maßen und Änderungsdatum. Über
+„Create from Location Preset“ kopierst du einen gespeicherten Plan für ein neues Event.
+</div>
+
+<h2>3. Die Editor-Oberfläche</h2>
+<p>Der Editor besteht aus drei Bereichen:</p>
+
+<!-- kleine Skizze der Toolbar -->
+<svg viewBox="0 0 720 64" width="100%" style="max-width:720px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;">
+  <rect x="10" y="18" width="56" height="26" rx="5" fill="#4f46e5"/>
+  <text x="38" y="35" font-size="12" fill="#fff" text-anchor="middle" font-family="sans-serif">Save</text>
+  <rect x="72" y="18" width="92" height="26" rx="5" fill="#22c55e"/>
+  <text x="118" y="35" font-size="11" fill="#fff" text-anchor="middle" font-family="sans-serif">Apply to event</text>
+  <rect x="178" y="18" width="30" height="26" rx="5" fill="#e2e8f0"/><text x="193" y="36" font-size="13" text-anchor="middle" font-family="sans-serif">↶</text>
+  <rect x="210" y="18" width="30" height="26" rx="5" fill="#e2e8f0"/><text x="225" y="36" font-size="13" text-anchor="middle" font-family="sans-serif">↷</text>
+  <g font-family="sans-serif" font-size="11" text-anchor="middle">
+    <rect x="252" y="18" width="46" height="26" rx="5" fill="#4f46e5"/><text x="275" y="35" fill="#fff">Select</text>
+    <rect x="300" y="18" width="40" height="26" rx="5" fill="#eef2ff"/><text x="320" y="35">Row</text>
+    <rect x="342" y="18" width="46" height="26" rx="5" fill="#eef2ff"/><text x="365" y="35">Block</text>
+    <rect x="390" y="18" width="38" height="26" rx="5" fill="#eef2ff"/><text x="409" y="35">Arc</text>
+    <rect x="430" y="18" width="46" height="26" rx="5" fill="#eef2ff"/><text x="453" y="35">Table</text>
+    <rect x="478" y="18" width="46" height="26" rx="5" fill="#eef2ff"/><text x="501" y="35">Stage</text>
+    <rect x="526" y="18" width="46" height="26" rx="5" fill="#eef2ff"/><text x="549" y="35">Round</text>
+    <rect x="574" y="18" width="42" height="26" rx="5" fill="#eef2ff"/><text x="595" y="35">Label</text>
+    <rect x="618" y="18" width="50" height="26" rx="5" fill="#eef2ff"/><text x="643" y="35">Polygon</text>
+    <rect x="670" y="18" width="42" height="26" rx="5" fill="#eef2ff"/><text x="691" y="35">Curve</text>
+  </g>
+</svg>
+<p style="color:#64748b;font-size:.9em;">▲ Die obere Werkzeugleiste: Dokument-Aktionen (Save, Apply, Undo/Redo) und die Werkzeuge.</p>
+
+<ul>
+  <li><strong>Obere Werkzeugleiste:</strong> Speichern, Veröffentlichen, Rückgängig/Wiederholen,
+      die Zeichen-Werkzeuge sowie Export/Import.</li>
+  <li><strong>Canvas (Mitte):</strong> die Zeichenfläche mit deinem Plan.</li>
+  <li><strong>Sidebar (rechts):</strong> drei Reiter –
+      <strong>Build</strong> (Zonen + aktives Werkzeug),
+      <strong>Edit</strong> (Auswahl + Flächen),
+      <strong>Plan</strong> (Plangröße, Kategorien, Gruppen, Hintergrund).</li>
+</ul>
+
+<h3>Navigieren im Plan</h3>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;">
+  <thead style="background:#f1f5f9;"><tr><th align="left">Aktion</th><th align="left">So geht’s</th></tr></thead>
+  <tbody>
+    <tr><td>Zoomen</td><td>Mausrad über dem Plan</td></tr>
+    <tr><td>Verschieben (Pan)</td><td>Mittlere Maustaste ziehen, oder <strong>Leertaste + ziehen</strong></td></tr>
+    <tr><td>Einpassen</td><td>Doppelklick auf eine leere Stelle</td></tr>
+  </tbody>
+</table>
+
+<h2>4. Elemente platzieren – „Click-to-Place“</h2>
+<p>Alle Erstell-Werkzeuge funktionieren gleich und intuitiv:</p>
+<ol>
+  <li>Werkzeug oben anklicken (z. B. <strong>Table</strong>).</li>
+  <li>Im Build-Reiter die Optionen einstellen (Größe, Sitzanzahl, Kategorie …).</li>
+  <li><strong>Auf den Plan klicken</strong>, wo das Element hin soll.</li>
+  <li><strong>Esc</strong> bringt dich zurück zum Auswahl-Werkzeug.</li>
+</ol>
+<p>Der Mauszeiger wird zum Fadenkreuz, solange ein Erstell-Werkzeug aktiv ist. Die
+Buttons im Build-Reiter platzieren als Alternative in der Mitte der Ansicht.</p>
+
+<h3>Die Werkzeuge im Einzelnen</h3>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;">
+  <thead style="background:#f1f5f9;"><tr><th align="left">Werkzeug</th><th align="left">Erzeugt</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Row</strong></td><td>Eine einzelne Sitzreihe.</td></tr>
+    <tr><td><strong>Block</strong></td><td>Ein rechteckiger Block aus mehreren Reihen × Sitzen.</td></tr>
+    <tr><td><strong>Arc</strong></td><td>Gebogene Reihen / Halbkreis (Zentrum, Radius, Winkel, mehrere Reihen).</td></tr>
+    <tr><td><strong>Table</strong></td><td>Ein runder oder rechteckiger Tisch mit umlaufenden Stühlen. Die
+        Stuhlanzahl stellst du über <em>„Seats at table“</em> ein; runde Tische wachsen bei
+        vielen Stühlen automatisch, damit nichts überlappt.</td></tr>
+    <tr><td><strong>Stage / Round / Label</strong></td><td>Dekorative Flächen: Bühne (Rechteck),
+        runde Fläche (Ellipse/Kreis), Textbeschriftung.</td></tr>
+    <tr><td><strong>Polygon</strong></td><td>Freie Vielecke: Ecke für Ecke klicken; mit Klick auf den
+        ersten Punkt, Doppelklick oder <strong>Enter</strong> schließen, <strong>Esc</strong> bricht ab.</td></tr>
+    <tr><td><strong>Curve</strong></td><td>Wie Polygon, aber die Punkte werden zu einer weichen,
+        gerundeten Form geglättet – ideal als Markierung für einen Bereich.</td></tr>
+  </tbody>
+</table>
+
+<h2>5. Auswählen &amp; Verschieben</h2>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;">
+  <thead style="background:#f1f5f9;"><tr><th align="left">Aktion</th><th align="left">So geht’s</th></tr></thead>
+  <tbody>
+    <tr><td>Einzelnen Sitz / ganze Gruppe wählen</td><td>Sitz anklicken (gehört er zu einer Gruppe, wird die ganze Gruppe gewählt)</td></tr>
+    <tr><td>Genau einen Sitz einer Gruppe wählen</td><td><strong>Alt + Klick</strong></td></tr>
+    <tr><td>Mehrere frei auswählen (Rechteck)</td><td>Auf leerer Fläche aufziehen (Rubber-Band)</td></tr>
+    <tr><td>Auswahl umschalten</td><td><strong>Shift + Klick</strong></td></tr>
+    <tr><td>Verschieben</td><td>Markierte Elemente ziehen</td></tr>
+    <tr><td>Auswahl aufheben</td><td>Auf leere Fläche klicken, oder <strong>Esc</strong></td></tr>
+  </tbody>
+</table>
+
+<div style="border-left:4px solid #16a34a;background:#dcfce7;padding:12px 16px;border-radius:6px;margin:18px 0;">
+<strong>Alles bleibt im Canvas:</strong> Beim Verschieben, Skalieren und Platzieren werden
+Elemente auf die definierte Plangröße begrenzt – nichts fällt aus dem Plan heraus.
+</div>
+
+<h2>6. Gruppen (Tische &amp; Blöcke als Einheit)</h2>
+<p>Tische und Blöcke werden <strong>beim Platzieren automatisch gruppiert</strong> (z. B.
+„Table T1“, „Block A“). Eine Gruppe wird mit gestricheltem Rahmen und Namen angezeigt.</p>
+
+<!-- Skizze Gruppe -->
+<svg viewBox="0 0 260 150" width="260" style="border:1px solid #e2e8f0;border-radius:8px;background:#fff;">
+  <rect x="20" y="20" width="220" height="110" rx="12" fill="none" stroke="#4f46e5" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="26" y="16" font-size="11" fill="#4f46e5" font-family="sans-serif">Table T1</text>
+  <circle cx="130" cy="75" r="26" fill="#7f1d1d"/>
+  <g fill="#3b82f6" stroke="#0f172a" stroke-opacity=".3">
+    <circle cx="130" cy="38" r="7"/><circle cx="168" cy="55" r="7"/><circle cx="172" cy="95" r="7"/>
+    <circle cx="130" cy="112" r="7"/><circle cx="92" cy="95" r="7"/><circle cx="88" cy="55" r="7"/>
+  </g>
+</svg>
+<p style="color:#64748b;font-size:.9em;">▲ Eine Gruppe: gestrichelter Rahmen + Name, Stühle rund um den Tisch.</p>
+
+<h3>In eine Gruppe „hineingehen“ (wie in Photoshop)</h3>
+<ul>
+  <li><strong>Einfachklick</strong> auf die Gruppe → die <em>ganze</em> Gruppe ist gewählt (zum Verschieben als Einheit).</li>
+  <li><strong>Doppelklick</strong> irgendwo auf die Gruppe (auch auf den Tisch oder eine Lücke!)
+      → du bist <em>in</em> der Gruppe, der Rahmen wird durchgezogen und mit „… — editing“ beschriftet.
+      Jetzt wählen Klicks <strong>einzelne</strong> Sitze.</li>
+  <li><strong>Esc</strong> oder Klick außerhalb verlässt die Gruppe wieder.</li>
+</ul>
+
+<h2>7. Fläche mit Sitzen füllen</h2>
+<p>Du kannst eine beliebige Fläche (Polygon, Rechteck, Kreis, Ellipse) automatisch mit
+einer gewünschten Sitzanzahl füllen:</p>
+<ol>
+  <li>Fläche auswählen (im <strong>Edit</strong>-Reiter erscheinen ihre Eigenschaften).</li>
+  <li>Unter <strong>„Fill with seats“</strong> die <em>Number of seats</em> und die <em>Category</em> wählen.</li>
+  <li>Auf <strong>„Fill with seats“</strong> klicken – die Sitze werden gleichmäßig in der Fläche
+      verteilt (nur innerhalb der Form) und als Gruppe angelegt.</li>
+</ol>
+<div style="border-left:4px solid #0ea5e9;background:#e0f2fe;padding:12px 16px;border-radius:6px;margin:18px 0;">
+Die Anzahl ist ein Richtwert: Der Editor wählt den Raster-Abstand passend zur Fläche und
+trifft die gewünschte Menge sehr genau.
+</div>
+
+<h2>8. Flächen-Rollen: Interaktiv vs. Deko</h2>
+<p>Jede Fläche (inkl. Polygone) kann im <strong>Edit</strong>-Reiter unter <em>„Use as“</em>
+umgeschaltet werden:</p>
+<ul>
+  <li><strong>Interactive</strong> – ein anklick- und bearbeitbares Objekt (auswählen, verschieben).</li>
+  <li><strong>Decoration</strong> – eine gesperrte, <em>klick-durchlässige</em> Markierung im
+      Hintergrund. Sie stiehlt keine Klicks, die eigentlich Sitzen gelten. Kurven sind standardmäßig Deko.</li>
+</ul>
+<p>Möchtest du eine gesperrte Deko wieder bearbeiten, aktiviere im Edit-Reiter
+<strong>„Edit locked decorations“</strong>; danach lässt sie sich wieder anklicken.</p>
+
+<h2>9. Bearbeiten: Rotation, Ausrichten, Größe</h2>
+<ul>
+  <li><strong>Rotations-Griff:</strong> Bei einer ausgewählten Fläche oder einer Mehrfach-Auswahl
+      erscheint oben ein runder Griff. Ziehen dreht; <strong>Shift</strong> rastet in 15°-Schritten.</li>
+  <li><strong>Größe (Flächen):</strong> Acht Anfasser an der ausgewählten Fläche zum Skalieren.</li>
+  <li><strong>Ausrichten &amp; Verteilen:</strong> Bei 2+ ausgewählten Sitzen im Edit-Reiter:
+      links/zentriert/rechts bzw. oben/mitte/unten ausrichten und gleichmäßig verteilen.</li>
+  <li><strong>Ausricht-Hilfslinien:</strong> Beim Ziehen rastet der Führungs-Sitz an der x/y-Linie
+      eines Nachbarn ein; eine farbige Linie zeigt das an.</li>
+</ul>
+
+<h2>10. Kategorien (Preiszonen)</h2>
+<p>Im <strong>Plan</strong>-Reiter unter „Categories“ legst du Preiszonen an (Name + Farbe),
+z. B. <em>Stalls</em>, <em>Balkon</em>, <em>Stehplatz</em>. Die Farbe erscheint im Editor und im
+Shop. Sitze bekommen ihre Kategorie entweder beim Erzeugen (Werkzeug-Option „Category“)
+oder nachträglich: Sitze auswählen → im <strong>Edit</strong>-Reiter „Category (price zone)“ setzen.</p>
+
+<h3>Sitztypen</h3>
+<p>Pro Auswahl lässt sich der <strong>Sitztyp</strong> setzen: Normal, Rollstuhl, Begleitung,
+Technisch (nicht verkauft), VIP. „Blocked“ nimmt einen normalen Sitz vom Verkauf (z. B. defekt).</p>
+
+<h2>11. Zonen</h2>
+<p>Im <strong>Build</strong>-Reiter verwaltest du <strong>Zonen</strong> (z. B. „Parkett“, „Rang“).
+Neue Sitze werden immer der aktiven Zone (◉) hinzugefügt. Zonen strukturieren große Pläne
+und entsprechen dem nativen pretix-Zonenkonzept.</p>
+
+<h2>12. Hintergrund-Vorlagen</h2>
+<p>Im <strong>Plan</strong>-Reiter kannst du Bilder (PNG/JPG/WEBP/GIF/SVG) oder PDF als
+Hintergrund-Layer hochladen – mit Position, Skalierung, Rotation, Deckkraft und Sperre.
+So zeichnest du einen vorhandenen Architektur-Plan einfach nach.</p>
+
+<h2>13. Speichern &amp; Veröffentlichen</h2>
+<ol>
+  <li><strong>Save</strong> sichert den Plan (Layout, Kategorien, Gruppen, Zonen).</li>
+  <li><strong>Apply to event</strong> überträgt den Plan ins native pretix-Seating: Es erzeugt
+      die echten Sitze und fragt das <strong>Mapping „Kategorie → pretix-Produkt“</strong> ab –
+      also welches Ticket-Produkt zu welcher Preiszone gehört.</li>
+</ol>
+<div style="border-left:4px solid #f59e0b;background:#fef3c7;padding:12px 16px;border-radius:6px;margin:18px 0;">
+<strong>Wichtig:</strong> Ab dem Veröffentlichen ist <strong>pretix</strong> die einzige Wahrheit
+für Verfügbarkeit und Verkauf. Ändert sich der Plan, einfach erneut speichern und „Apply to event“.
+</div>
+
+<h2>14. Import / Export</h2>
+<ul>
+  <li><strong>Export / Import</strong> im plugin-eigenen JSON-Format (volles Editor-Layout inkl. Gruppen/Zonen).</li>
+  <li><strong>Export pretix</strong>: Export im nativen pretix-/seats.pretix.eu-Format. Beim Import
+      wird das Format automatisch erkannt.</li>
+</ul>
+
+<h2>15. Der Shop (Gäste-Ansicht)</h2>
+<p>Im Ticketshop erscheint unter den normalen Tickets der interaktive Sitzplan:</p>
+
+<!-- Shop-Legende Skizze -->
+<svg viewBox="0 0 520 28" width="100%" style="max-width:520px;">
+  <g font-family="sans-serif" font-size="12">
+    <circle cx="12" cy="14" r="7" fill="#16a34a"/><text x="24" y="18">Frei</text>
+    <circle cx="92" cy="14" r="7" fill="#0055cc"/><text x="104" y="18">Ausgewählt</text>
+    <circle cx="210" cy="14" r="7" fill="#c7ccd6"/><text x="222" y="18">Belegt</text>
+    <circle cx="300" cy="14" r="7" fill="#6b7280"/><text x="312" y="18">Gesperrt</text>
+  </g>
+</svg>
+
+<ul>
+  <li>Gäste klicken Sitze an; eine Karte (Tooltip) zeigt Reihe, Platz, Preiszone und Preis.</li>
+  <li><strong>„Best available“</strong> wählt automatisch die gewünschte Anzahl benachbarter Plätze.</li>
+  <li>Mit <strong>„Add selected seats to cart“</strong> landen die Plätze im Warenkorb – der
+      restliche Checkout läuft wie gewohnt über pretix.</li>
+  <li>Verfügbarkeit ist quoten-genau: Ist das Produkt einer Preiszone ausverkauft, sind die
+      zugehörigen Sitze nicht wählbar.</li>
+</ul>
+
+<h2>16. Tastenkürzel</h2>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;">
+  <thead style="background:#f1f5f9;"><tr><th align="left">Taste</th><th align="left">Funktion</th></tr></thead>
+  <tbody>
+    <tr><td>Leertaste + ziehen</td><td>Plan verschieben (Pan)</td></tr>
+    <tr><td>Mausrad</td><td>Zoomen</td></tr>
+    <tr><td>Doppelklick (leer)</td><td>Plan einpassen</td></tr>
+    <tr><td>Doppelklick (Gruppe)</td><td>Gruppe betreten (Einzelsitz-Bearbeitung)</td></tr>
+    <tr><td>Alt + Klick</td><td>Einzelnen Sitz statt der Gruppe wählen</td></tr>
+    <tr><td>Shift + Klick</td><td>Auswahl umschalten</td></tr>
+    <tr><td>Enter</td><td>Polygon / Kurve abschließen</td></tr>
+    <tr><td>Esc</td><td>Gruppe verlassen / Zeichnen abbrechen / zurück zu „Select“</td></tr>
+  </tbody>
+</table>
+
+<h2>17. Tipps &amp; Problemlösung</h2>
+<ul>
+  <li><strong>Änderungen erscheinen nicht?</strong> Nach Updates im Browser einmal hart neu laden
+      (<strong>Strg/⌘ + Shift + R</strong>), damit die neue Editor-Version geladen wird.</li>
+  <li><strong>Großer Plan ruckelt?</strong> Der Editor rendert nur sichtbare Sitze; bei sehr vielen
+      sichtbaren Sitzen werden die Beschriftungen ausgeblendet. Realistisch sind Pläne bis ~5000 Sitze.</li>
+  <li><strong>Sitz lässt sich nicht einzeln bearbeiten?</strong> Er gehört zu einer Gruppe – per
+      Doppelklick in die Gruppe gehen oder Alt-Klick verwenden.</li>
+  <li><strong>Deko stört beim Auswählen?</strong> Setze die Fläche auf „Decoration“ – sie wird
+      klick-durchlässig.</li>
+</ul>
+
+<hr>
+<p style="color:#94a3b8;font-size:.85em;">Smart Seating für pretix · Editor-Anleitung. Stand: Plugin-Version 0.7.x.</p>
+
+</body>
+</html>

@@ -39,6 +39,11 @@ Checkout, den Order-Lifecycle sowie die Anzeige des Sitzplatzes auf Ticket und i
   - **Flächen-Rolle (nur Editor)**: jede Fläche/Polygon wahlweise **Interaktiv** (anklick-/
     bearbeitbar) oder **Deko** (gesperrte, klick-durchlässige Markierung); globaler Schalter
     „Deko bearbeiten" zum erneuten Selektieren
+  - **Fläche mit Sitzen füllen**: beliebige Fläche auswählen, Anzahl + Kategorie angeben →
+    Sitze werden gleichmäßig innerhalb der Form verteilt und gruppiert
+
+> 📖 Ausführliche Bedienungsanleitung: [`docs/sitzplan-anleitung.md`](docs/sitzplan-anleitung.md)
+> (auch als BookStack-importierbare `docs/sitzplan-anleitung.html`).
   - Kategorie-/Preiszonen-Verwaltung im Editor; Sitz-Eigenschaften (Kategorie, Sitztyp) für die Auswahl
   - Ausrichten & Verteilen mehrerer Sitze
   - Import/Export im plugin-eigenen **und** im seats.pretix.eu-/pretix-nativen JSON-Format

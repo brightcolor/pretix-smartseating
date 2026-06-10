@@ -698,18 +698,41 @@
   svg.addEventListener("dblclick", (event) => {
     // Finishing a polygon/curve takes priority while that tool is drawing.
     if (isPolyTool() && polyPoints) { finalizePolygon(); return; }
-    // Double-click a grouped seat → "enter" the group to edit single seats.
+
+    // Enter a group to edit single seats. Forgiving: works when double-clicking
+    // a grouped seat OR anywhere inside the group's outline (e.g. the table in
+    // the middle, the gaps between seats).
     const seatId = event.target?.getAttribute?.("data-id");
-    if (seatId) {
-      const g = topGroupForSeat(seatId);
-      if (g) {
-        activeGroup = g.id;
-        selected = new Set([seatId]);
-        selectedArea = null;
-        draw();
-        setSidebarTab("edit");
-        return;
+    let g = seatId ? topGroupForSeat(seatId) : null;
+    let pick = g ? seatId : null;
+    if (!g) {
+      const p = clientToSvg(event.clientX, event.clientY);
+      for (const grp of (state.groups || []).filter((x) => !x.parent)) {
+        const bb = groupBBox(grp, false);
+        if (!bb) continue;
+        if (p.x >= bb.mnx - GROUP_PAD && p.x <= bb.mxx + GROUP_PAD &&
+            p.y >= bb.mny - GROUP_PAD && p.y <= bb.mxy + GROUP_PAD) {
+          g = grp;
+          // pick the group seat nearest the cursor so the inspector is useful
+          let best = null, bd = Infinity;
+          for (const id of groupSeatIds(grp)) {
+            const s = state.seats.find((x) => x.external_id === id);
+            if (!s) continue;
+            const d = Math.hypot(s.x - p.x, s.y - p.y);
+            if (d < bd) { bd = d; best = id; }
+          }
+          pick = best;
+          break;
+        }
       }
+    }
+    if (g) {
+      activeGroup = g.id;
+      selected = pick ? new Set([pick]) : new Set();
+      selectedArea = null;
+      draw();
+      setSidebarTab("edit");
+      return;
     }
     // Otherwise the double-click fits the plan to the viewport.
     resetView();
@@ -1118,6 +1141,37 @@
         areaFieldsEl.appendChild(numberField("Radius X", area.ellipse.radius.x, (v) => { area.ellipse.radius.x = v; commitArea(); }));
         areaFieldsEl.appendChild(numberField("Radius Y", area.ellipse.radius.y, (v) => { area.ellipse.radius.y = v; commitArea(); }));
       }
+
+      // Fill the area with a grid of seats.
+      if (area.shape !== "text") {
+        const fill = document.createElement("div");
+        fill.className = "smartseat-area-fill";
+        const head = document.createElement("p");
+        head.className = "smartseat-insp-hint";
+        head.textContent = "Fill with seats";
+        fill.appendChild(head);
+        const cntWrap = document.createElement("label");
+        cntWrap.className = "smartseat-area-field";
+        cntWrap.textContent = "Number of seats";
+        const cnt = document.createElement("input");
+        cnt.type = "number"; cnt.min = "1"; cnt.max = "2000"; cnt.value = "30";
+        cntWrap.appendChild(cnt);
+        fill.appendChild(cntWrap);
+        const catWrap = document.createElement("label");
+        catWrap.className = "smartseat-area-field";
+        catWrap.textContent = "Category";
+        const catSel = document.createElement("select");
+        (state.categories || []).forEach((c) => {
+          const o = document.createElement("option"); o.value = c.code; o.textContent = c.name; catSel.appendChild(o);
+        });
+        catWrap.appendChild(catSel);
+        fill.appendChild(catWrap);
+        const btn = document.createElement("button");
+        btn.type = "button"; btn.className = "btn btn-default btn-sm"; btn.textContent = "Fill with seats";
+        btn.addEventListener("click", () => fillAreaWithSeats(area, parseInt(cnt.value, 10) || 1, catSel.value));
+        fill.appendChild(btn);
+        areaFieldsEl.appendChild(fill);
+      }
     }
     areaFieldsEl.appendChild(numberField("Rotation°", area.rotation || 0, (v) => { area.rotation = v; commitArea(); }, 1));
   };
@@ -1274,6 +1328,107 @@
       dot.setAttribute("class", "smartseat-poly-vertex" + (i === 0 ? " first" : ""));
       svg.appendChild(dot);
     });
+  };
+
+  // ─── Fill an area with a grid of seats ────────────────────────────────────
+  const pointInPolygon = (x, y, pts) => {
+    let inside = false;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const xi = pts[i].x, yi = pts[i].y, xj = pts[j].x, yj = pts[j].y;
+      if (((yi > y) !== (yj > y)) && (x < ((xj - xi) * (y - yi)) / (yj - yi) + xi)) inside = !inside;
+    }
+    return inside;
+  };
+
+  // Local-frame geometry of an area: inside-test, bounding box and surface area.
+  const areaLocalGeom = (area) => {
+    if (area.shape === "rectangle" && area.rectangle) {
+      const w = area.rectangle.width, h = area.rectangle.height;
+      return { inside: (x, y) => x >= 0 && x <= w && y >= 0 && y <= h,
+        bb: { x0: 0, y0: 0, x1: w, y1: h }, area: w * h };
+    }
+    if (area.shape === "circle" && area.circle) {
+      const r = area.circle.radius;
+      return { inside: (x, y) => x * x + y * y <= r * r,
+        bb: { x0: -r, y0: -r, x1: r, y1: r }, area: Math.PI * r * r };
+    }
+    if (area.shape === "ellipse" && area.ellipse) {
+      const rx = area.ellipse.radius.x || 1, ry = area.ellipse.radius.y || 1;
+      return { inside: (x, y) => (x * x) / (rx * rx) + (y * y) / (ry * ry) <= 1,
+        bb: { x0: -rx, y0: -ry, x1: rx, y1: ry }, area: Math.PI * rx * ry };
+    }
+    if (area.shape === "polygon" && area.polygon) {
+      const pts = area.polygon.points || [];
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, a = 0;
+      for (let i = 0; i < pts.length; i++) {
+        x0 = Math.min(x0, pts[i].x); y0 = Math.min(y0, pts[i].y);
+        x1 = Math.max(x1, pts[i].x); y1 = Math.max(y1, pts[i].y);
+        const j = (i + 1) % pts.length;
+        a += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
+      }
+      return { inside: (x, y) => pointInPolygon(x, y, pts),
+        bb: { x0, y0, x1, y1 }, area: Math.abs(a) / 2 };
+    }
+    return null;
+  };
+
+  const fillAreaWithSeats = (area, count, categoryCode) => {
+    count = Math.max(1, Math.floor(count || 1));
+    const geom = areaLocalGeom(area);
+    if (!geom) { alert("This area shape can't be filled with seats."); return; }
+    const px = Number(area.position?.x || 0), py = Number(area.position?.y || 0);
+    const th = (Number(area.rotation || 0) * Math.PI) / 180;
+    const cos = Math.cos(th), sin = Math.sin(th);
+
+    // Pick a grid spacing from the area, then refine so we get ≈ count seats.
+    const collect = (spacing) => {
+      const out = [];
+      const w = geom.bb.x1 - geom.bb.x0, h = geom.bb.y1 - geom.bb.y0;
+      const cols = Math.max(1, Math.round(w / spacing)), rows = Math.max(1, Math.round(h / spacing));
+      const ox = geom.bb.x0 + (w - (cols - 1) * spacing) / 2;
+      const oy = geom.bb.y0 + (h - (rows - 1) * spacing) / 2;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const lx = ox + c * spacing, ly = oy + r * spacing;
+          if (geom.inside(lx, ly)) out.push({ lx, ly });
+        }
+      }
+      return out;
+    };
+    let spacing = Math.max(10, Math.sqrt(geom.area / count));
+    let pts = collect(spacing);
+    for (let i = 0; i < 8 && pts.length < count; i++) { spacing *= 0.85; pts = collect(spacing); }
+    // If we overshot, evenly thin the list down to the requested count.
+    if (pts.length > count) {
+      const step = pts.length / count;
+      const thinned = [];
+      for (let i = 0; i < count; i++) thinned.push(pts[Math.floor(i * step)]);
+      pts = thinned;
+    }
+    if (!pts.length) { alert("Area too small for the requested number of seats."); return; }
+
+    saveSnapshot();
+    const usedIds = existingExternalIds();
+    const rowIndex = nextRowIndex();
+    const blockLabel = activeZone || "Main";
+    const cat = categoryCode || state.categories[0]?.code || "standard";
+    const newIds = [];
+    pts.forEach((p, i) => {
+      const wx = px + p.lx * cos - p.ly * sin;
+      const wy = py + p.lx * sin + p.ly * cos;
+      const externalId = makeUniqueExternalId(`${blockLabel}-FILL-${i + 1}`, usedIds);
+      newIds.push(externalId);
+      state.seats.push(createSeat({
+        external_id: externalId, block_label: blockLabel,
+        row_label: "F", seat_number: String(i + 1), seat_index: i, row_index: rowIndex,
+        x: snap(wx), y: snap(wy), rotation: 0, category_code: cat,
+      }));
+    });
+    selected = new Set(newIds);
+    selectedArea = null;
+    ensureZones();
+    createGroupFromIds(newIds, "Area seats");
+    draw();
   };
 
   const deleteArea = (index) => {
