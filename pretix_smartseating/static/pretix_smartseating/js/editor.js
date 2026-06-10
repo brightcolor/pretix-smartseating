@@ -2163,6 +2163,7 @@
     saveSnapshot();
     state.seats = state.seats.filter((seat) => !selected.has(seat.external_id));
     selected.clear();
+    sanitizeGroups();
     draw();
   };
 
@@ -2401,6 +2402,7 @@
     } catch (_err) {
       // Keep fallback state.
     }
+    sanitizeGroups(); // drop stale/orphaned group references from older saves
     field("gen-center-x").value = Math.round(state.bounds.width / 2);
     field("gen-center-y").value = Math.round(state.bounds.height / 2);
     if (field("plan-width")) field("plan-width").value = state.bounds.width;
@@ -2531,6 +2533,20 @@
     return ids;
   };
   const newGroupId = () => "g" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+  // Self-heal groups: drop references to seats that no longer exist and remove
+  // groups that end up empty (e.g. after deleting seats, or stale data from an
+  // older save). Without this a group can reference dead seat ids and a table
+  // then looks "ungrouped".
+  const sanitizeGroups = () => {
+    if (!state.groups || !state.groups.length) return;
+    const live = new Set(state.seats.map((s) => s.external_id));
+    state.groups.forEach((g) => { g.seat_ids = (g.seat_ids || []).filter((id) => live.has(id)); });
+    const hasChildren = (id) => state.groups.some((g) => g.parent === id);
+    state.groups = state.groups.filter((g) => (g.seat_ids && g.seat_ids.length) || hasChildren(g.id));
+    const ids = new Set(state.groups.map((g) => g.id));
+    state.groups.forEach((g) => { if (g.parent && !ids.has(g.parent)) g.parent = null; });
+  };
 
   // The outermost (top-level) group a seat belongs to, or null.
   const topGroupForSeat = (seatId) => {

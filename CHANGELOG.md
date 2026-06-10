@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-06-10
+
+### Fixed
+- **Self-healing groups:** groups now drop references to seats that no longer
+  exist and empty groups are removed — on load and when deleting seats. This
+  clears "orphaned" groups (e.g. after deleting/replacing seats) that made a
+  table look ungrouped even though placement still groups correctly.
+
 ## [0.9.0] - 2026-06-10
 
 ### Added
