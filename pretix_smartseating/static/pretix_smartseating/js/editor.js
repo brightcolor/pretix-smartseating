@@ -205,6 +205,13 @@
         setTool("select");
       }
     }
+    // Copy / paste the seat selection (ignored while typing in a field).
+    const inField = ["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement?.tagName || "");
+    if ((e.ctrlKey || e.metaKey) && !inField) {
+      const k = e.key.toLowerCase();
+      if (k === "c") { copySelection(); return; }
+      if (k === "v") { e.preventDefault(); pasteClipboard(); return; }
+    }
     // Arrow keys nudge the current selection (Shift = 10×). Precise positioning.
     if (e.key.indexOf("Arrow") === 0) {
       const tag = document.activeElement?.tagName || "";
@@ -2133,6 +2140,116 @@
     draw();
   };
 
+  // Mirror the selected seats around the centre of their bounding box.
+  const mirrorSelected = (axis) => {
+    const sel = state.seats.filter((s) => selected.has(s.external_id));
+    if (sel.length < 1) return;
+    let mn = Infinity, mx = -Infinity;
+    sel.forEach((s) => { const v = axis === "h" ? s.x : s.y; mn = Math.min(mn, v); mx = Math.max(mx, v); });
+    saveSnapshot();
+    sel.forEach((s) => {
+      if (axis === "h") s.x = snap(mn + mx - s.x);
+      else s.y = snap(mn + mx - s.y);
+    });
+    draw();
+  };
+
+  // Re-number the selected seats: cluster into rows by y, sort by x (or reverse),
+  // assign sequential seat numbers from a start value; optionally relabel rows.
+  const renumberSelected = () => {
+    if (!selected.size) return;
+    const start = Math.floor(parseNumber("renum-start", 1));
+    const dir = field("renum-scheme")?.value || "ltr";
+    const rowBase = (field("renum-row")?.value || "").trim();
+    const sel = state.seats.filter((s) => selected.has(s.external_id)).slice();
+    sel.sort((a, b) => a.y - b.y || a.x - b.x);
+    const BAND = 14;
+    const rows = [];
+    let cur = null;
+    sel.forEach((s) => {
+      if (!cur || Math.abs(s.y - cur.y) > BAND) { cur = { y: s.y, seats: [] }; rows.push(cur); }
+      cur.seats.push(s);
+    });
+    saveSnapshot();
+    rows.forEach((row, ri) => {
+      row.seats.sort((a, b) => (dir === "rtl" ? b.x - a.x : a.x - b.x));
+      row.seats.forEach((s, i) => {
+        s.seat_number = String(start + i);
+        if (rowBase) s.row_label = buildRowLabel(rowBase, ri);
+      });
+    });
+    draw();
+  };
+
+  // Copy / paste of a seat selection (paste lands with a small offset).
+  let clipboard = null;
+  const copySelection = () => {
+    if (!selected.size) return;
+    clipboard = state.seats.filter((s) => selected.has(s.external_id))
+      .map((s) => JSON.parse(JSON.stringify(s)));
+  };
+  const pasteClipboard = () => {
+    if (!clipboard || !clipboard.length) return;
+    saveSnapshot();
+    const usedIds = existingExternalIds();
+    const newSeats = clipboard.map((s) => createSeat({
+      ...s,
+      external_id: makeUniqueExternalId(`${s.external_id}-copy`, usedIds),
+      seat_index: Number(s.seat_index || 0) + 1000,
+      x: snap(Number(s.x || 0) + 24),
+      y: snap(Number(s.y || 0) + 24),
+    }));
+    state.seats = state.seats.concat(newSeats);
+    selected = new Set(newSeats.map((s) => s.external_id));
+    draw();
+  };
+
+  // ─── Plan validation report ───────────────────────────────────────────────
+  const validatePlan = () => {
+    const issues = [];
+    const cats = new Set((state.categories || []).map((c) => c.code));
+    if (!state.seats.length) issues.push({ level: "error", msg: "Plan contains no seats." });
+    if (!(state.categories || []).length) issues.push({ level: "error", msg: "No categories (price zones) defined." });
+    const noCat = state.seats.filter((s) => !s.category_code || !cats.has(s.category_code));
+    if (noCat.length) issues.push({
+      level: "error", msg: `${noCat.length} seat(s) without a valid category`,
+      examples: noCat.slice(0, 5).map((s) => `${s.row_label || "?"}${s.seat_number || "?"}`),
+    });
+    const seen = new Set(), dups = new Set();
+    state.seats.forEach((s) => {
+      const k = `${s.block_label || ""}|${s.row_label || ""}|${s.seat_number || ""}`;
+      if (seen.has(k)) dups.add(`${s.row_label || "?"}${s.seat_number || "?"}`); else seen.add(k);
+    });
+    if (dups.size) issues.push({ level: "warn", msg: `${dups.size} duplicate seat label(s)`, examples: [...dups].slice(0, 5) });
+    const W = canvasW(), H = canvasH();
+    const out = state.seats.filter((s) => s.x < 0 || s.x > W || s.y < 0 || s.y > H);
+    if (out.length) issues.push({ level: "warn", msg: `${out.length} seat(s) outside the canvas` });
+    const used = new Set(state.seats.map((s) => s.category_code));
+    const unused = (state.categories || []).filter((c) => !used.has(c.code));
+    if (unused.length) issues.push({ level: "info", msg: `${unused.length} category(ies) with no seats`, examples: unused.map((c) => c.name).slice(0, 5) });
+    return issues;
+  };
+
+  const renderValidation = () => {
+    const el = document.getElementById("smartseat-validation");
+    if (!el) return;
+    el.innerHTML = "";
+    const issues = validatePlan();
+    if (!issues.length) {
+      const ok = document.createElement("p");
+      ok.className = "smartseat-valid-ok";
+      ok.textContent = "✓ No problems found — ready to apply.";
+      el.appendChild(ok);
+      return;
+    }
+    issues.forEach((i) => {
+      const row = document.createElement("div");
+      row.className = "smartseat-valid-item " + i.level;
+      row.textContent = i.msg + (i.examples && i.examples.length ? ` (${i.examples.join(", ")})` : "");
+      el.appendChild(row);
+    });
+  };
+
   const undo = () => {
     if (!undoStack.length) return;
     redoStack.push(JSON.stringify(state));
@@ -2496,6 +2613,10 @@
       case "duplicate-selected": duplicateSelected(); break;
       case "delete-selected": deleteSelected(); break;
       case "group-selected": groupSelected(); break;
+      case "mirror-h": mirrorSelected("h"); break;
+      case "mirror-v": mirrorSelected("v"); break;
+      case "renumber-selected": renumberSelected(); break;
+      case "validate-plan": renderValidation(); break;
       case "add-zone": addZone(); break;
       case "add-category": addCategory(); break;
       case "delete-area": if (selectedArea !== null) deleteArea(selectedArea); break;

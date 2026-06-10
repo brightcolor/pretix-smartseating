@@ -149,7 +149,24 @@
         <div class="smartseat-selection-actions">
           <button type="button" class="btn btn-default btn-sm" data-action="group-selected">{% trans "Group" %}</button>
           <button type="button" class="btn btn-default btn-sm" data-action="duplicate-selected">{% trans "Duplicate" %}</button>
+          <button type="button" class="btn btn-default btn-sm" data-action="mirror-h" title="{% trans "Mirror horizontally" %}">{% trans "Mirror ⇆" %}</button>
+          <button type="button" class="btn btn-default btn-sm" data-action="mirror-v" title="{% trans "Mirror vertically" %}">{% trans "Mirror ⇅" %}</button>
           <button type="button" class="btn btn-default btn-sm" data-action="delete-selected">{% trans "Delete" %}</button>
+        </div>
+
+        <div class="smartseat-renumber">
+          <span class="smartseat-insp-hint">{% trans "Re-number selected (rows detected by position)" %}</span>
+          <div class="smartseat-renumber-grid">
+            <label>{% trans "Row label" %}<input data-field="renum-row" type="text" placeholder="{% trans "keep" %}"></label>
+            <label>{% trans "Start no." %}<input data-field="renum-start" type="number" value="1"></label>
+            <label>{% trans "Direction" %}
+              <select data-field="renum-scheme">
+                <option value="ltr">{% trans "Left → right" %}</option>
+                <option value="rtl">{% trans "Right → left" %}</option>
+              </select>
+            </label>
+          </div>
+          <button type="button" class="btn btn-default btn-sm" data-action="renumber-selected">{% trans "Apply numbering" %}</button>
         </div>
 
         <div class="smartseat-align">
@@ -184,6 +201,13 @@
         <label>{% trans "Height" %}<input data-field="plan-height" type="number" min="100" value="{{ plan.height }}"></label>
       </div>
       <p class="smartseat-insp-hint">{% trans "Seats" %}: <strong data-role="seat-count">0</strong></p>
+    </section>
+
+    <section class="smartseat-insp-section" data-tab="plan">
+      <h4>{% trans "Validation" %}</h4>
+      <button type="button" class="btn btn-default btn-sm" data-action="validate-plan">{% trans "Check plan" %}</button>
+      <div id="smartseat-validation" class="smartseat-validation"></div>
+      <p class="smartseat-insp-hint">{% trans "Run this before \"Apply to event\" to catch missing categories, duplicate labels or stray seats." %}</p>
     </section>
 
     <section class="smartseat-insp-section" data-tab="plan">

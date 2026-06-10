@@ -362,6 +362,22 @@
 
 .smartseat-area { cursor: move; }
 
+/* Validation report */
+.smartseat-validation { margin: 8px 0; display: flex; flex-direction: column; gap: 5px; }
+.smartseat-valid-ok { color: #15803d; font-weight: 600; margin: 6px 0; }
+.smartseat-valid-item {
+  font-size: 12px; padding: 6px 9px; border-radius: 6px; border-left: 3px solid #94a3b8;
+  background: #f8fafc;
+}
+.smartseat-valid-item.error { border-left-color: #dc2626; background: #fef2f2; color: #7f1d1d; }
+.smartseat-valid-item.warn  { border-left-color: #f59e0b; background: #fffbeb; color: #78350f; }
+.smartseat-valid-item.info  { border-left-color: #0ea5e9; background: #f0f9ff; color: #0c4a6e; }
+
+/* Re-number panel */
+.smartseat-renumber { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e2e8f0; }
+.smartseat-renumber-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 6px 0; }
+.smartseat-renumber-grid label { display: flex; flex-direction: column; font-size: 11px; gap: 2px; }
+
 /* Decoration areas: dashed "marking" look (still selectable, rendered behind seats) */
 .smartseat-area-deco > * { stroke-dasharray: 7 5; opacity: 0.9; }
 

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-06-10
+
+### Added
+- **Validation report** (Plan tab → "Check plan"): flags seats without a valid
+  category, duplicate seat labels, seats outside the canvas, and categories with
+  no seats — run it before "Apply to event".
+- **Re-number / re-label tool** (Edit → selection): clusters the selected seats
+  into rows by position and assigns sequential seat numbers from a start value
+  (left→right or right→left), optionally relabelling rows.
+- **Mirror** the selection horizontally / vertically around its centre.
+- **Copy / paste** of a seat selection (Ctrl/⌘+C, Ctrl/⌘+V; paste lands offset).
+
 ## [0.7.3] - 2026-06-10
 
 ### Added
