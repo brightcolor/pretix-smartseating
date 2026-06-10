@@ -130,6 +130,7 @@ Rotation/Deckkraft/Sperre – zum Nachzeichnen vorhandener Pläne.
 | Doppelklick (Gruppe) | Gruppe betreten |
 | Alt + Klick | Einzelnen Sitz wählen |
 | Shift + Klick | Auswahl umschalten |
+| Pfeiltasten | Auswahl pixelgenau verschieben (Shift = 10 px) |
 | Enter | Polygon / Kurve abschließen |
 | Esc | Gruppe verlassen / Zeichnen abbrechen / „Select“ |
 

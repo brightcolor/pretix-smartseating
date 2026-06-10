@@ -172,6 +172,7 @@
   let polyPoints = null;
   let polyCursor = null;
   let polyMode = "polygon"; // "polygon" (straight edges) | "curve" (smooth)
+  let lastNudge = 0; // timestamp, to coalesce arrow-key nudges into one undo step
   const isPolyTool = () => activeTool === "polygon" || activeTool === "curve";
   // Creation tools → the action they trigger when you click on the canvas.
   const GENERATOR_TOOLS = {
@@ -203,6 +204,38 @@
       } else if (activeTool !== "select" && typeof setTool === "function") {
         setTool("select");
       }
+    }
+    // Arrow keys nudge the current selection (Shift = 10×). Precise positioning.
+    if (e.key.indexOf("Arrow") === 0) {
+      const tag = document.activeElement?.tagName || "";
+      if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+      const hasSel = selected.size > 0, hasArea = selectedArea !== null;
+      if (!hasSel && !hasArea) return;
+      e.preventDefault();
+      const step = e.shiftKey ? 10 : 1;
+      let dx = 0, dy = 0;
+      if (e.key === "ArrowLeft") dx = -step;
+      else if (e.key === "ArrowRight") dx = step;
+      else if (e.key === "ArrowUp") dy = -step;
+      else if (e.key === "ArrowDown") dy = step;
+      else return;
+      const now = Date.now();
+      if (now - lastNudge > 400) saveSnapshot();
+      lastNudge = now;
+      if (hasArea) {
+        const a = state.areas[selectedArea];
+        a.position = clampAreaPos(a, Number(a.position?.x || 0) + dx, Number(a.position?.y || 0) + dy);
+      } else {
+        let mnx = Infinity, mny = Infinity, mxx = -Infinity, mxy = -Infinity;
+        for (const s of state.seats) if (selected.has(s.external_id)) {
+          mnx = Math.min(mnx, s.x); mxx = Math.max(mxx, s.x);
+          mny = Math.min(mny, s.y); mxy = Math.max(mxy, s.y);
+        }
+        dx = Math.max(-mnx, Math.min(canvasW() - mxx, dx));
+        dy = Math.max(-mny, Math.min(canvasH() - mxy, dy));
+        for (const s of state.seats) if (selected.has(s.external_id)) { s.x += dx; s.y += dy; }
+      }
+      scheduleDraw();
     }
   });
   window.addEventListener("keyup", (e) => {

@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.3] - 2026-06-10
+
+### Added
+- **Arrow-key nudging:** move the current selection (seats or an area) pixel by
+  pixel with the cursor keys; **Shift** = 10 px steps. Clamped to the canvas and
+  coalesced into a single undo step per burst.
+
 ## [0.7.2] - 2026-06-10
 
 ### Fixed
