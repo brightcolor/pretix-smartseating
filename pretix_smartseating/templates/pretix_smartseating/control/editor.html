@@ -31,6 +31,7 @@
     <button type="button" class="smartseat-tool" data-tool="label" title="{% trans "Add text label" %}">{% trans "Label" %}</button>
     <button type="button" class="smartseat-tool" data-tool="polygon" title="{% trans "Draw a polygon: click to add points, double-click / Enter to finish" %}">{% trans "Polygon" %}</button>
     <button type="button" class="smartseat-tool" data-tool="curve" title="{% trans "Draw a rounded (curved) decoration: click points, double-click / Enter to finish" %}">{% trans "Curve" %}</button>
+    <button type="button" class="smartseat-tool" data-tool="sector" title="{% trans "Ring sector / grandstand block (curved): click to place at its centre" %}">{% trans "Sector" %}</button>
   </div>
   <div class="smartseat-tb-group">
     <a class="btn btn-default btn-sm" href="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export" %}</a>
@@ -73,6 +74,8 @@
       <p class="smartseat-insp-hint" data-tools="select">{% trans "Click selects a seat's whole group. Double-click enters the group to edit single seats (Esc / click outside exits). Alt-click picks one seat; drag empty canvas = rubber-band; Shift-click toggles." %}</p>
       <p class="smartseat-insp-hint" data-tools="row block arc table stage round label">{% trans "Set the options below, then click on the plan where it should go. Esc returns to Select." %}</p>
       <p class="smartseat-insp-hint" data-tools="polygon">{% trans "Click on the plan to drop polygon corners. Click the first point again, double-click or press Enter to finish; Esc cancels." %}</p>
+      <p class="smartseat-insp-hint" data-tools="curve">{% trans "Click corner points for a rounded shape; double-click / Enter finishes, Esc cancels." %}</p>
+      <p class="smartseat-insp-hint" data-tools="sector">{% trans "A curved grandstand block (ring sector). Set inner/outer radius and the start/end angle, then click on the plan to drop it (the click is its centre)." %}</p>
 
       <div class="smartseat-gen-grid">
         <label data-tools="row block arc">{% trans "Start row label" %}<input data-field="gen-row-start" type="text" value="A"></label>
@@ -118,6 +121,10 @@
         <label data-tools="row block arc table">{% trans "Category" %}
           <select data-field="gen-category"></select>
         </label>
+        <label data-tools="sector">{% trans "Inner radius" %}<input data-field="gen-sector-inner" type="number" min="0" value="140"></label>
+        <label data-tools="sector">{% trans "Outer radius" %}<input data-field="gen-sector-outer" type="number" min="10" value="240"></label>
+        <label data-tools="sector">{% trans "Start angle" %}<input data-field="gen-sector-start" type="number" min="-360" max="360" value="-60"></label>
+        <label data-tools="sector">{% trans "End angle" %}<input data-field="gen-sector-end" type="number" min="-360" max="360" value="60"></label>
       </div>
 
     </section>

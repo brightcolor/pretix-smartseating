@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-06-10
+
+### Added
+- **Ring-sector / grandstand tool ("Sector"):** draw curved tribune blocks
+  (annular sectors) like a stadium — set inner/outer radius + start/end angle,
+  click to place at the centre. Stored as a native-compatible polygon.
+
+### Fixed
+- **Dragging a large group no longer splits it.** Seats culled out of the
+  viewport were left behind because the drag committed only rendered nodes; now
+  the whole selection moves from its drag-start positions + the final delta, so
+  the group stays intact and its outline follows correctly.
+- **Table shape moves with its group.** A placed table's decorative shape is now
+  linked to the seat group (areas got stable ids; groups carry `area_ids`) and
+  moves together with the seats on drag and arrow-nudge.
+
 ## [0.9.1] - 2026-06-10
 
 ### Fixed

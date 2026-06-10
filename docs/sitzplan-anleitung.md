@@ -50,6 +50,7 @@ auf der Karte.
 | **Stage / Round / Label** | Dekorative Flächen: Bühne, runde Fläche, Textlabel. |
 | **Polygon** | Freie Vielecke: Ecke für Ecke klicken; Klick auf ersten Punkt / Doppelklick / **Enter** schließt, **Esc** bricht ab. |
 | **Curve** | Wie Polygon, aber zu einer weichen, gerundeten Form geglättet – ideal als Bereichs-Markierung. |
+| **Sector** | Gekrümmter Tribünen-Block (Ring-Segment) wie im Stadion. Innen-/Außenradius + Start-/End-Winkel einstellen, dann auf den Plan klicken (Klick = Mittelpunkt). |
 
 ## 5. Auswählen & Verschieben
 | Aktion | So geht’s |

@@ -181,7 +181,7 @@
   const GENERATOR_TOOLS = {
     row: "add-row", block: "generate-block", arc: "generate-arc",
     table: "generate-table", stage: "add-stage", round: "add-ellipse",
-    label: "add-label",
+    label: "add-label", sector: "generate-sector",
   };
 
   window.addEventListener("keydown", (e) => {
@@ -244,6 +244,11 @@
         dx = Math.max(-mnx, Math.min(canvasW() - mxx, dx));
         dy = Math.max(-mny, Math.min(canvasH() - mxy, dy));
         for (const s of state.seats) if (selected.has(s.external_id)) { s.x += dx; s.y += dy; }
+        // Move linked areas (e.g. a table shape) with the selection.
+        linkedAreasForSelection().forEach((da) => {
+          const a = state.areas[da.idx];
+          if (a) a.position = { x: da.x + dx, y: da.y + dy };
+        });
       }
       scheduleDraw();
     }
@@ -448,6 +453,7 @@
         pointerData.alignXs = axs;
         pointerData.alignYs = ays;
         pointerData.dragBBox = { mnx, mny, mxx, mxy };
+        pointerData.dragAreas = linkedAreasForSelection();
         svg.classList.add("smartseat-dragging");
         pointerMode = "seat-drag";
       }
@@ -483,6 +489,11 @@
         effDy = Math.max(-bb.mny, Math.min(canvasH() - bb.mxy, effDy));
       }
 
+      // Remember the committed delta so pointerup can move *all* selected seats
+      // (including ones culled out of the DOM), not just the rendered nodes.
+      pointerData.effDx = effDx;
+      pointerData.effDy = effDy;
+
       // Move circle nodes directly (fast – no full redraw on every pixel).
       for (const s of state.seats) {
         if (!selected.has(s.external_id)) continue;
@@ -494,6 +505,13 @@
           node.setAttribute("cy", orig.y + effDy);
         }
       }
+      // Move linked areas (e.g. a table shape) live with the selection.
+      (pointerData.dragAreas || []).forEach((da) => {
+        const a = state.areas[da.idx];
+        const node = svg.querySelector('[data-area-index="' + da.idx + '"]');
+        if (a && node) node.setAttribute("transform",
+          `translate(${da.x + effDx} ${da.y + effDy}) rotate(${Number(a.rotation || 0)})`);
+      });
       updateGroupOutlinesLive(); // keep group boundaries glued to their seats
       return;
     }
@@ -682,15 +700,24 @@
       pointerMode = null;
       svg.classList.remove("smartseat-dragging");
       hideGuides();
-      // Commit new positions into state.seats.
-      saveSnapshot();
-      for (const s of state.seats) {
-        if (!selected.has(s.external_id)) continue;
-        const node = renderedNodes.get(s.external_id);
-        if (node) {
-          s.x = parseFloat(node.getAttribute("cx"));
-          s.y = parseFloat(node.getAttribute("cy"));
+      // Commit new positions for ALL selected seats from their drag-start
+      // positions + the final delta. Using origPositions (not the rendered
+      // nodes) keeps seats that were culled out of the DOM moving with the
+      // group, so the selection never splits and the outline stays correct.
+      const dx = pointerData.effDx || 0, dy = pointerData.effDy || 0;
+      if (dx || dy) {
+        saveSnapshot();
+        for (const s of state.seats) {
+          if (!selected.has(s.external_id)) continue;
+          const orig = pointerData.origPositions[s.external_id];
+          if (!orig) continue;
+          s.x = orig.x + dx;
+          s.y = orig.y + dy;
         }
+        (pointerData.dragAreas || []).forEach((da) => {
+          const a = state.areas[da.idx];
+          if (a) a.position = { x: da.x + dx, y: da.y + dy };
+        });
       }
       scheduleDraw(); // full redraw syncs labels, text, etc.
       return;
@@ -1309,10 +1336,12 @@
   // ─── Decorative areas (stage / bar / aisles / text labels) ────────────────
   const SVGNS = "http://www.w3.org/2000/svg";
 
+  const newAreaId = () => "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
   const newArea = (shape) => {
     const cx = placePoint ? placePoint.x : view.x + view.w / 2;
     const cy = placePoint ? placePoint.y : view.y + view.h / 2;
-    const base = { shape, position: { x: snap(cx), y: snap(cy) }, rotation: 0 };
+    const base = { id: newAreaId(), shape, position: { x: snap(cx), y: snap(cy) }, rotation: 0 };
     if (shape === "rectangle") {
       return { ...base, color: "#cbd5e1", border_color: "#64748b", rectangle: { width: 200, height: 80 } };
     }
@@ -1332,6 +1361,46 @@
     selectedArea = state.areas.length - 1;
     selected = new Set();
     draw();
+  };
+
+  // Ring sector / grandstand block: an annular sector (curved trapezoid) like a
+  // stadium tribune. Center = click point; built as a polygon (outer arc + inner
+  // arc) so it stays native-compatible.
+  const generateSector = () => {
+    const cx = snap(placePoint ? placePoint.x : view.x + view.w / 2);
+    const cy = snap(placePoint ? placePoint.y : view.y + view.h / 2);
+    const inner = Math.max(0, parseNumber("gen-sector-inner", 140));
+    const outer = Math.max(inner + 10, parseNumber("gen-sector-outer", 240));
+    let a0 = parseNumber("gen-sector-start", -60);
+    let a1 = parseNumber("gen-sector-end", 60);
+    if (a0 === a1) a1 = a0 + 60;
+    const segs = Math.max(6, Math.round(Math.abs(a1 - a0) / 4)); // ~4° steps
+    const rad = (d) => (d * Math.PI) / 180;
+    const pts = [];
+    for (let i = 0; i <= segs; i++) {
+      const a = rad(a0 + ((a1 - a0) * i) / segs);
+      pts.push({ x: Math.round(cx + Math.cos(a) * outer), y: Math.round(cy + Math.sin(a) * outer) });
+    }
+    if (inner > 0) {
+      for (let i = segs; i >= 0; i--) {
+        const a = rad(a0 + ((a1 - a0) * i) / segs);
+        pts.push({ x: Math.round(cx + Math.cos(a) * inner), y: Math.round(cy + Math.sin(a) * inner) });
+      }
+    } else {
+      pts.push({ x: cx, y: cy });
+    }
+    saveSnapshot();
+    state.areas.push({
+      id: newAreaId(), shape: "polygon", role: "decoration",
+      position: { x: 0, y: 0 }, rotation: 0,
+      color: "rgba(234,179,8,0.35)", border_color: "#ca8a04",
+      polygon: { points: pts },
+    });
+    selectedArea = state.areas.length - 1;
+    selected = new Set();
+    draw();
+    setSidebarTab("edit");
+    setTool("select");
   };
 
   // ─── Polygon tool ─────────────────────────────────────────────────────────
@@ -2030,14 +2099,18 @@
 
     saveSnapshot();
 
-    // Table shape as a decorative area.
+    // Table shape as a decorative area, linked to the seat group so it moves
+    // with the table.
+    const tableAreaId = newAreaId();
     if (shape === "rect") {
       state.areas.push({
+        id: tableAreaId,
         shape: "rectangle", position: { x: cx - size, y: cy - size * 0.66 }, rotation: 0,
         color: "#7f1d1d", border_color: "#b91c1c", rectangle: { width: size * 2, height: size * 1.32 },
       });
     } else {
       state.areas.push({
+        id: tableAreaId,
         shape: "circle", position: { x: cx, y: cy }, rotation: 0,
         color: "#7f1d1d", border_color: "#b91c1c", circle: { radius: size },
       });
@@ -2087,7 +2160,7 @@
     selected = new Set(newIds);
     selectedArea = null;
     ensureZones();
-    createGroupFromIds(newIds, "Table " + tableLabel);
+    createGroupFromIds(newIds, "Table " + tableLabel, [tableAreaId]);
     draw();
   };
 
@@ -2541,11 +2614,35 @@
   const sanitizeGroups = () => {
     if (!state.groups || !state.groups.length) return;
     const live = new Set(state.seats.map((s) => s.external_id));
-    state.groups.forEach((g) => { g.seat_ids = (g.seat_ids || []).filter((id) => live.has(id)); });
+    const liveAreas = new Set((state.areas || []).map((a) => a.id).filter(Boolean));
+    state.groups.forEach((g) => {
+      g.seat_ids = (g.seat_ids || []).filter((id) => live.has(id));
+      if (g.area_ids) g.area_ids = g.area_ids.filter((id) => liveAreas.has(id));
+    });
     const hasChildren = (id) => state.groups.some((g) => g.parent === id);
     state.groups = state.groups.filter((g) => (g.seat_ids && g.seat_ids.length) || hasChildren(g.id));
     const ids = new Set(state.groups.map((g) => g.id));
     state.groups.forEach((g) => { if (g.parent && !ids.has(g.parent)) g.parent = null; });
+  };
+
+  // Areas linked to groups whose seats are ALL currently selected → move with
+  // the selection (e.g. a table shape together with its surrounding seats).
+  const linkedAreasForSelection = () => {
+    const out = [], seen = new Set();
+    (state.groups || []).forEach((g) => {
+      if (!g.area_ids || !g.area_ids.length) return;
+      const ids = groupSeatIds(g);
+      if (!ids.length || !ids.every((id) => selected.has(id))) return;
+      g.area_ids.forEach((aid) => {
+        const idx = (state.areas || []).findIndex((a) => a.id === aid);
+        if (idx >= 0 && !seen.has(idx)) {
+          seen.add(idx);
+          const a = state.areas[idx];
+          out.push({ idx, x: Number(a.position?.x || 0), y: Number(a.position?.y || 0) });
+        }
+      });
+    });
+    return out;
   };
 
   // The outermost (top-level) group a seat belongs to, or null.
@@ -2581,12 +2678,13 @@
 
   // Create a group straight from a list of seat ids (used by the table / block
   // generators so a placed table or block is grouped right away).
-  const createGroupFromIds = (ids, name) => {
+  const createGroupFromIds = (ids, name, areaIds) => {
     if (!ids || !ids.length) return null;
     if (!state.groups) state.groups = [];
     const id = newGroupId();
     state.groups.push({
       id, parent: null, seat_ids: [...ids],
+      area_ids: areaIds ? [...areaIds] : [],
       name: name || "Group " + (state.groups.length + 1),
     });
     refreshGroupList();
@@ -2676,6 +2774,7 @@
       case "add-stage": addArea("rectangle"); break;
       case "add-ellipse": addArea("ellipse"); break;
       case "add-label": addArea("text"); break;
+      case "generate-sector": generateSector(); break;
       case "duplicate-selected": duplicateSelected(); break;
       case "delete-selected": deleteSelected(); break;
       case "group-selected": groupSelected(); break;
@@ -2705,6 +2804,7 @@
     arc: "Add arc / semicircle", table: "Add table",
     stage: "Add stage / area", round: "Add round area", label: "Add label",
     polygon: "Draw polygon", curve: "Draw curve (decoration)",
+    sector: "Ring sector (grandstand)",
   };
   const setTool = (tool) => {
     if (isPolyTool() && tool !== "polygon" && tool !== "curve" && polyPoints) cancelPolygon();
