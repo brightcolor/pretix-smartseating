@@ -17,6 +17,10 @@ class AutoSeatOptions:
     prefer_front: bool = False
     preferred_blocks: list[str] | None = None
     avoid_orphans: bool = True
+    # Plan-defined focal point (e.g. centre of the stage). When set, groups
+    # closer to it rank higher and the abstract prefer_center heuristic is
+    # skipped in favour of real geometry.
+    focal_point: tuple[float, float] | None = None
 
 
 @dataclass
@@ -50,7 +54,10 @@ def _score_group(seats: list[Any], opts: AutoSeatOptions) -> float:
         spread += hypot(seat_a.x - seat_b.x, seat_a.y - seat_b.y)
 
     score = 1000.0
-    if opts.prefer_center:
+    if opts.focal_point:
+        fx, fy = opts.focal_point
+        score -= hypot(center_x - fx, center_y - fy) * 0.5
+    elif opts.prefer_center:
         score -= abs(center_x)
     if opts.prefer_front:
         score -= center_y * 0.3

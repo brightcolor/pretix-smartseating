@@ -278,7 +278,44 @@
       if (a.role === "product" && a.product_info && a.product_info.id) {
         drawProductArea(g, a, center);
       }
+      // Section: clickable block that zooms the map into that region.
+      if (a.role === "section") {
+        g.setAttribute("class", "smartseat-shop-area smartseat-shop-section");
+        var slbl = document.createElementNS(SVGNS, "text");
+        slbl.setAttribute("x", center.x); slbl.setAttribute("y", center.y);
+        slbl.setAttribute("text-anchor", "middle");
+        slbl.setAttribute("class", "smartseat-shop-section-label");
+        slbl.textContent = a.label || t("Section");
+        g.appendChild(slbl);
+        g.addEventListener("click", function (e) {
+          e.preventDefault(); e.stopPropagation();
+          var bnd = areaBounds(a);
+          if (!bnd) return;
+          var pad = 30;
+          view = { x: bnd.x - pad, y: bnd.y - pad, w: bnd.w + 2 * pad, h: bnd.h + 2 * pad };
+          applyViewBox();
+        });
+      }
       svg.appendChild(g);
+    }
+
+    // World-space bounding box of an area (rotation ignored — navigation only).
+    function areaBounds(a) {
+      var px = (a.position && a.position.x) || 0, py = (a.position && a.position.y) || 0;
+      if (a.shape === "rectangle" && a.rectangle) return { x: px, y: py, w: a.rectangle.width || 100, h: a.rectangle.height || 40 };
+      if (a.shape === "circle" && a.circle) { var r = a.circle.radius || 50; return { x: px - r, y: py - r, w: 2 * r, h: 2 * r }; }
+      if (a.shape === "ellipse" && a.ellipse) {
+        var rx = (a.ellipse.radius && a.ellipse.radius.x) || 80, ry = (a.ellipse.radius && a.ellipse.radius.y) || 50;
+        return { x: px - rx, y: py - ry, w: 2 * rx, h: 2 * ry };
+      }
+      if (a.shape === "polygon" && a.polygon) {
+        var pts = a.polygon.points || [];
+        if (!pts.length) return null;
+        var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        pts.forEach(function (p) { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); });
+        return { x: px + x0, y: py + y0, w: x1 - x0, h: y1 - y0 };
+      }
+      return null;
     }
 
     function drawProductArea(g, a, center) {

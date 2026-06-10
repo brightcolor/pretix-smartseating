@@ -44,6 +44,10 @@ Checkout, den Order-Lifecycle sowie die Anzeige des Sitzplatzes auf Ticket und i
   - **Produkt-/Stehplatz-Flächen**: Fläche auf Rolle „Produkt" setzen + pretix-Produkt
     verknüpfen → im Shop klickbare Region, die das Produkt mengenweise (natives `item_<id>`)
     in den Warenkorb legt (keine Einzelsitze; ein nicht-bestuhltes Produkt verwenden)
+  - **Sections**: benannte Saal-Blöcke — Doppelklick zoomt im Editor hinein, im Shop sind sie
+    klickbare Blöcke (zweistufige Navigation wie bei seats.io)
+  - **Fokuspunkt**: „Bühne ist hier"-Marker; „Best available" wählt Plätze nahe am Fokus
+  - **Reihen nachträglich formen** (Abstand + Krümmung), **Alt+Drag-Duplizieren**, Strg+D
 
 > 📖 Ausführliche Bedienungsanleitung: [`docs/sitzplan-anleitung.md`](docs/sitzplan-anleitung.md)
 > (auch als BookStack-importierbare `docs/sitzplan-anleitung.html`).

@@ -395,6 +395,29 @@
   pointer-events: none; user-select: none; dominant-baseline: middle;
 }
 
+/* Section areas: light fill + strong border; double-click zooms in */
+.smartseat-area-section > rect,
+.smartseat-area-section > circle,
+.smartseat-area-section > ellipse,
+.smartseat-area-section > polygon {
+  fill: rgba(99, 102, 241, 0.08);
+  stroke: #6366f1;
+  stroke-width: 2;
+}
+.smartseat-area-section-label {
+  font-size: 14px; font-weight: 700; fill: #4338ca;
+  pointer-events: none; user-select: none; dominant-baseline: middle;
+}
+
+/* Focal point marker (editor-only) */
+.smartseat-area-focal { cursor: move; }
+.smartseat-area-focal circle { fill: rgba(244, 63, 94, 0.15); stroke: #e11d48; stroke-width: 2; }
+.smartseat-area-focal line { stroke: #e11d48; stroke-width: 2; }
+.smartseat-area-focal text {
+  font-size: 11px; font-weight: 700; fill: #e11d48;
+  pointer-events: none; user-select: none;
+}
+
 /* Polygon tool draft (in-progress drawing) */
 .smartseat-poly-draft {
   fill: rgba(79, 70, 229, 0.10);

@@ -32,6 +32,7 @@
     <button type="button" class="smartseat-tool" data-tool="polygon" title="{% trans "Draw a polygon: click to add points, double-click / Enter to finish" %}">{% trans "Polygon" %}</button>
     <button type="button" class="smartseat-tool" data-tool="curve" title="{% trans "Draw a rounded (curved) decoration: click points, double-click / Enter to finish" %}">{% trans "Curve" %}</button>
     <button type="button" class="smartseat-tool" data-tool="sector" title="{% trans "Ring sector / grandstand block (curved): click to place at its centre" %}">{% trans "Sector" %}</button>
+    <button type="button" class="smartseat-tool" data-tool="focal" title="{% trans "Focal point: click where the stage/centre of attention is — best-available picks seats closest to it" %}">{% trans "Focus" %}</button>
   </div>
   <div class="smartseat-tb-group">
     <a class="btn btn-default btn-sm" href="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export" %}</a>
@@ -76,6 +77,7 @@
       <p class="smartseat-insp-hint" data-tools="polygon">{% trans "Click on the plan to drop polygon corners. Click the first point again, double-click or press Enter to finish; Esc cancels." %}</p>
       <p class="smartseat-insp-hint" data-tools="curve">{% trans "Click corner points for a rounded shape; double-click / Enter finishes, Esc cancels." %}</p>
       <p class="smartseat-insp-hint" data-tools="sector">{% trans "A curved grandstand block (ring sector). Set inner/outer radius and the start/end angle, then click on the plan to drop it (the click is its centre)." %}</p>
+      <p class="smartseat-insp-hint" data-tools="focal">{% trans "Click where the stage / centre of attention is. \"Best available\" then prefers seats closest to this point. One focal point per plan." %}</p>
 
       <div class="smartseat-gen-grid">
         <label data-tools="row block arc">{% trans "Start row label" %}<input data-field="gen-row-start" type="text" value="A"></label>
@@ -174,6 +176,15 @@
             </label>
           </div>
           <button type="button" class="btn btn-default btn-sm" data-action="renumber-selected">{% trans "Apply numbering" %}</button>
+        </div>
+
+        <div class="smartseat-renumber">
+          <span class="smartseat-insp-hint">{% trans "Row shape (rows detected by position)" %}</span>
+          <div class="smartseat-renumber-grid">
+            <label>{% trans "Seat spacing" %}<input data-field="rowshape-spacing" type="number" min="5" value="28"></label>
+            <label>{% trans "Curve (px)" %}<input data-field="rowshape-curve" type="number" min="-300" max="300" value="0"></label>
+          </div>
+          <button type="button" class="btn btn-default btn-sm" data-action="reshape-rows">{% trans "Apply row shape" %}</button>
         </div>
 
         <div class="smartseat-align">

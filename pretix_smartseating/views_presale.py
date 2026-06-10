@@ -106,7 +106,11 @@ def api_seatmap(request: HttpRequest, organizer: str, event: str) -> JsonRespons
         )
         if mapping:
             width, height = mapping.plan.width, mapping.plan.height
-            areas = list(mapping.plan.area_shapes or [])
+            # The focal-point marker is editor-only — never shown in the shop.
+            areas = [
+                a for a in (mapping.plan.area_shapes or [])
+                if not (isinstance(a, dict) and a.get("role") == "focal")
+            ]
             for sd in mapping.plan.seats.select_related("category").all():
                 if sd.category_id and sd.category.color:
                     colours[str(sd.guid)] = sd.category.color

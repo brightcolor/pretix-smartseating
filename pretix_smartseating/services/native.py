@@ -111,10 +111,14 @@ def build_pretix_layout(plan: LocalPlan) -> dict:
     # Decorative areas (stage/bar/labels) go into a dedicated zone with no rows.
     # ``role`` is editor-only metadata (interactive vs decoration) and is not
     # part of pretix' native area schema, so strip it before validation.
-    _EDITOR_ONLY = {"role", "product", "product_name"}
+    _EDITOR_ONLY = {"role", "product", "product_name", "id", "label"}
     def _native_area(a):
         return {k: v for k, v in a.items() if k not in _EDITOR_ONLY} if isinstance(a, dict) else a
-    area_shapes = [_native_area(a) for a in (plan.area_shapes or [])]
+    # The focal-point marker is pure editor metadata — never exported natively.
+    area_shapes = [
+        _native_area(a) for a in (plan.area_shapes or [])
+        if not (isinstance(a, dict) and a.get("role") == "focal")
+    ]
     if area_shapes:
         zone_list.append({
             "name": "Decorations",
@@ -333,6 +337,14 @@ def suggest_seats(
                 continue
             available_local.append(seat)
 
+        # Plan-defined focal point (seats closer to it rank higher).
+        focal = None
+        for area in (plan.area_shapes or []):
+            if isinstance(area, dict) and area.get("role") == "focal":
+                pos = area.get("position") or {}
+                focal = (float(pos.get("x", 0)), float(pos.get("y", 0)))
+                break
+
         candidate: Candidate | None = find_seats(
             available_local,
             AutoSeatOptions(
@@ -340,6 +352,7 @@ def suggest_seats(
                 mode=mode,
                 category_code=category_code,
                 require_accessible=require_accessible,
+                focal_point=focal,
             ),
         )
         if not candidate:

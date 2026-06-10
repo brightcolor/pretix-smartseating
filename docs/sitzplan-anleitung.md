@@ -51,6 +51,7 @@ auf der Karte.
 | **Polygon** | Freie Vielecke: Ecke für Ecke klicken; Klick auf ersten Punkt / Doppelklick / **Enter** schließt, **Esc** bricht ab. |
 | **Curve** | Wie Polygon, aber zu einer weichen, gerundeten Form geglättet – ideal als Bereichs-Markierung. |
 | **Sector** | Gekrümmter Tribünen-Block (Ring-Segment) wie im Stadion. Innen-/Außenradius + Start-/End-Winkel einstellen, dann auf den Plan klicken (Klick = Mittelpunkt). |
+| **Focus** | Fokuspunkt setzen („hier ist die Bühne"). „Best available" bevorzugt Plätze nahe an diesem Punkt. Nur im Editor sichtbar. |
 
 ## 5. Auswählen & Verschieben
 | Aktion | So geht’s |
@@ -86,8 +87,16 @@ Im Edit-Reiter unter **„Use as”**:
 - **Product area (standing / GA)** – eine **Stehplatz-/Bereichsfläche ohne Einzelsitze**. Verknüpfe ein
   pretix-Produkt; im Shop ist die Fläche klickbar und legt das Produkt **mengenweise** in den Warenkorb
   (Shift/Alt-Klick entfernt eins). Bitte ein **nicht-bestuhltes** Produkt wählen.
+- **Section (zoomable block)** – ein benannter Saal-Block (z. B. „Block A"). Im Editor zoomt ein
+  **Doppelklick** in die Section hinein; im Shop ist sie ein klickbarer Block, der die Karte auf
+  diesen Bereich zoomt (zweistufige Navigation für große Hallen).
 
 Gesperrte Deko wieder bearbeiten: **„Edit locked decorations“** im Edit-Reiter aktivieren.
+
+### Reihen nachträglich formen
+Sitze auswählen → im Edit-Reiter unter **„Row shape"** den Sitzabstand und eine **Krümmung** (px)
+einstellen → „Apply row shape". Jede erkannte Reihe wird gleichmäßig verteilt und bei Bedarf
+zur Bühne hin gebogen.
 
 ## 9. Bearbeiten: Rotation, Ausrichten, Größe
 - **Rotations-Griff:** runder Griff oben bei Auswahl; ziehen dreht, **Shift** = 15°-Raster.
@@ -136,6 +145,8 @@ Rotation/Deckkraft/Sperre – zum Nachzeichnen vorhandener Pläne.
 | Shift + Klick | Auswahl umschalten |
 | Pfeiltasten | Auswahl pixelgenau verschieben (Shift = 10 px) |
 | Strg/⌘ + C / V | Auswahl kopieren / einfügen (versetzt) |
+| Strg/⌘ + D | Auswahl duplizieren |
+| Alt + Ziehen | Auswahl duplizieren und Kopie ziehen (Original bleibt) |
 | Enter | Polygon / Kurve abschließen |
 | Esc | Gruppe verlassen / Zeichnen abbrechen / „Select“ |
 

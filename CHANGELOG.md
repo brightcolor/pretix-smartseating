@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-06-10
+
+Inspired-by round (seats.io / Excalidraw concepts, own implementation):
+
+### Added
+- **Alt+Drag duplicates** the selection and drags the copies (originals stay);
+  **Ctrl/⌘+D** duplicates in place.
+- **Focal point ("Focus" tool):** click where the stage is. "Best available" now
+  ranks seat groups by real distance to this point (editor-only marker; never
+  exported natively, never shown in the shop).
+- **Row shape (retroactive):** select seats → set seat spacing and a curve value
+  → "Apply row shape" re-spaces each detected row and bows it (parabola).
+- **Sections v1:** any area can take the role *Section* (with a label). In the
+  editor, double-click zooms into the section; in the shop the section is a
+  clickable block that zooms the map into that region — the seats.io two-stage
+  pattern for large venues.
+
 ## [0.10.0] - 2026-06-10
 
 ### Added

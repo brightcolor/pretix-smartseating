@@ -98,6 +98,26 @@
   pointer-events: none; user-select: none; dominant-baseline: middle;
 }
 
+/* Section blocks — click zooms the map into the section */
+.smartseat-shop-section { pointer-events: auto; cursor: zoom-in; }
+.smartseat-shop-section > rect,
+.smartseat-shop-section > circle,
+.smartseat-shop-section > ellipse,
+.smartseat-shop-section > polygon {
+  fill: rgba(99, 102, 241, 0.10);
+  stroke: #6366f1;
+  stroke-width: 2;
+  transition: fill 0.1s ease;
+}
+.smartseat-shop-section:hover > rect,
+.smartseat-shop-section:hover > circle,
+.smartseat-shop-section:hover > ellipse,
+.smartseat-shop-section:hover > polygon { fill: rgba(99, 102, 241, 0.22); }
+.smartseat-shop-section-label {
+  font-size: 15px; font-weight: 700; fill: #4338ca;
+  pointer-events: none; user-select: none; dominant-baseline: middle;
+}
+
 .smartseat-shop-status { margin: 10px 0 6px; font-weight: 600; }
 .smartseat-shop-submit { min-height: 46px; font-size: 16px; }
 

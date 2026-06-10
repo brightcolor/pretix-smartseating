@@ -102,6 +102,21 @@
     scheduleDraw();
   };
 
+  // Zoom the viewport onto one area (used for "enter section"). Rotation is
+  // ignored for the fit — close enough for navigation.
+  const fitViewToArea = (area) => {
+    const geom = areaLocalGeom(area);
+    if (!geom || !geom.bb) return;
+    const px = Number(area.position?.x || 0), py = Number(area.position?.y || 0);
+    const pad = 40;
+    view.x = px + geom.bb.x0 - pad;
+    view.y = py + geom.bb.y0 - pad;
+    view.w = (geom.bb.x1 - geom.bb.x0) + pad * 2;
+    view.h = (geom.bb.y1 - geom.bb.y0) + pad * 2;
+    applyViewBox();
+    scheduleDraw();
+  };
+
   svg.addEventListener(
     "wheel",
     (event) => {
@@ -181,7 +196,7 @@
   const GENERATOR_TOOLS = {
     row: "add-row", block: "generate-block", arc: "generate-arc",
     table: "generate-table", stage: "add-stage", round: "add-ellipse",
-    label: "add-label", sector: "generate-sector",
+    label: "add-label", sector: "generate-sector", focal: "set-focal",
   };
 
   window.addEventListener("keydown", (e) => {
@@ -214,6 +229,7 @@
       const k = e.key.toLowerCase();
       if (k === "c") { copySelection(); return; }
       if (k === "v") { e.preventDefault(); pasteClipboard(); return; }
+      if (k === "d") { e.preventDefault(); duplicateSelected(); return; }
     }
     // Arrow keys nudge the current selection (Shift = 10×). Precise positioning.
     if (e.key.indexOf("Arrow") === 0) {
@@ -435,6 +451,20 @@
         if (!selected.has(pointerData.seat.external_id)) {
           selected = new Set(groupAwareIds(pointerData.seat.external_id, pointerData.altKey));
           scheduleDraw();
+        }
+        // Alt+drag duplicates the selection and drags the copies away
+        // (Excalidraw-style); the originals stay put.
+        if (pointerData.altKey && selected.size) {
+          saveSnapshot();
+          const usedIds = existingExternalIds();
+          const copies = [];
+          state.seats.forEach((s) => {
+            if (!selected.has(s.external_id)) return;
+            copies.push(createSeat({ ...s, external_id: makeUniqueExternalId(s.external_id + "-copy", usedIds) }));
+          });
+          state.seats = state.seats.concat(copies);
+          selected = new Set(copies.map((s) => s.external_id));
+          draw(); // synchronous: the copies need rendered nodes to drag
         }
         // Snapshot positions of all selected seats at drag start + collect the
         // x/y of all *other* seats as alignment guide candidates.
@@ -766,6 +796,13 @@
   svg.addEventListener("dblclick", (event) => {
     // Finishing a polygon/curve takes priority while that tool is drawing.
     if (isPolyTool() && polyPoints) { finalizePolygon(); return; }
+
+    // Double-click a section area → zoom into it (seats.io-style sections).
+    const areaEl2 = event.target?.closest?.("[data-area-index]");
+    if (areaEl2) {
+      const a = state.areas[parseInt(areaEl2.getAttribute("data-area-index"), 10)];
+      if (a && a.role === "section") { fitViewToArea(a); return; }
+    }
 
     // Enter a group to edit single seats. Forgiving: works when double-clicking
     // a grouped seat OR anywhere inside the group's outline (e.g. the table in
@@ -1175,7 +1212,9 @@
     const roleSel = document.createElement("select");
     [["interactive", "Interactive (clickable / editable)"],
      ["decoration", "Decoration (locked marking)"],
-     ["product", "Product area (standing / GA)"]]
+     ["product", "Product area (standing / GA)"],
+     ["section", "Section (zoomable block)"],
+     ["focal", "Focal point (best-available anchor)"]]
       .forEach(([val, label]) => {
         const o = document.createElement("option");
         o.value = val; o.textContent = label;
@@ -1185,6 +1224,22 @@
     roleSel.addEventListener("change", () => { area.role = roleSel.value; commitArea(); refreshAreaInspector(); });
     roleWrap.appendChild(roleSel);
     areaFieldsEl.appendChild(roleWrap);
+
+    // Sections carry a display label (shown on the plan and in the shop).
+    if (area.role === "section") {
+      const lWrap = document.createElement("label");
+      lWrap.className = "smartseat-area-field";
+      lWrap.textContent = "Section label";
+      const lInp = document.createElement("input");
+      lInp.type = "text"; lInp.value = area.label || "";
+      lInp.addEventListener("change", () => { area.label = lInp.value; commitArea(); });
+      lWrap.appendChild(lInp);
+      areaFieldsEl.appendChild(lWrap);
+      const hint = document.createElement("p");
+      hint.className = "smartseat-insp-hint";
+      hint.textContent = "Double-click the section on the plan to zoom into it; shoppers can click it to zoom too.";
+      areaFieldsEl.appendChild(hint);
+    }
 
     // Product areas (standing / general admission): pick the pretix product that
     // a click in the shop will add to the cart (by quantity).
@@ -1403,6 +1458,24 @@
     setTool("select");
   };
 
+  // Focal point: a single marker ("the stage is here") used to rank
+  // best-available suggestions by real distance. Editor-only, max one per plan.
+  const setFocalPoint = () => {
+    const cx = snap(placePoint ? placePoint.x : view.x + view.w / 2);
+    const cy = snap(placePoint ? placePoint.y : view.y + view.h / 2);
+    saveSnapshot();
+    state.areas = (state.areas || []).filter((a) => a.role !== "focal");
+    state.areas.push({
+      id: newAreaId(), shape: "circle", role: "focal",
+      position: { x: cx, y: cy }, rotation: 0, circle: { radius: 14 },
+    });
+    selectedArea = state.areas.length - 1;
+    selected = new Set();
+    draw();
+    setSidebarTab("edit");
+    setTool("select");
+  };
+
   // ─── Polygon tool ─────────────────────────────────────────────────────────
   const cancelPolygon = () => { polyPoints = null; polyCursor = null; scheduleDraw(); };
 
@@ -1594,7 +1667,30 @@
     // behind the seats, so seats always win a click where they overlap.
     if (deco) cls += " smartseat-area-deco";
     if (role === "product") cls += " smartseat-area-product";
+    if (role === "section") cls += " smartseat-area-section";
     g.setAttribute("class", cls);
+
+    // Focal point: rendered as a crosshair marker instead of a normal shape.
+    if (role === "focal") {
+      g.setAttribute("class", cls + " smartseat-area-focal");
+      const r = 14;
+      const ring = document.createElementNS(SVGNS, "circle");
+      ring.setAttribute("cx", 0); ring.setAttribute("cy", 0); ring.setAttribute("r", r);
+      g.appendChild(ring);
+      [[-r * 1.5, 0, r * 1.5, 0], [0, -r * 1.5, 0, r * 1.5]].forEach((l) => {
+        const ln = document.createElementNS(SVGNS, "line");
+        ln.setAttribute("x1", l[0]); ln.setAttribute("y1", l[1]);
+        ln.setAttribute("x2", l[2]); ln.setAttribute("y2", l[3]);
+        g.appendChild(ln);
+      });
+      const t = document.createElementNS(SVGNS, "text");
+      t.setAttribute("x", 0); t.setAttribute("y", -r * 1.9);
+      t.setAttribute("text-anchor", "middle");
+      t.textContent = "Focus";
+      g.appendChild(t);
+      svg.appendChild(g);
+      return;
+    }
 
     const fill = area.color || "rgba(148,163,184,0.5)";
     const stroke = area.border_color || "#64748b";
@@ -1634,6 +1730,19 @@
       shapeEl.setAttribute("stroke-width", "1");
     }
     g.appendChild(shapeEl);
+
+    // Sections show their label in the centre (double-click zooms into them).
+    if (role === "section") {
+      const geom = areaLocalGeom(area);
+      const bb = geom && geom.bb;
+      const label = document.createElementNS(SVGNS, "text");
+      label.setAttribute("x", bb ? (bb.x0 + bb.x1) / 2 : 0);
+      label.setAttribute("y", bb ? (bb.y0 + bb.y1) / 2 : 0);
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("class", "smartseat-area-section-label");
+      label.textContent = area.label || "Section";
+      g.appendChild(label);
+    }
 
     // Product areas show their product name (or a hint to pick one) in the centre.
     if (role === "product") {
@@ -2305,6 +2414,37 @@
     draw();
   };
 
+  // Re-shape the selected seats as rows (seats.io-style row properties):
+  // uniform seat spacing plus an optional curve (sag in px; positive bows the
+  // row upwards). Rows are detected by y-position, anchored at their first seat.
+  const reshapeRows = () => {
+    if (!selected.size) return;
+    const spacing = Math.max(5, parseNumber("rowshape-spacing", 28));
+    const sag = parseNumber("rowshape-curve", 0);
+    const sel = state.seats.filter((s) => selected.has(s.external_id)).slice();
+    sel.sort((a, b) => a.y - b.y || a.x - b.x);
+    const BAND = 14;
+    const rows = [];
+    let cur = null;
+    sel.forEach((s) => {
+      if (!cur || Math.abs(s.y - cur.y) > BAND) { cur = { y: s.y, seats: [] }; rows.push(cur); }
+      cur.seats.push(s);
+    });
+    saveSnapshot();
+    rows.forEach((row) => {
+      row.seats.sort((a, b) => a.x - b.x);
+      const n = row.seats.length;
+      const first = row.seats[0];
+      const baseX = first.x, baseY = row.y;
+      row.seats.forEach((s, i) => {
+        const t = n > 1 ? i / (n - 1) : 0.5;
+        s.x = clampX(snap(baseX + i * spacing));
+        s.y = clampY(snap(baseY - sag * (4 * t * (1 - t))));
+      });
+    });
+    draw();
+  };
+
   // Copy / paste of a seat selection (paste lands with a small offset).
   let clipboard = null;
   const copySelection = () => {
@@ -2775,12 +2915,14 @@
       case "add-ellipse": addArea("ellipse"); break;
       case "add-label": addArea("text"); break;
       case "generate-sector": generateSector(); break;
+      case "set-focal": setFocalPoint(); break;
       case "duplicate-selected": duplicateSelected(); break;
       case "delete-selected": deleteSelected(); break;
       case "group-selected": groupSelected(); break;
       case "mirror-h": mirrorSelected("h"); break;
       case "mirror-v": mirrorSelected("v"); break;
       case "renumber-selected": renumberSelected(); break;
+      case "reshape-rows": reshapeRows(); break;
       case "validate-plan": renderValidation(); break;
       case "add-zone": addZone(); break;
       case "add-category": addCategory(); break;
@@ -2804,7 +2946,7 @@
     arc: "Add arc / semicircle", table: "Add table",
     stage: "Add stage / area", round: "Add round area", label: "Add label",
     polygon: "Draw polygon", curve: "Draw curve (decoration)",
-    sector: "Ring sector (grandstand)",
+    sector: "Ring sector (grandstand)", focal: "Set focal point",
   };
   const setTool = (tool) => {
     if (isPolyTool() && tool !== "polygon" && tool !== "curve" && polyPoints) cancelPolygon();
