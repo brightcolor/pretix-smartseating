@@ -6,7 +6,7 @@
 {% block content %}
 <h1>{% trans "Sitzplan importieren" %}: {{ plan.name }}</h1>
 <p class="help-block">
-  {% trans "Eigenen JSON-Export einfügen oder ein pretix / seats.pretix.eu-Layout (mit „zones" und „size") – das Format wird automatisch erkannt. Alternativ einen SVG-Grundriss hochladen, dessen Sitzelemente der ID-Konvention folgen (z.B. id=\"seat-A12\")." %}
+  {% trans "Eigenen JSON-Export einfügen oder ein pretix / seats.pretix.eu-Layout (mit „zones“ und „size“) – das Format wird automatisch erkannt. Alternativ einen SVG-Grundriss hochladen, dessen Sitzelemente der ID-Konvention folgen (z.B. id=seat-A12)." %}
 </p>
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}

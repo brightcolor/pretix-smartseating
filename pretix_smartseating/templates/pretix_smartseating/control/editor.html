@@ -33,7 +33,7 @@
     <button type="button" class="smartseat-tool" data-tool="curve" title="{% trans "Weiche Kurvenform: Punkte klicken, Doppelklick / Enter zum Abschließen" %}">{% trans "Kurve" %}</button>
     <button type="button" class="smartseat-tool" data-tool="sector" title="{% trans "Ring-Sektor / Tribüne (gebogen): Klick = Mittelpunkt" %}">{% trans "Sektor" %}</button>
     <button type="button" class="smartseat-tool" data-tool="booth" title="{% trans "Box: nummerierter Einzelstand (Messe, Loge)" %}">{% trans "Box" %}</button>
-    <button type="button" class="smartseat-tool" data-tool="focal" title="{% trans "Fokuspunkt: Bühnenmitte klicken – „Beste Plätze" bevorzugt nahe Sitze" %}">{% trans "Fokus" %}</button>
+    <button type="button" class="smartseat-tool" data-tool="focal" title="{% trans "Fokuspunkt: Bühnenmitte klicken – „Beste Plätze“ bevorzugt nahe Sitze" %}">{% trans "Fokus" %}</button>
   </div>
   <div class="smartseat-tb-group">
     <a class="btn btn-default btn-sm" href="{% url "plugins:pretix_smartseating:control.plan_export" organizer=event.organizer.slug event=event.slug plan_id=plan.id %}">{% trans "Export" %}</a>
@@ -78,7 +78,7 @@
       <p class="smartseat-insp-hint" data-tools="polygon">{% trans "Auf den Plan klicken, um Eckpunkte zu setzen. Ersten Punkt erneut klicken, Doppelklick oder Enter = fertig; Esc = abbrechen." %}</p>
       <p class="smartseat-insp-hint" data-tools="curve">{% trans "Eckpunkte für eine weiche Form klicken; Doppelklick / Enter = fertig, Esc = abbrechen." %}</p>
       <p class="smartseat-insp-hint" data-tools="sector">{% trans "Gebogener Tribünenblock (Ring-Sektor). Innen-/Außenradius und Start-/End-Winkel einstellen, dann auf den Plan klicken (Klick = Mittelpunkt)." %}</p>
-      <p class="smartseat-insp-hint" data-tools="focal">{% trans "Bühnenmitte klicken. „Beste Plätze" bevorzugt dann die nächstgelegenen Sitze. Nur ein Fokuspunkt pro Plan." %}</p>
+      <p class="smartseat-insp-hint" data-tools="focal">{% trans "Bühnenmitte klicken. „Beste Plätze“ bevorzugt dann die nächstgelegenen Sitze. Nur ein Fokuspunkt pro Plan." %}</p>
       <p class="smartseat-insp-hint" data-tools="booth">{% trans "Jeder Klick setzt eine nummerierte Box (Stand / Loge) mit einem buchbaren Platz. Nummern laufen automatisch weiter (B1, B2, …)." %}</p>
 
       <div class="smartseat-gen-grid">
@@ -158,7 +158,7 @@
           </select>
         </label>
         <label class="smartseat-check"><input type="checkbox" data-field="insp-blocked"> {% trans "Gesperrt" %}</label>
-        <p class="smartseat-insp-hint">{% trans "Typ gilt für Rollstuhl / Begleitung / Technisch. „Gesperrt" nimmt den Sitz aus dem Verkauf (z.B. defekt)." %}</p>
+        <p class="smartseat-insp-hint">{% trans "Typ gilt für Rollstuhl / Begleitung / Technisch. „Gesperrt“ nimmt den Sitz aus dem Verkauf (z.B. defekt)." %}</p>
 
         <div class="smartseat-selection-actions">
           <button type="button" class="btn btn-default btn-sm" data-action="group-selected">{% trans "Gruppieren" %}</button>
@@ -230,7 +230,7 @@
       <h4>{% trans "Prüfung" %}</h4>
       <button type="button" class="btn btn-default btn-sm" data-action="validate-plan">{% trans "Plan prüfen" %}</button>
       <div id="smartseat-validation" class="smartseat-validation"></div>
-      <p class="smartseat-insp-hint">{% trans "Vor „Anwenden" ausführen, um fehlende Kategorien, doppelte Labels oder falsch platzierte Plätze zu finden." %}</p>
+      <p class="smartseat-insp-hint">{% trans "Vor „Anwenden“ ausführen, um fehlende Kategorien, doppelte Labels oder falsch platzierte Plätze zu finden." %}</p>
     </section>
 
     <section class="smartseat-insp-section" data-tab="plan">

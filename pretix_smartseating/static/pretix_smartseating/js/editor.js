@@ -1053,7 +1053,7 @@
         });
       });
       row.querySelector('button[data-k="del"]').addEventListener("click", () => {
-        if (!confirm(`Kategorie „${cat.name}" löschen? Plätze darin werden unkategorisiert.`)) return;
+        if (!confirm(`Kategorie „${cat.name}“ löschen? Plätze darin werden unkategorisiert.`)) return;
         saveSnapshot();
         state.categories = state.categories.filter((c) => c.code !== cat.code);
         state.seats.forEach((s) => {
@@ -1419,7 +1419,7 @@
       return { ...base, color: "#cbd5e1", border_color: "#64748b", circle: { radius: 80 } };
     }
     // text
-    return { ...base, text: { text: "Label", color: "#111827", size: 24, position: { x: 0, y: 0 } } };
+    return { ...base, text: { text: "Text", color: "#111827", size: 24, position: { x: 0, y: 0 } } };
   };
 
   const addArea = (shape) => {
@@ -2079,7 +2079,7 @@
         button.addEventListener("click", async () => {
           const action = button.getAttribute("data-action");
           if (action === "delete") {
-            if (!confirm(`Vorlagen-Layer „${asset.name}" löschen?`)) return;
+            if (!confirm(`Vorlagen-Layer „${asset.name}“ löschen?`)) return;
             await deleteTemplateAsset(asset.id);
             return;
           }
@@ -2332,7 +2332,7 @@
     selected = new Set(newIds);
     selectedArea = null;
     ensureZones();
-    createGroupFromIds(newIds, "Table " + tableLabel, [tableAreaId]);
+    createGroupFromIds(newIds, "Tisch " + tableLabel, [tableAreaId]);
     draw();
   };
 
@@ -2634,7 +2634,7 @@
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      showSaveFeedback(false, (data.issues || []).map((i) => i.message || i.code).join(" · ") || "Save failed");
+      showSaveFeedback(false, (data.issues || []).map((i) => i.message || i.code).join(" · ") || "Speichern fehlgeschlagen");
       return false;
     }
     showSaveFeedback(true);
@@ -2773,7 +2773,7 @@
   const deleteZone = (name) => {
     if (state.zones.length <= 1) { alert("Mindestens eine Zone ist erforderlich."); return; }
     const count = state.seats.filter((s) => (s.block_label || "Main") === name).length;
-    if (!confirm(`Zone „${name}"${count ? ` und ihre ${count} Plätze` : ""} löschen?`)) return;
+    if (!confirm(`Zone „${name}“${count ? ` und ihre ${count} Plätze` : ""} löschen?`)) return;
     saveSnapshot();
     state.seats = state.seats.filter((s) => (s.block_label || "Main") !== name);
     state.zones = state.zones.filter((z) => z.name !== name);

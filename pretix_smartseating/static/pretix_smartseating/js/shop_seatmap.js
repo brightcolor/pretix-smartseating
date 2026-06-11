@@ -331,7 +331,7 @@
       function priceTxt() { return info.price != null ? fmtPrice(info.price, currency) : ""; }
       function refresh() {
         var q = productCounts[pid] || 0;
-        lbl.textContent = (info.name || t("Tickets")) + (priceTxt() ? " · " + priceTxt() : "")  // "Tickets" als GA-Fallback ok
+        lbl.textContent = (info.name || t("Tickets")) + (priceTxt() ? " · " + priceTxt() : "")
           + (q ? "  ×" + q : "");
         if (q) g.classList.add("chosen"); else g.classList.remove("chosen");
       }
