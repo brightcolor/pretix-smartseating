@@ -1032,14 +1032,20 @@
     state.categories.forEach((cat) => {
       const row = document.createElement("div");
       row.className = "smartseat-cat-row";
-      const safeName = (cat.name || "").replace(/"/g, "&quot;");
+      // Static markup only; values are assigned via DOM properties below, so
+      // names/colors from imported plan JSON can never be parsed as HTML.
       row.innerHTML = `
-        <input type="color" data-k="color" value="${cat.color || "#3B82F6"}" title="Farbe">
-        <input type="text" data-k="name" value="${safeName}" placeholder="Name">
-        <span class="smartseat-cat-count" title="Plätze in dieser Kategorie">${counts[cat.code] || 0}</span>
-        <input type="number" data-k="price_rank" value="${cat.price_rank ?? 100}" title="Sortierung (niedriger = oben)">
+        <input type="color" data-k="color" title="Farbe">
+        <input type="text" data-k="name" placeholder="Name">
+        <span class="smartseat-cat-count" title="Plätze in dieser Kategorie"></span>
+        <input type="number" data-k="price_rank" title="Sortierung (niedriger = oben)">
         <button type="button" data-k="del" title="Kategorie löschen">&times;</button>
       `;
+      row.querySelector('[data-k="color"]').value =
+        /^#[0-9a-fA-F]{6}$/.test(cat.color || "") ? cat.color : "#3B82F6";
+      row.querySelector('[data-k="name"]').value = cat.name || "";
+      row.querySelector(".smartseat-cat-count").textContent = String(counts[cat.code] || 0);
+      row.querySelector('[data-k="price_rank"]').value = String(Number(cat.price_rank ?? 100) || 0);
       row.querySelectorAll("input[data-k]").forEach((inp) => {
         inp.addEventListener("change", () => {
           const k = inp.getAttribute("data-k");
@@ -2044,15 +2050,17 @@
     sortedAssets.forEach((asset) => {
       const row = document.createElement("div");
       row.className = "smartseat-template-row";
+      // Layer name/kind are user input → textContent below, never interpolated
+      // into markup. Numeric fields are coerced so they can't carry markup.
       row.innerHTML = `
-        <div class="smartseat-template-head"><strong>${asset.name}</strong> <small>(${asset.source_kind})</small></div>
+        <div class="smartseat-template-head"><strong></strong> <small></small></div>
         <div class="smartseat-template-grid">
           <label>X <input type="number" data-k="x" value="${Number(asset.x || 0).toFixed(0)}"></label>
           <label>Y <input type="number" data-k="y" value="${Number(asset.y || 0).toFixed(0)}"></label>
-          <label>Skalierung <input type="number" step="0.05" min="0.05" max="20" data-k="scale" value="${asset.scale}"></label>
-          <label>Drehung <input type="number" step="1" data-k="rotation" value="${asset.rotation}"></label>
-          <label>Deckkraft <input type="range" min="0" max="1" step="0.05" data-k="opacity" value="${asset.opacity}"></label>
-          <label>Z <input type="number" step="1" data-k="z_index" value="${asset.z_index || 0}"></label>
+          <label>Skalierung <input type="number" step="0.05" min="0.05" max="20" data-k="scale" value="${Number(asset.scale) || 1}"></label>
+          <label>Drehung <input type="number" step="1" data-k="rotation" value="${Number(asset.rotation) || 0}"></label>
+          <label>Deckkraft <input type="range" min="0" max="1" step="0.05" data-k="opacity" value="${Number(asset.opacity ?? 0.35) || 0}"></label>
+          <label>Z <input type="number" step="1" data-k="z_index" value="${Number(asset.z_index) || 0}"></label>
           <label><input type="checkbox" data-k="is_visible" ${asset.is_visible ? "checked" : ""}> sichtbar</label>
           <label><input type="checkbox" data-k="is_locked" ${asset.is_locked ? "checked" : ""}> sperren</label>
         </div>
@@ -2064,6 +2072,8 @@
           <button type="button" data-action="delete">Löschen</button>
         </div>
       `;
+      row.querySelector(".smartseat-template-head strong").textContent = asset.name || "";
+      row.querySelector(".smartseat-template-head small").textContent = "(" + (asset.source_kind || "") + ")";
 
       row.querySelectorAll("input[data-k]").forEach((input) => {
         input.addEventListener("change", async () => {

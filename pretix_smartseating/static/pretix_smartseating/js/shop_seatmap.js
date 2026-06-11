@@ -203,13 +203,20 @@
 
     function showTip(evt, seat) {
       var price = fmtPrice(seat.price, currency);
-      var headCells = "";
-      if (seat.row) headCells += '<div class="cell"><span class="lbl">' + t("Reihe") + '</span><span class="val">' + seat.row + "</span></div>";
-      headCells += '<div class="cell"><span class="lbl">' + t("Platz") + '</span><span class="val">' + (seat.number || "?") + "</span></div>";
+      // Row/seat labels are organizer-defined → DOM text nodes only, never
+      // concatenated into markup (stored-XSS guard for the shop frontend).
       tip.innerHTML =
-        '<div class="smartseat-tip-head">' + headCells + "</div>" +
+        '<div class="smartseat-tip-head"></div>' +
         '<div class="smartseat-tip-cat"><span class="nm"></span><span class="pr"></span></div>';
       var head = tip.querySelector(".smartseat-tip-head");
+      function cell(lbl, val) {
+        head.appendChild(el("div", { class: "cell" }, [
+          el("span", { class: "lbl", text: lbl }),
+          el("span", { class: "val", text: String(val) }),
+        ]));
+      }
+      if (seat.row) cell(t("Reihe"), seat.row);
+      cell(t("Platz"), seat.number || "?");
       var cat = tip.querySelector(".smartseat-tip-cat");
       cat.querySelector(".nm").textContent = seat.available ? (seat.cat || t("Platz")) : t("Nicht verfügbar");
       cat.querySelector(".pr").textContent = seat.available ? price : "";
