@@ -6,9 +6,9 @@
 {% block content %}
 <h1>{% trans "Import seating plan" %}: {{ plan.name }}</h1>
 <p class="help-block">
-  {% trans "Paste either this plugin's own JSON export, or a pretix / seats.pretix.eu layout (with \"zones\" and \"size\") — the format is detected automatically." %}
+  {% trans "Paste either this plugin's own JSON export, or a pretix / seats.pretix.eu layout (with \"zones\" and \"size\") — the format is detected automatically. Alternatively upload an SVG floor plan whose seat elements follow the id convention (e.g. id=\"seat-A12\")." %}
 </p>
-<form method="post">
+<form method="post" enctype="multipart/form-data">
   {% csrf_token %}
   {% bootstrap_form form %}
   <button type="submit" class="btn btn-primary">{% trans "Import" %}</button>

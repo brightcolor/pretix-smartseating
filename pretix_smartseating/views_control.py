@@ -24,7 +24,7 @@ from pretix_smartseating.models import (
     SeatingPlan,
     SeatingTemplateAsset,
 )
-from pretix_smartseating.services.import_export import export_plan, import_plan
+from pretix_smartseating.services.import_export import export_plan, import_plan, seats_from_svg
 from pretix_smartseating.services.native import (
     DEFAULT_CATEGORY_NAME,
     SeatProtected,
@@ -409,11 +409,22 @@ def plan_export_native(request: HttpRequest, organizer: str, event: str, plan_id
 def plan_import(request: HttpRequest, organizer: str, event: str, plan_id: int) -> HttpResponse:
     plan = _plan_for_event(request, plan_id)
     if request.method == "POST":
-        form = ImportPlanForm(request.POST)
+        form = ImportPlanForm(request.POST, request.FILES)
         if form.is_valid():
             payload = form.cleaned_data["payload"]
+            svg_file = form.cleaned_data.get("svg_file")
+            if svg_file:
+                # SVG floor plan: elements with a matching id prefix become seats.
+                prefix = (form.cleaned_data.get("svg_prefix") or "seat-").strip() or "seat-"
+                try:
+                    if svg_file.size > 5 * 1024 * 1024:
+                        raise ValueError("SVG file too large (max 5 MB).")
+                    payload = seats_from_svg(svg_file.read().decode("utf-8"), prefix=prefix)
+                except Exception as exc:  # noqa: BLE001 — XML parse/decode errors vary by backend
+                    messages.error(request, _("Could not read the SVG: {error}").format(error=str(exc)))
+                    payload = None
             # Auto-detect a pretix / seats.pretix.eu layout and convert it.
-            if isinstance(payload, dict) and "zones" in payload and "size" in payload:
+            elif isinstance(payload, dict) and "zones" in payload and "size" in payload:
                 try:
                     payload = layout_from_pretix(payload)
                 except (ValueError, DjangoValidationError) as exc:

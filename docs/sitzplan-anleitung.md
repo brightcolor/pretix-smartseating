@@ -46,11 +46,12 @@ auf der Karte.
 | **Row** | Eine einzelne Sitzreihe. |
 | **Block** | Rechteckiger Block aus Reihen × Sitzen. |
 | **Arc** | Gebogene Reihen / Halbkreis (Zentrum, Radius, Winkel). |
-| **Table** | Runder/rechteckiger Tisch mit umlaufenden Stühlen. Stuhlanzahl über *„Seats at table“*; runde Tische wachsen bei vielen Stühlen automatisch. |
+| **Table** | Runder/rechteckiger Tisch mit umlaufenden Stühlen. Stuhlanzahl über *„Seats at table”*; runde Tische wachsen bei vielen Stühlen automatisch. Mit **„Bookable as a whole”** wird der Tisch stattdessen als Produkt-Fläche platziert (ein Klick im Shop bucht den ganzen Tisch). |
 | **Stage / Round / Label** | Dekorative Flächen: Bühne, runde Fläche, Textlabel. |
 | **Polygon** | Freie Vielecke: Ecke für Ecke klicken; Klick auf ersten Punkt / Doppelklick / **Enter** schließt, **Esc** bricht ab. |
 | **Curve** | Wie Polygon, aber zu einer weichen, gerundeten Form geglättet – ideal als Bereichs-Markierung. |
 | **Sector** | Gekrümmter Tribünen-Block (Ring-Segment) wie im Stadion. Innen-/Außenradius + Start-/End-Winkel einstellen, dann auf den Plan klicken (Klick = Mittelpunkt). |
+| **Booth** | Nummerierte Einzel-Box (Messestand/Loge): pro Klick eine Box mit genau einem buchbaren Platz; Nummern laufen automatisch weiter (B1, B2, …). |
 | **Focus** | Fokuspunkt setzen („hier ist die Bühne"). „Best available" bevorzugt Plätze nahe an diesem Punkt. Nur im Editor sichtbar. |
 
 ## 5. Auswählen & Verschieben
@@ -131,6 +132,9 @@ Rotation/Deckkraft/Sperre – zum Nachzeichnen vorhandener Pläne.
 ## 14. Import / Export
 - **Export / Import** – plugin-eigenes JSON (volles Layout inkl. Gruppen/Zonen).
 - **Export pretix** – natives pretix-/seats.pretix.eu-Format; Import erkennt das Format automatisch.
+- **SVG-Import** – einen SVG-Grundriss hochladen: jedes `<circle>`/`<ellipse>`/`<rect>`,
+  dessen `id` mit dem Präfix beginnt (Standard `seat-`), wird zum Sitz
+  (`id="seat-A12"` → Reihe A, Platz 12); die Plangröße kommt aus der viewBox.
 
 ## 15. Der Shop (Gäste-Ansicht)
 - Gäste klicken Sitze an; eine Karte zeigt Reihe, Platz, Preiszone, Preis.

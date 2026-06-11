@@ -197,6 +197,7 @@
     row: "add-row", block: "generate-block", arc: "generate-arc",
     table: "generate-table", stage: "add-stage", round: "add-ellipse",
     label: "add-label", sector: "generate-sector", focal: "set-focal",
+    booth: "add-booth",
   };
 
   window.addEventListener("keydown", (e) => {
@@ -1469,6 +1470,41 @@
     setTool("select");
   };
 
+  // Booth: a numbered single bookable box (fair stand / box seat) — a square
+  // decoration plus one seat at its centre. Numbers continue automatically.
+  const addBooth = () => {
+    const size = Math.max(12, parseNumber("gen-booth-size", 36));
+    const prefixB = (field("gen-booth-label")?.value || "B").trim() || "B";
+    const categoryCode = field("gen-category")?.value || state.categories[0]?.code || "standard";
+    const cx = snap(placePoint ? placePoint.x : view.x + view.w / 2);
+    const cy = snap(placePoint ? placePoint.y : view.y + view.h / 2);
+    saveSnapshot();
+    state.areas.push({
+      id: newAreaId(), shape: "rectangle", role: "decoration",
+      position: { x: cx - size / 2, y: cy - size / 2 }, rotation: 0,
+      color: "#e2e8f0", border_color: "#64748b",
+      rectangle: { width: size, height: size },
+    });
+    let n = 1;
+    state.seats.forEach((s) => {
+      if (s.row_label === prefixB) {
+        const v = parseInt(s.seat_number, 10);
+        if (Number.isFinite(v) && v >= n) n = v + 1;
+      }
+    });
+    const usedIds = existingExternalIds();
+    const externalId = makeUniqueExternalId(`${activeZone || "Main"}-${prefixB}${n}`, usedIds);
+    state.seats.push(createSeat({
+      external_id: externalId, block_label: activeZone || "Main",
+      row_label: prefixB, seat_number: String(n), seat_index: n, row_index: nextRowIndex(),
+      x: cx, y: cy, rotation: 0, category_code: categoryCode,
+    }));
+    selected = new Set([externalId]);
+    selectedArea = null;
+    ensureZones();
+    draw();
+  };
+
   // Focal point: a single marker ("the stage is here") used to rank
   // best-available suggestions by real distance. Editor-only, max one per plan.
   const setFocalPoint = () => {
@@ -2237,6 +2273,21 @@
       });
     }
 
+    // "Bookable as a whole": the table is a product area (one click in the shop
+    // books the table via its linked product) — no individual seats.
+    if (field("gen-table-whole")?.checked) {
+      const a = state.areas[state.areas.length - 1];
+      a.role = "product";
+      a.label = tableLabel;
+      a.product = null;
+      a.product_name = "";
+      selectedArea = state.areas.length - 1;
+      selected = new Set();
+      draw();
+      setSidebarTab("edit"); // pick the product right away
+      return;
+    }
+
     const usedIds = existingExternalIds();
     // Place seats outside the table; for round tables grow the ring so a high
     // seat count never overlaps (≈20px arc length per seat as the minimum).
@@ -2936,6 +2987,7 @@
       case "add-label": addArea("text"); break;
       case "generate-sector": generateSector(); break;
       case "set-focal": setFocalPoint(); break;
+      case "add-booth": addBooth(); break;
       case "duplicate-selected": duplicateSelected(); break;
       case "delete-selected": deleteSelected(); break;
       case "group-selected": groupSelected(); break;
@@ -3041,6 +3093,7 @@
     stage: "Add stage / area", round: "Add round area", label: "Add label",
     polygon: "Draw polygon", curve: "Draw curve (decoration)",
     sector: "Ring sector (grandstand)", focal: "Set focal point",
+    booth: "Add booth",
   };
   const setTool = (tool) => {
     if (isPolyTool() && tool !== "polygon" && tool !== "curve" && polyPoints) cancelPolygon();

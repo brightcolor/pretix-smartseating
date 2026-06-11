@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-06-10
+
+### Added
+- **Table "bookable as a whole":** a checkbox on the Table tool places the table
+  as a *product area* instead of single seats — one click in the shop books the
+  whole table via its linked pretix product.
+- **Booth tool:** each click places a numbered single bookable box (fair stand /
+  box seat) — a square marking plus one seat at its centre; numbers continue
+  automatically (B1, B2, …) per label prefix.
+- **SVG floor-plan import:** upload an SVG on the import page — every
+  `<circle>`/`<ellipse>`/`<rect>` whose id starts with the configurable prefix
+  becomes a seat (`id="seat-A12"` → row A, seat 12); plan size from the viewBox.
+
 ## [0.12.0] - 2026-06-10
 
 ### Added

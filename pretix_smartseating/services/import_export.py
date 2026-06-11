@@ -90,6 +90,88 @@ def export_plan(plan: SeatingPlan) -> ExportBundle:
     )
 
 
+def seats_from_svg(svg_text: str, *, prefix: str = "seat-") -> dict[str, Any]:
+    """Build an import payload from an SVG floor plan (id convention).
+
+    Every ``<circle>``/``<ellipse>``/``<rect>`` whose ``id`` starts with
+    ``prefix`` becomes a seat at the element's centre. The id remainder is the
+    seat label: a leading letter block is the row, trailing digits the number
+    (``seat-A12`` → row A, seat 12). Transforms are not applied; the plan size
+    comes from the SVG viewBox (or width/height attributes).
+    """
+    import re
+
+    from defusedxml import ElementTree as DET
+
+    root = DET.fromstring(svg_text)
+
+    def _num(value):
+        if value is None:
+            return None
+        m = re.match(r"^\s*(-?[0-9.]+)", str(value))
+        return float(m.group(1)) if m else None
+
+    width = height = None
+    vb = root.get("viewBox")
+    if vb:
+        parts = vb.replace(",", " ").split()
+        if len(parts) == 4:
+            width, height = _num(parts[2]), _num(parts[3])
+    if not width:
+        width = _num(root.get("width")) or 1200
+    if not height:
+        height = _num(root.get("height")) or 800
+
+    raw = []
+    seq = 0
+    for el in root.iter():
+        el_id = el.get("id") or ""
+        if not el_id.startswith(prefix):
+            continue
+        tag = el.tag.rsplit("}", 1)[-1]
+        if tag in ("circle", "ellipse"):
+            x, y = _num(el.get("cx")), _num(el.get("cy"))
+        elif tag == "rect":
+            x = (_num(el.get("x")) or 0) + (_num(el.get("width")) or 0) / 2
+            y = (_num(el.get("y")) or 0) + (_num(el.get("height")) or 0) / 2
+        else:
+            continue
+        if x is None or y is None:
+            continue
+        seq += 1
+        label = el_id[len(prefix):]
+        m = re.match(r"^([A-Za-z]*)[-_ ]?(\d+)$", label)
+        row = m.group(1) if m and m.group(1) else "S"
+        number = m.group(2) if m else str(seq)
+        raw.append({"external_id": el_id, "row": row, "number": number, "x": x, "y": y})
+
+    if not raw:
+        raise ValueError(f"No SVG elements with an id starting with '{prefix}' were found.")
+
+    row_order = {label: idx for idx, label in enumerate(sorted({s["row"] for s in raw}))}
+    seats = [
+        {
+            "external_id": s["external_id"],
+            "block_label": "Main",
+            "row_label": s["row"],
+            "seat_number": s["number"],
+            "seat_index": idx,
+            "row_index": row_order[s["row"]],
+            "x": s["x"],
+            "y": s["y"],
+            "category_code": "standard",
+        }
+        for idx, s in enumerate(raw)
+    ]
+    return {
+        "plan": {"width": int(width), "height": int(height)},
+        "categories": [{"code": "standard", "name": "Standard", "color": "#3B82F6"}],
+        "seats": seats,
+        "areas": [],
+        "groups": [],
+    }
+
+
 @transaction.atomic
 def import_plan(
     target_plan: SeatingPlan,

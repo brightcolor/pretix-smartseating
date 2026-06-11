@@ -32,6 +32,7 @@
     <button type="button" class="smartseat-tool" data-tool="polygon" title="{% trans "Draw a polygon: click to add points, double-click / Enter to finish" %}">{% trans "Polygon" %}</button>
     <button type="button" class="smartseat-tool" data-tool="curve" title="{% trans "Draw a rounded (curved) decoration: click points, double-click / Enter to finish" %}">{% trans "Curve" %}</button>
     <button type="button" class="smartseat-tool" data-tool="sector" title="{% trans "Ring sector / grandstand block (curved): click to place at its centre" %}">{% trans "Sector" %}</button>
+    <button type="button" class="smartseat-tool" data-tool="booth" title="{% trans "Booth: a numbered single bookable box (fair stand, box seat)" %}">{% trans "Booth" %}</button>
     <button type="button" class="smartseat-tool" data-tool="focal" title="{% trans "Focal point: click where the stage/centre of attention is — best-available picks seats closest to it" %}">{% trans "Focus" %}</button>
   </div>
   <div class="smartseat-tb-group">
@@ -78,6 +79,7 @@
       <p class="smartseat-insp-hint" data-tools="curve">{% trans "Click corner points for a rounded shape; double-click / Enter finishes, Esc cancels." %}</p>
       <p class="smartseat-insp-hint" data-tools="sector">{% trans "A curved grandstand block (ring sector). Set inner/outer radius and the start/end angle, then click on the plan to drop it (the click is its centre)." %}</p>
       <p class="smartseat-insp-hint" data-tools="focal">{% trans "Click where the stage / centre of attention is. \"Best available\" then prefers seats closest to this point. One focal point per plan." %}</p>
+      <p class="smartseat-insp-hint" data-tools="booth">{% trans "Each click places one numbered booth (a box with a single bookable seat). Numbers continue automatically (B1, B2, …)." %}</p>
 
       <div class="smartseat-gen-grid">
         <label data-tools="row block arc">{% trans "Start row label" %}<input data-field="gen-row-start" type="text" value="A"></label>
@@ -99,6 +101,7 @@
         </label>
         <label data-tools="table">{% trans "Table size" %}<input data-field="gen-table-size" type="number" min="15" value="45"></label>
         <label data-tools="table">{% trans "Seat gap" %}<input data-field="gen-table-gap" type="number" min="6" value="20"></label>
+        <label data-tools="table" class="smartseat-check"><input data-field="gen-table-whole" type="checkbox"> {% trans "Bookable as a whole (product, no single seats)" %}</label>
         <label data-tools="block arc">{% trans "Row spacing" %}<input data-field="gen-row-spacing" type="number" min="5" value="28"></label>
         <label data-tools="row block">{% trans "Seat spacing" %}<input data-field="gen-seat-spacing" type="number" min="5" value="28"></label>
         <label data-tools="block">{% trans "Start X" %}<input data-field="gen-start-x" type="number" value="120"></label>
@@ -120,7 +123,9 @@
             <option value="odd_even">{% trans "Odd/Even split" %}</option>
           </select>
         </label>
-        <label data-tools="row block arc table">{% trans "Category" %}
+        <label data-tools="booth">{% trans "Booth label prefix" %}<input data-field="gen-booth-label" type="text" value="B"></label>
+        <label data-tools="booth">{% trans "Booth size" %}<input data-field="gen-booth-size" type="number" min="12" value="36"></label>
+        <label data-tools="row block arc table booth">{% trans "Category" %}
           <select data-field="gen-category"></select>
         </label>
         <label data-tools="sector">{% trans "Inner radius" %}<input data-field="gen-sector-inner" type="number" min="0" value="140"></label>
