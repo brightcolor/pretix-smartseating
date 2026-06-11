@@ -26,12 +26,12 @@ auf der Karte.
 3. In der Plan-Liste auf **„Edit“** – der Editor öffnet sich.
 4. Werkzeug wählen, auf die Fläche klicken, Plätze setzen.
 5. Kategorien anlegen und Sitzen zuweisen.
-6. **„Save“**, dann **„Apply to event“**.
+6. **„Speichern”**, dann **„Anwenden”**.
 
 ## 3. Die Editor-Oberfläche
-- **Obere Werkzeugleiste:** Save, Apply to event, Undo/Redo, die Zeichen-Werkzeuge, Export/Import.
+- **Obere Werkzeugleiste:** Speichern, Anwenden, Rückgängig/Wiederholen, die Zeichen-Werkzeuge, Export/Import.
 - **Canvas (Mitte):** die Zeichenfläche.
-- **Sidebar (rechts):** drei Reiter – **Build** (Zonen + aktives Werkzeug), **Edit** (Auswahl + Flächen), **Plan** (Plangröße, Kategorien, Gruppen, Hintergrund).
+- **Sidebar (rechts):** drei Reiter – **Aufbau** (Zonen + aktives Werkzeug), **Bearbeiten** (Auswahl + Flächen), **Plan** (Plangröße, Kategorien, Gruppen, Hintergrund).
 
 **Navigieren:** Mausrad = Zoom · mittlere Maustaste / Leertaste + ziehen = Pan · Doppelklick auf leere Fläche = Einpassen.
 
@@ -163,7 +163,7 @@ Rotation/Deckkraft/Sperre – zum Nachzeichnen vorhandener Pläne.
 - **Änderungen erscheinen nicht?** Hart neu laden: **Strg/⌘ + Shift + R**.
 - **Großer Plan ruckelt?** Es werden nur sichtbare Sitze gerendert; Labels werden bei sehr vielen ausgeblendet. Realistisch bis ~5000 Sitze.
 - **Sitz nicht einzeln bearbeitbar?** Er ist in einer Gruppe – Doppelklick hinein oder Alt-Klick.
-- **Deko stört beim Auswählen?** Fläche auf „Decoration“ setzen (klick-durchlässig).
+- **Deko stört beim Auswählen?** Fläche auf „Deko” setzen (klick-durchlässig).
 
 ---
-*Smart Seating für pretix · Editor-Anleitung. Stand: Plugin-Version 0.7.x.*
+*Smart Seating für pretix · Editor-Anleitung. Stand: Plugin-Version 0.14.0.*

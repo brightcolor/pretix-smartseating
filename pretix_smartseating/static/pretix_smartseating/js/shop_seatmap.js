@@ -55,12 +55,12 @@
     var form = host.closest("form");
     if (form) form.appendChild(host); // show tickets first, plan below
 
-    host.appendChild(el("h3", { class: "smartseat-shop-heading", text: t("Choose your seats") }));
+    host.appendChild(el("h3", { class: "smartseat-shop-heading", text: t("Plätze auswählen") }));
     var priceLegend = el("div", { class: "smartseat-shop-prices" });
     host.appendChild(priceLegend);
 
     var legend = el("div", { class: "smartseat-shop-legend" });
-    [["free", t("Available")], ["sel", t("Selected")], ["taken", t("Unavailable")], ["blk", t("Blocked")]]
+    [["free", t("Verfügbar")], ["sel", t("Ausgewählt")], ["taken", t("Belegt")], ["blk", t("Gesperrt")]]
       .forEach(function (p) {
         legend.appendChild(el("span", { class: "smartseat-shop-key" }, [
           el("span", { class: "smartseat-shop-dot " + p[0] }), document.createTextNode(" " + p[1]),
@@ -72,9 +72,9 @@
     var svg = document.createElementNS(SVGNS, "svg");
     svg.setAttribute("class", "smartseat-shop-svg");
     var zoomBar = el("div", { class: "smartseat-shop-zoom" });
-    var zin = el("button", { type: "button", class: "smartseat-zoom-btn", title: t("Zoom in"), text: "+" });
-    var zout = el("button", { type: "button", class: "smartseat-zoom-btn", title: t("Zoom out"), text: "−" });
-    var zfit = el("button", { type: "button", class: "smartseat-zoom-btn", title: t("Fit"), text: "⤢" });
+    var zin = el("button", { type: "button", class: "smartseat-zoom-btn", title: t("Vergrößern"), text: "+" });
+    var zout = el("button", { type: "button", class: "smartseat-zoom-btn", title: t("Verkleinern"), text: "−" });
+    var zfit = el("button", { type: "button", class: "smartseat-zoom-btn", title: t("Einpassen"), text: "⤢" });
     zoomBar.append(zin, zout, zfit);
     var canvas = el("div", { class: "smartseat-shop-canvas" }, [svg, zoomBar]);
     host.appendChild(canvas);
@@ -85,13 +85,13 @@
 
     // Sticky action bar: best-available + status + submit
     var qty = el("input", { type: "number", min: "1", max: "20", value: "2", class: "smartseat-shop-qty",
-      "aria-label": t("Number of seats") });
+      "aria-label": t("Anzahl Plätze") });
     var best = el("button", { type: "button", class: "btn btn-default btn-sm smartseat-shop-best",
-      text: t("Best available") });
+      text: t("Beste Plätze") });
     var status = el("div", { class: "smartseat-shop-status", role: "status", "aria-live": "polite",
-      text: t("Loading seats…") });
+      text: t("Plätze werden geladen…") });
     var submit = el("button", { type: "submit", class: "btn btn-primary smartseat-shop-submit",
-      disabled: "disabled", text: t("Add selected seats to cart") });
+      disabled: "disabled", text: t("Plätze in den Warenkorb") });
     var bar = el("div", { class: "smartseat-shop-bar" }, [
       el("div", { class: "smartseat-shop-bestwrap" }, [qty, best]), status, submit,
     ]);
@@ -153,17 +153,17 @@
       });
       var n = nSeats + nProducts;
       submit.disabled = n === 0;
-      if (!n) { status.textContent = t("Pick your seats on the map."); return; }
+      if (!n) { status.textContent = t("Wähle deine Plätze auf der Karte."); return; }
       var total = prodTotal, haveAll = true;
       Object.keys(selected).forEach(function (guid) {
         var p = priceByProduct[selected[guid]];
         if (p && p.price != null) total += parseFloat(p.price) || 0; else haveAll = false;
       });
       var parts = [];
-      if (nSeats) parts.push(t("Selected seats:") + " " + nSeats);
+      if (nSeats) parts.push(t("Ausgewählte Plätze:") + " " + nSeats);
       if (nProducts) parts.push(t("Tickets:") + " " + nProducts);
       status.textContent = parts.join(" · ")
-        + (haveAll ? " · " + t("Total:") + " " + fmtPrice(total.toFixed(2), currency) : "");
+        + (haveAll ? " · " + t("Gesamt:") + " " + fmtPrice(total.toFixed(2), currency) : "");
     }
 
     function setSelected(seat, on) {
@@ -175,13 +175,13 @@
 
     function bestAvailable() {
       var n = parseInt(qty.value, 10) || 1;
-      best.disabled = true; status.textContent = t("Searching for the best seats…");
+      best.disabled = true; status.textContent = t("Suche nach den besten Plätzen…");
       fetch(suggestUrl + "?quantity=" + n + "&mode=strict_adjacent",
         { headers: { Accept: "application/json" }, credentials: "same-origin" })
         .then(function (r) { return r.json(); })
         .then(function (d) {
           best.disabled = false;
-          if (!d || !d.seats || !d.seats.length) { status.textContent = t("No suitable group of seats was found."); return; }
+          if (!d || !d.seats || !d.seats.length) { status.textContent = t("Keine passende Sitzgruppe gefunden."); return; }
           Object.keys(selected).forEach(function (g) { setSelected({ guid: g }, false); });
           d.seats.forEach(function (s) {
             var seat = seatsByGuid[s.seat_guid];
@@ -189,7 +189,7 @@
           });
           syncForm();
         })
-        .catch(function () { best.disabled = false; status.textContent = t("The suggestion service is unavailable."); });
+        .catch(function () { best.disabled = false; status.textContent = t("Der Vorschlagsdienst ist nicht verfügbar."); });
     }
 
     function textOn(bg) {
@@ -204,14 +204,14 @@
     function showTip(evt, seat) {
       var price = fmtPrice(seat.price, currency);
       var headCells = "";
-      if (seat.row) headCells += '<div class="cell"><span class="lbl">' + t("Row") + '</span><span class="val">' + seat.row + "</span></div>";
-      headCells += '<div class="cell"><span class="lbl">' + t("Seat") + '</span><span class="val">' + (seat.number || "?") + "</span></div>";
+      if (seat.row) headCells += '<div class="cell"><span class="lbl">' + t("Reihe") + '</span><span class="val">' + seat.row + "</span></div>";
+      headCells += '<div class="cell"><span class="lbl">' + t("Platz") + '</span><span class="val">' + (seat.number || "?") + "</span></div>";
       tip.innerHTML =
         '<div class="smartseat-tip-head">' + headCells + "</div>" +
         '<div class="smartseat-tip-cat"><span class="nm"></span><span class="pr"></span></div>';
       var head = tip.querySelector(".smartseat-tip-head");
       var cat = tip.querySelector(".smartseat-tip-cat");
-      cat.querySelector(".nm").textContent = seat.available ? (seat.cat || t("Seat")) : t("Unavailable");
+      cat.querySelector(".nm").textContent = seat.available ? (seat.cat || t("Platz")) : t("Nicht verfügbar");
       cat.querySelector(".pr").textContent = seat.available ? price : "";
       var bg = seat.available ? (seat.color || "#6b7280") : "#6b7280";
       cat.style.backgroundColor = bg;          // CSSOM (CSP-safe), unlike a style="" attribute
@@ -285,7 +285,7 @@
         slbl.setAttribute("x", center.x); slbl.setAttribute("y", center.y);
         slbl.setAttribute("text-anchor", "middle");
         slbl.setAttribute("class", "smartseat-shop-section-label");
-        slbl.textContent = a.label || t("Section");
+        slbl.textContent = a.label || t("Abschnitt");
         g.appendChild(slbl);
         g.addEventListener("click", function (e) {
           e.preventDefault(); e.stopPropagation();
@@ -331,7 +331,7 @@
       function priceTxt() { return info.price != null ? fmtPrice(info.price, currency) : ""; }
       function refresh() {
         var q = productCounts[pid] || 0;
-        lbl.textContent = (info.name || t("Tickets")) + (priceTxt() ? " · " + priceTxt() : "")
+        lbl.textContent = (info.name || t("Tickets")) + (priceTxt() ? " · " + priceTxt() : "")  // "Tickets" als GA-Fallback ok
           + (q ? "  ×" + q : "");
         if (q) g.classList.add("chosen"); else g.classList.remove("chosen");
       }
@@ -362,7 +362,7 @@
       (data.products || []).forEach(function (p) {
         priceLegend.appendChild(el("span", { class: "smartseat-shop-price" }, [
           swatch(p.color || "#3B82F6"),
-          document.createTextNode(" " + (p.name || t("Seat")) + " — " + fmtPrice(p.price, currency)),
+          document.createTextNode(" " + (p.name || t("Platz")) + " — " + fmtPrice(p.price, currency)),
         ]));
       });
 
@@ -399,7 +399,7 @@
         g.setAttribute("tabindex", seat.available ? "0" : "-1");
         g.setAttribute("role", "button");
         g.setAttribute("aria-label", (seat.label || "") + (price ? " · " + price : "")
-          + (seat.available ? "" : " (" + t("unavailable") + ")"));
+          + (seat.available ? "" : " (" + t("nicht verfügbar") + ")"));
         g.addEventListener("pointerover", function (e) { showTip(e, seat); });
         g.addEventListener("pointermove", function (e) { showTip(e, seat); });
         g.addEventListener("pointerout", hideTip);
@@ -415,7 +415,7 @@
 
       var free = (data.seats || []).filter(function (s) { return s.available; }).length;
       best.disabled = free === 0;
-      status.textContent = free ? t("Pick your seats on the map.") : t("No seats are currently available.");
+      status.textContent = free ? t("Wähle deine Plätze auf der Karte.") : t("Derzeit keine Plätze verfügbar.");
     }
 
     // Interactions
@@ -449,8 +449,8 @@
 
     fetch(url, { headers: { Accept: "application/json" }, credentials: "same-origin" })
       .then(function (r) { return r.json(); })
-      .then(function (data) { if (data && data.ok) { render(data); syncForm(); } else { status.textContent = t("Could not load the seat map."); } })
-      .catch(function () { status.textContent = t("Could not load the seat map."); });
+      .then(function (data) { if (data && data.ok) { render(data); syncForm(); } else { status.textContent = t("Sitzplan konnte nicht geladen werden."); } })
+      .catch(function () { status.textContent = t("Sitzplan konnte nicht geladen werden."); });
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

@@ -1003,7 +1003,7 @@
     sel.innerHTML = "";
     const mixed = document.createElement("option");
     mixed.value = "";
-    mixed.textContent = "— mixed / keep —";
+    mixed.textContent = "— gemischt / so lassen —";
     sel.appendChild(mixed);
     state.categories.forEach((c) => {
       const o = document.createElement("option");
@@ -1018,12 +1018,12 @@
     if (!categoryListEl) return;
     categoryListEl.innerHTML = "";
     if (!state.categories.length) {
-      categoryListEl.innerHTML = '<p class="smartseat-insp-hint">No categories yet.</p>';
+      categoryListEl.innerHTML = '<p class="smartseat-insp-hint">Noch keine Kategorien.</p>';
       return;
     }
     const header = document.createElement("div");
     header.className = "smartseat-cat-header";
-    header.innerHTML = "<span>Colour</span><span>Name</span><span>#</span><span>Sort</span><span></span>";
+    header.innerHTML = "<span>Farbe</span><span>Name</span><span>#</span><span>Sort</span><span></span>";
     categoryListEl.appendChild(header);
     const counts = {};
     state.seats.forEach((s) => {
@@ -1034,11 +1034,11 @@
       row.className = "smartseat-cat-row";
       const safeName = (cat.name || "").replace(/"/g, "&quot;");
       row.innerHTML = `
-        <input type="color" data-k="color" value="${cat.color || "#3B82F6"}" title="Colour">
+        <input type="color" data-k="color" value="${cat.color || "#3B82F6"}" title="Farbe">
         <input type="text" data-k="name" value="${safeName}" placeholder="Name">
-        <span class="smartseat-cat-count" title="Seats in this category">${counts[cat.code] || 0}</span>
-        <input type="number" data-k="price_rank" value="${cat.price_rank ?? 100}" title="Sort order (lower = first)">
-        <button type="button" data-k="del" title="Delete category">&times;</button>
+        <span class="smartseat-cat-count" title="Plätze in dieser Kategorie">${counts[cat.code] || 0}</span>
+        <input type="number" data-k="price_rank" value="${cat.price_rank ?? 100}" title="Sortierung (niedriger = oben)">
+        <button type="button" data-k="del" title="Kategorie löschen">&times;</button>
       `;
       row.querySelectorAll("input[data-k]").forEach((inp) => {
         inp.addEventListener("change", () => {
@@ -1053,7 +1053,7 @@
         });
       });
       row.querySelector('button[data-k="del"]').addEventListener("click", () => {
-        if (!confirm(`Delete category "${cat.name}"? Seats in it become uncategorized.`)) return;
+        if (!confirm(`Kategorie „${cat.name}" löschen? Plätze darin werden unkategorisiert.`)) return;
         saveSnapshot();
         state.categories = state.categories.filter((c) => c.code !== cat.code);
         state.seats.forEach((s) => {
@@ -1070,7 +1070,7 @@
 
   const addCategory = () => {
     saveSnapshot();
-    const name = `Category ${state.categories.length + 1}`;
+    const name = `Kategorie ${state.categories.length + 1}`;
     state.categories.push({
       code: uniqueCategoryCode(name),
       name,
@@ -1214,19 +1214,19 @@
 
     const typeLine = document.createElement("p");
     typeLine.className = "smartseat-insp-hint";
-    typeLine.textContent = "Type: " + area.shape;
+    typeLine.textContent = "Typ: " + area.shape;
     areaFieldsEl.appendChild(typeLine);
 
     // Editor role: a clickable/editable object vs a locked decoration marking.
     const roleWrap = document.createElement("label");
     roleWrap.className = "smartseat-area-field";
-    roleWrap.textContent = "Use as";
+    roleWrap.textContent = "Verwenden als";
     const roleSel = document.createElement("select");
-    [["interactive", "Interactive (clickable / editable)"],
-     ["decoration", "Decoration (locked marking)"],
-     ["product", "Product area (standing / GA)"],
-     ["section", "Section (zoomable block)"],
-     ["focal", "Focal point (best-available anchor)"]]
+    [["interactive", "Interaktiv (klickbar / bearbeitbar)"],
+     ["decoration", "Deko (gesperrte Markierung)"],
+     ["product", "Produktfläche (Stehplatz / GA)"],
+     ["section", "Abschnitt (zoombarer Block)"],
+     ["focal", "Fokuspunkt (Beste-Plätze-Anker)"]]
       .forEach(([val, label]) => {
         const o = document.createElement("option");
         o.value = val; o.textContent = label;
@@ -1241,7 +1241,7 @@
     if (area.role === "section") {
       const lWrap = document.createElement("label");
       lWrap.className = "smartseat-area-field";
-      lWrap.textContent = "Section label";
+      lWrap.textContent = "Abschnittsbezeichnung";
       const lInp = document.createElement("input");
       lInp.type = "text"; lInp.value = area.label || "";
       lInp.addEventListener("change", () => { area.label = lInp.value; commitArea(); });
@@ -1249,7 +1249,7 @@
       areaFieldsEl.appendChild(lWrap);
       const hint = document.createElement("p");
       hint.className = "smartseat-insp-hint";
-      hint.textContent = "Double-click the section on the plan to zoom into it; shoppers can click it to zoom too.";
+      hint.textContent = "Doppelklick auf den Abschnitt im Plan zoomt hinein; im Shop kann man darauf klicken.";
       areaFieldsEl.appendChild(hint);
     }
 
@@ -1258,10 +1258,10 @@
     if (area.role === "product") {
       const pWrap = document.createElement("label");
       pWrap.className = "smartseat-area-field";
-      pWrap.textContent = "Product (ticket)";
+      pWrap.textContent = "Produkt (Ticket)";
       const pSel = document.createElement("select");
       const none = document.createElement("option");
-      none.value = ""; none.textContent = PRODUCTS.length ? "— choose —" : "(no products in this event)";
+      none.value = ""; none.textContent = PRODUCTS.length ? "— auswählen —" : "(keine Produkte in diesem Event)";
       pSel.appendChild(none);
       PRODUCTS.forEach((p) => {
         const o = document.createElement("option");
@@ -1278,7 +1278,7 @@
       areaFieldsEl.appendChild(pWrap);
       const hint = document.createElement("p");
       hint.className = "smartseat-insp-hint";
-      hint.textContent = "Shoppers click this region to add the product to the cart. No individual seats.";
+      hint.textContent = "Kunden klicken auf diese Fläche, um das Produkt in den Warenkorb zu legen. Keine Einzelplätze.";
       areaFieldsEl.appendChild(hint);
     }
 
@@ -1292,16 +1292,16 @@
       inp.addEventListener("change", () => { area.text.text = inp.value; commitArea(); });
       wrap.appendChild(inp);
       areaFieldsEl.appendChild(wrap);
-      areaFieldsEl.appendChild(numberField("Font size", area.text?.size || 16,
+      areaFieldsEl.appendChild(numberField("Schriftgröße", area.text?.size || 16,
         (v) => { area.text.size = v; commitArea(); }));
-      areaFieldsEl.appendChild(colorField("Text colour", area.text?.color,
+      areaFieldsEl.appendChild(colorField("Textfarbe", area.text?.color,
         (v) => { area.text.color = v; commitArea(); }));
     } else {
-      areaFieldsEl.appendChild(colorField("Fill", area.color, (v) => { area.color = v; commitArea(); }));
-      areaFieldsEl.appendChild(colorField("Border", area.border_color, (v) => { area.border_color = v; commitArea(); }));
+      areaFieldsEl.appendChild(colorField("Füllung", area.color, (v) => { area.color = v; commitArea(); }));
+      areaFieldsEl.appendChild(colorField("Rahmen", area.border_color, (v) => { area.border_color = v; commitArea(); }));
       if (area.shape === "rectangle" && area.rectangle) {
-        areaFieldsEl.appendChild(numberField("Width", area.rectangle.width, (v) => { area.rectangle.width = v; commitArea(); }));
-        areaFieldsEl.appendChild(numberField("Height", area.rectangle.height, (v) => { area.rectangle.height = v; commitArea(); }));
+        areaFieldsEl.appendChild(numberField("Breite", area.rectangle.width, (v) => { area.rectangle.width = v; commitArea(); }));
+        areaFieldsEl.appendChild(numberField("Höhe", area.rectangle.height, (v) => { area.rectangle.height = v; commitArea(); }));
       } else if (area.shape === "circle" && area.circle) {
         areaFieldsEl.appendChild(numberField("Radius", area.circle.radius, (v) => { area.circle.radius = v; commitArea(); }));
       } else if (area.shape === "ellipse" && area.ellipse) {
@@ -1315,18 +1315,18 @@
         fill.className = "smartseat-area-fill";
         const head = document.createElement("p");
         head.className = "smartseat-insp-hint";
-        head.textContent = "Fill with seats";
+        head.textContent = "Mit Plätzen füllen";
         fill.appendChild(head);
         const cntWrap = document.createElement("label");
         cntWrap.className = "smartseat-area-field";
-        cntWrap.textContent = "Number of seats";
+        cntWrap.textContent = "Anzahl Plätze";
         const cnt = document.createElement("input");
         cnt.type = "number"; cnt.min = "1"; cnt.max = "2000"; cnt.value = "30";
         cntWrap.appendChild(cnt);
         fill.appendChild(cntWrap);
         const catWrap = document.createElement("label");
         catWrap.className = "smartseat-area-field";
-        catWrap.textContent = "Category";
+        catWrap.textContent = "Kategorie";
         const catSel = document.createElement("select");
         (state.categories || []).forEach((c) => {
           const o = document.createElement("option"); o.value = c.code; o.textContent = c.name; catSel.appendChild(o);
@@ -1334,13 +1334,13 @@
         catWrap.appendChild(catSel);
         fill.appendChild(catWrap);
         const btn = document.createElement("button");
-        btn.type = "button"; btn.className = "btn btn-default btn-sm"; btn.textContent = "Fill with seats";
+        btn.type = "button"; btn.className = "btn btn-default btn-sm"; btn.textContent = "Plätze einfügen";
         btn.addEventListener("click", () => fillAreaWithSeats(area, parseInt(cnt.value, 10) || 1, catSel.value));
         fill.appendChild(btn);
         areaFieldsEl.appendChild(fill);
       }
     }
-    areaFieldsEl.appendChild(numberField("Rotation°", area.rotation || 0, (v) => { area.rotation = v; commitArea(); }, 1));
+    areaFieldsEl.appendChild(numberField("Drehung°", area.rotation || 0, (v) => { area.rotation = v; commitArea(); }, 1));
   };
 
   const drawBackgroundAssets = () => {
@@ -1637,7 +1637,7 @@
   const fillAreaWithSeats = (area, count, categoryCode) => {
     count = Math.max(1, Math.floor(count || 1));
     const geom = areaLocalGeom(area);
-    if (!geom) { alert("This area shape can't be filled with seats."); return; }
+    if (!geom) { alert("Diese Flächenform kann nicht mit Plätzen gefüllt werden."); return; }
     const px = Number(area.position?.x || 0), py = Number(area.position?.y || 0);
     const th = (Number(area.rotation || 0) * Math.PI) / 180;
     const cos = Math.cos(th), sin = Math.sin(th);
@@ -1667,7 +1667,7 @@
       for (let i = 0; i < count; i++) thinned.push(pts[Math.floor(i * step)]);
       pts = thinned;
     }
-    if (!pts.length) { alert("Area too small for the requested number of seats."); return; }
+    if (!pts.length) { alert("Fläche zu klein für die gewünschte Anzahl an Plätzen."); return; }
 
     saveSnapshot();
     const usedIds = existingExternalIds();
@@ -1689,7 +1689,7 @@
     selected = new Set(newIds);
     selectedArea = null;
     ensureZones();
-    createGroupFromIds(newIds, "Area seats");
+    createGroupFromIds(newIds, "Flächenplätze");
     draw();
   };
 
@@ -1733,7 +1733,7 @@
       const t = document.createElementNS(SVGNS, "text");
       t.setAttribute("x", 0); t.setAttribute("y", -r * 1.9);
       t.setAttribute("text-anchor", "middle");
-      t.textContent = "Focus";
+      t.textContent = "Fokus";
       g.appendChild(t);
       svg.appendChild(g);
       return;
@@ -1787,7 +1787,7 @@
       label.setAttribute("y", bb ? (bb.y0 + bb.y1) / 2 : 0);
       label.setAttribute("text-anchor", "middle");
       label.setAttribute("class", "smartseat-area-section-label");
-      label.textContent = area.label || "Section";
+      label.textContent = area.label || "Abschnitt";
       g.appendChild(label);
     }
 
@@ -1800,7 +1800,7 @@
       label.setAttribute("x", cx); label.setAttribute("y", cy);
       label.setAttribute("text-anchor", "middle");
       label.setAttribute("class", "smartseat-area-product-label");
-      label.textContent = area.product_name || (area.product ? "Product #" + area.product : "⚠ pick a product");
+      label.textContent = area.product_name || (area.product ? "Produkt #" + area.product : "⚠ Produkt wählen");
       g.appendChild(label);
     }
 
@@ -1948,7 +1948,7 @@
       const label = document.createElementNS(SVGNS, "text");
       label.setAttribute("x", x + 7); label.setAttribute("y", y - 5);
       label.setAttribute("class", "smartseat-group-label" + state2);
-      label.textContent = (g.name || "Group") + (isActive ? " — editing" : "");
+      label.textContent = (g.name || "Gruppe") + (isActive ? " — Bearbeitung" : "");
       svg.appendChild(label);
       groupOutlineNodes.set(g.id, { rect, label });
     }
@@ -2037,7 +2037,7 @@
     if (!templateList) return;
     templateList.innerHTML = "";
     if (!state.template_assets.length) {
-      templateList.innerHTML = '<p class="help-block">No template layers uploaded yet.</p>';
+      templateList.innerHTML = '<p class="help-block">Noch keine Vorlagen-Layer hochgeladen.</p>';
       return;
     }
     const sortedAssets = [...state.template_assets].sort((a, b) => (a.z_index || 0) - (b.z_index || 0));
@@ -2049,19 +2049,19 @@
         <div class="smartseat-template-grid">
           <label>X <input type="number" data-k="x" value="${Number(asset.x || 0).toFixed(0)}"></label>
           <label>Y <input type="number" data-k="y" value="${Number(asset.y || 0).toFixed(0)}"></label>
-          <label>Scale <input type="number" step="0.05" min="0.05" max="20" data-k="scale" value="${asset.scale}"></label>
-          <label>Rotation <input type="number" step="1" data-k="rotation" value="${asset.rotation}"></label>
-          <label>Opacity <input type="range" min="0" max="1" step="0.05" data-k="opacity" value="${asset.opacity}"></label>
+          <label>Skalierung <input type="number" step="0.05" min="0.05" max="20" data-k="scale" value="${asset.scale}"></label>
+          <label>Drehung <input type="number" step="1" data-k="rotation" value="${asset.rotation}"></label>
+          <label>Deckkraft <input type="range" min="0" max="1" step="0.05" data-k="opacity" value="${asset.opacity}"></label>
           <label>Z <input type="number" step="1" data-k="z_index" value="${asset.z_index || 0}"></label>
-          <label><input type="checkbox" data-k="is_visible" ${asset.is_visible ? "checked" : ""}> visible</label>
-          <label><input type="checkbox" data-k="is_locked" ${asset.is_locked ? "checked" : ""}> lock</label>
+          <label><input type="checkbox" data-k="is_visible" ${asset.is_visible ? "checked" : ""}> sichtbar</label>
+          <label><input type="checkbox" data-k="is_locked" ${asset.is_locked ? "checked" : ""}> sperren</label>
         </div>
         <div class="smartseat-template-actions">
           <button type="button" data-action="nudge-left">◀</button>
           <button type="button" data-action="nudge-right">▶</button>
           <button type="button" data-action="nudge-up">▲</button>
           <button type="button" data-action="nudge-down">▼</button>
-          <button type="button" data-action="delete">Delete</button>
+          <button type="button" data-action="delete">Löschen</button>
         </div>
       `;
 
@@ -2079,7 +2079,7 @@
         button.addEventListener("click", async () => {
           const action = button.getAttribute("data-action");
           if (action === "delete") {
-            if (!confirm(`Delete template layer "${asset.name}"?`)) return;
+            if (!confirm(`Vorlagen-Layer „${asset.name}" löschen?`)) return;
             await deleteTemplateAsset(asset.id);
             return;
           }
@@ -2114,8 +2114,8 @@
       credentials: "same-origin",
     });
     if (!response.ok) {
-      const err = await response.json().catch(() => ({ message: "Failed to update template asset." }));
-      alert(err.message || "Failed to update template asset.");
+      const err = await response.json().catch(() => ({ message: "Fehler beim Aktualisieren der Vorlage." }));
+      alert(err.message || "Fehler beim Aktualisieren der Vorlage.");
       return;
     }
     const data = await response.json();
@@ -2132,7 +2132,7 @@
       credentials: "same-origin",
     });
     if (!response.ok) {
-      alert("Failed to delete template asset.");
+      alert("Fehler beim Löschen der Vorlage.");
       return;
     }
     state.template_assets = state.template_assets.filter((asset) => asset.id !== assetId);
@@ -2150,9 +2150,9 @@
         body: formData,
         credentials: "same-origin",
       });
-      const data = await response.json().catch(() => ({ message: "Upload failed." }));
+      const data = await response.json().catch(() => ({ message: "Upload fehlgeschlagen." }));
       if (!response.ok) {
-        alert(data.message || "Upload failed.");
+        alert(data.message || "Upload fehlgeschlagen.");
         return;
       }
       templateUploadForm.reset();
@@ -2356,7 +2356,7 @@
     const rowStartLabel = (field("gen-row-start")?.value || "A").trim() || "A";
 
     if (startAngleInput === endAngleInput) {
-      alert("Start and end angle must be different.");
+      alert("Start- und Endwinkel müssen unterschiedlich sein.");
       return;
     }
 
@@ -2543,11 +2543,11 @@
   const validatePlan = () => {
     const issues = [];
     const cats = new Set((state.categories || []).map((c) => c.code));
-    if (!state.seats.length) issues.push({ level: "error", msg: "Plan contains no seats." });
-    if (!(state.categories || []).length) issues.push({ level: "error", msg: "No categories (price zones) defined." });
+    if (!state.seats.length) issues.push({ level: "error", msg: "Der Plan enthält keine Plätze." });
+    if (!(state.categories || []).length) issues.push({ level: "error", msg: "Keine Kategorien (Preiszonen) definiert." });
     const noCat = state.seats.filter((s) => !s.category_code || !cats.has(s.category_code));
     if (noCat.length) issues.push({
-      level: "error", msg: `${noCat.length} seat(s) without a valid category`,
+      level: "error", msg: `${noCat.length} Platz/Plätze ohne gültige Kategorie`,
       examples: noCat.slice(0, 5).map((s) => `${s.row_label || "?"}${s.seat_number || "?"}`),
     });
     const seen = new Set(), dups = new Set();
@@ -2555,13 +2555,13 @@
       const k = `${s.block_label || ""}|${s.row_label || ""}|${s.seat_number || ""}`;
       if (seen.has(k)) dups.add(`${s.row_label || "?"}${s.seat_number || "?"}`); else seen.add(k);
     });
-    if (dups.size) issues.push({ level: "warn", msg: `${dups.size} duplicate seat label(s)`, examples: [...dups].slice(0, 5) });
+    if (dups.size) issues.push({ level: "warn", msg: `${dups.size} doppeltes/doppelte Sitzlabel`, examples: [...dups].slice(0, 5) });
     const W = canvasW(), H = canvasH();
     const out = state.seats.filter((s) => s.x < 0 || s.x > W || s.y < 0 || s.y > H);
-    if (out.length) issues.push({ level: "warn", msg: `${out.length} seat(s) outside the canvas` });
+    if (out.length) issues.push({ level: "warn", msg: `${out.length} Platz/Plätze außerhalb der Zeichenfläche` });
     const used = new Set(state.seats.map((s) => s.category_code));
     const unused = (state.categories || []).filter((c) => !used.has(c.code));
-    if (unused.length) issues.push({ level: "info", msg: `${unused.length} category(ies) with no seats`, examples: unused.map((c) => c.name).slice(0, 5) });
+    if (unused.length) issues.push({ level: "info", msg: `${unused.length} Kategorie(n) ohne Plätze`, examples: unused.map((c) => c.name).slice(0, 5) });
     return issues;
   };
 
@@ -2573,7 +2573,7 @@
     if (!issues.length) {
       const ok = document.createElement("p");
       ok.className = "smartseat-valid-ok";
-      ok.textContent = "✓ No problems found — ready to apply.";
+      ok.textContent = "✓ Keine Probleme gefunden – bereit zum Anwenden.";
       el.appendChild(ok);
       return;
     }
@@ -2661,7 +2661,7 @@
         '<path class="smartseat-check-mark smartseat-x-mark" d="M20 20 L40 40 M40 20 L20 40"/>' +
         "</svg>" +
         '<div class="smartseat-saved-text"></div></div>';
-      wrap.querySelector(".smartseat-saved-text").textContent = message || "Save failed";
+      wrap.querySelector(".smartseat-saved-text").textContent = message || "Speichern fehlgeschlagen";
       setTimeout(() => wrap.remove(), 3500);
     }
     document.body.appendChild(wrap);
@@ -2771,9 +2771,9 @@
   };
 
   const deleteZone = (name) => {
-    if (state.zones.length <= 1) { alert("At least one zone is required."); return; }
+    if (state.zones.length <= 1) { alert("Mindestens eine Zone ist erforderlich."); return; }
     const count = state.seats.filter((s) => (s.block_label || "Main") === name).length;
-    if (!confirm(`Delete zone "${name}"${count ? ` and its ${count} seat(s)` : ""}?`)) return;
+    if (!confirm(`Zone „${name}"${count ? ` und ihre ${count} Plätze` : ""} löschen?`)) return;
     saveSnapshot();
     state.seats = state.seats.filter((s) => (s.block_label || "Main") !== name);
     state.zones = state.zones.filter((z) => z.name !== name);
@@ -2792,7 +2792,7 @@
       const row = document.createElement("div");
       row.className = "smartseat-zone-row" + (z.name === activeZone ? " active" : "");
       const dot = document.createElement("button");
-      dot.type = "button"; dot.className = "smartseat-zone-dot"; dot.title = "Make active & select";
+      dot.type = "button"; dot.className = "smartseat-zone-dot"; dot.title = "Aktivieren & auswählen";
       dot.textContent = z.name === activeZone ? "◉" : "◯";
       dot.addEventListener("click", () => setActiveZone(z.name));
       const name = document.createElement("input");
@@ -2801,7 +2801,7 @@
       const cnt = document.createElement("span");
       cnt.className = "smartseat-zone-count"; cnt.textContent = String(count);
       const del = document.createElement("button");
-      del.type = "button"; del.className = "smartseat-zone-del"; del.textContent = "⨯"; del.title = "Delete zone";
+      del.type = "button"; del.className = "smartseat-zone-del"; del.textContent = "⨯"; del.title = "Zone löschen";
       del.addEventListener("click", () => deleteZone(z.name));
       row.append(dot, name, cnt, del);
       zoneListEl.appendChild(row);
@@ -2896,7 +2896,7 @@
     state.groups.push({
       id, parent: null, seat_ids: [...ids],
       area_ids: areaIds ? [...areaIds] : [],
-      name: name || "Group " + (state.groups.length + 1),
+      name: name || "Gruppe " + (state.groups.length + 1),
     });
     refreshGroupList();
     return id;
@@ -2916,7 +2916,7 @@
         gids.forEach((sid) => directSeatIds.delete(sid));
       }
     });
-    state.groups.push({ id, name: "Group " + (state.groups.length + 1), seat_ids: [...directSeatIds], parent: null });
+    state.groups.push({ id, name: "Gruppe " + (state.groups.length + 1), seat_ids: [...directSeatIds], parent: null });
     refreshGroupList();
     draw();
   };
@@ -2943,7 +2943,7 @@
     groupListEl.innerHTML = "";
     const tops = (state.groups || []).filter((g) => !g.parent);
     if (!tops.length) {
-      groupListEl.innerHTML = '<p class="smartseat-insp-hint">No groups yet.</p>';
+      groupListEl.innerHTML = '<p class="smartseat-insp-hint">Noch keine Gruppen.</p>';
       return;
     }
     const renderRow = (g, depth) => {
@@ -2952,17 +2952,17 @@
       row.style.paddingLeft = `${depth * 14}px`;
       const name = document.createElement("input");
       name.type = "text";
-      name.value = g.name || "Group";
+      name.value = g.name || "Gruppe";
       name.addEventListener("change", () => { g.name = name.value; });
       const selBtn = document.createElement("button");
       selBtn.type = "button";
       selBtn.textContent = "◉";
-      selBtn.title = "Select group";
+      selBtn.title = "Gruppe auswählen";
       selBtn.addEventListener("click", () => selectGroup(g.id));
       const delBtn = document.createElement("button");
       delBtn.type = "button";
       delBtn.textContent = "⨯";
-      delBtn.title = "Ungroup";
+      delBtn.title = "Gruppierung aufheben";
       delBtn.addEventListener("click", () => ungroup(g.id));
       const count = document.createElement("span");
       count.className = "smartseat-group-count";
@@ -3058,13 +3058,13 @@
         draw();
       }
       showCtx(event, [
-        { label: "Duplicate", run: duplicateSelected },
-        { label: "Copy", run: copySelection },
-        { label: "Mirror horizontally", run: () => mirrorSelected("h") },
-        { label: "Mirror vertically", run: () => mirrorSelected("v") },
-        { label: "Group", run: groupSelected },
+        { label: "Duplizieren", run: duplicateSelected },
+        { label: "Kopieren", run: copySelection },
+        { label: "Horizontal spiegeln", run: () => mirrorSelected("h") },
+        { label: "Vertikal spiegeln", run: () => mirrorSelected("v") },
+        { label: "Gruppieren", run: groupSelected },
         "-",
-        { label: "Delete", run: deleteSelected },
+        { label: "Löschen", run: deleteSelected },
       ]);
       return;
     }
@@ -3075,25 +3075,25 @@
       draw();
       setSidebarTab("edit");
       showCtx(event, [
-        { label: "Delete area", run: () => deleteArea(idx) },
+        { label: "Fläche löschen", run: () => deleteArea(idx) },
       ]);
       return;
     }
     showCtx(event, [
-      { label: "Paste here", disabled: !clipboard || !clipboard.length,
+      { label: "Hier einfügen", disabled: !clipboard || !clipboard.length,
         run: () => pasteClipboard({ x: clampX(snap(svgPt.x)), y: clampY(snap(svgPt.y)) }) },
-      { label: "Fit view", run: resetView },
+      { label: "Einpassen", run: resetView },
     ]);
   });
 
   // ─── Tool palette ──────────────────────────────────────────────────────────
   const TOOL_TITLES = {
-    select: "Select / move", row: "Add row", block: "Add block",
-    arc: "Add arc / semicircle", table: "Add table",
-    stage: "Add stage / area", round: "Add round area", label: "Add label",
-    polygon: "Draw polygon", curve: "Draw curve (decoration)",
-    sector: "Ring sector (grandstand)", focal: "Set focal point",
-    booth: "Add booth",
+    select: "Auswählen / Bewegen", row: "Reihe hinzufügen", block: "Block hinzufügen",
+    arc: "Bogen / Halbkreis", table: "Tisch hinzufügen",
+    stage: "Bühne / Fläche", round: "Runde Fläche", label: "Textetikett",
+    polygon: "Polygon zeichnen", curve: "Kurve zeichnen (Deko)",
+    sector: "Ring-Sektor (Tribüne)", focal: "Fokuspunkt setzen",
+    booth: "Box hinzufügen",
   };
   const setTool = (tool) => {
     if (isPolyTool() && tool !== "polygon" && tool !== "curve" && polyPoints) cancelPolygon();
@@ -3105,7 +3105,7 @@
       el.hidden = !tools.includes(tool);
     });
     const title = document.querySelector('[data-role="tool-title"]');
-    if (title) title.textContent = TOOL_TITLES[tool] || "Tool";
+    if (title) title.textContent = TOOL_TITLES[tool] || "Werkzeug";
     // A creation tool turns the canvas into a "click to place" surface.
     svg.classList.toggle("smartseat-placing", !!GENERATOR_TOOLS[tool] || tool === "polygon" || tool === "curve");
   };

@@ -11,17 +11,17 @@ class SeatingPlanForm(forms.ModelForm):
 
 
 class ImportPlanForm(forms.Form):
-    payload = forms.JSONField(label=_("JSON payload"), required=False)
+    payload = forms.JSONField(label=_("JSON-Datei"), required=False)
     svg_file = forms.FileField(
-        label=_("SVG floor plan"), required=False,
-        help_text=_("Alternative to JSON: every <circle>/<ellipse>/<rect> whose id starts "
-                    "with the prefix becomes a seat (e.g. id=\"seat-A12\" → row A, seat 12)."),
+        label=_("SVG-Grundriss"), required=False,
+        help_text=_("Alternative zu JSON: Jedes <circle>/<ellipse>/<rect>, dessen id mit dem Präfix beginnt, "
+                    "wird zum Sitz (z.B. id=\"seat-A12\" → Reihe A, Platz 12)."),
     )
-    svg_prefix = forms.CharField(label=_("SVG seat id prefix"), required=False, initial="seat-")
-    replace_existing = forms.BooleanField(label=_("Replace existing seats"), required=False, initial=True)
+    svg_prefix = forms.CharField(label=_("SVG-Sitz-ID-Präfix"), required=False, initial="seat-")
+    replace_existing = forms.BooleanField(label=_("Vorhandene Sitze ersetzen"), required=False, initial=True)
 
     def clean(self):
         data = super().clean()
         if not data.get("payload") and not data.get("svg_file"):
-            raise forms.ValidationError(_("Provide either a JSON payload or an SVG file."))
+            raise forms.ValidationError(_("Bitte eine JSON-Datei oder eine SVG-Datei angeben."))
         return data
