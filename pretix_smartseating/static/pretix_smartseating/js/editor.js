@@ -480,8 +480,19 @@
             axs.push(s.x); ays.push(s.y);
           }
         }
-        pointerData.alignXs = axs;
-        pointerData.alignYs = ays;
+        // Rhythm candidates: continue equal spacing (e.g. row pitch) — for every
+        // adjacent pair of existing x/y positions, the "next step" also snaps.
+        const rhythm = (vals) => {
+          const uniq = [...new Set(vals.map((v) => Math.round(v)))].sort((a, b) => a - b);
+          const out = [];
+          for (let i = 1; i < uniq.length; i++) {
+            const gap = uniq[i] - uniq[i - 1];
+            if (gap >= 8 && gap <= 200) { out.push(uniq[i] + gap); out.push(uniq[i - 1] - gap); }
+          }
+          return out;
+        };
+        pointerData.alignXs = axs.concat(rhythm(axs));
+        pointerData.alignYs = ays.concat(rhythm(ays));
         pointerData.dragBBox = { mnx, mny, mxx, mxy };
         pointerData.dragAreas = linkedAreasForSelection();
         svg.classList.add("smartseat-dragging");
@@ -2453,16 +2464,24 @@
     clipboard = state.seats.filter((s) => selected.has(s.external_id))
       .map((s) => JSON.parse(JSON.stringify(s)));
   };
-  const pasteClipboard = () => {
+  const pasteClipboard = (at) => {
     if (!clipboard || !clipboard.length) return;
     saveSnapshot();
     const usedIds = existingExternalIds();
+    // Default: small offset. With a target point (context menu "Paste here"),
+    // the clipboard's top-left corner lands at the click position.
+    let dx = 24, dy = 24;
+    if (at) {
+      let mnx = Infinity, mny = Infinity;
+      clipboard.forEach((s) => { mnx = Math.min(mnx, Number(s.x || 0)); mny = Math.min(mny, Number(s.y || 0)); });
+      dx = at.x - mnx; dy = at.y - mny;
+    }
     const newSeats = clipboard.map((s) => createSeat({
       ...s,
       external_id: makeUniqueExternalId(`${s.external_id}-copy`, usedIds),
       seat_index: Number(s.seat_index || 0) + 1000,
-      x: snap(Number(s.x || 0) + 24),
-      y: snap(Number(s.y || 0) + 24),
+      x: clampX(snap(Number(s.x || 0) + dx)),
+      y: clampY(snap(Number(s.y || 0) + dy)),
     }));
     state.seats = state.seats.concat(newSeats);
     selected = new Set(newSeats.map((s) => s.external_id));
@@ -2939,6 +2958,80 @@
   });
   document.querySelectorAll("[data-tool-action]").forEach((btn) => {
     btn.addEventListener("click", () => handleAction(btn.getAttribute("data-tool-action")));
+  });
+
+  // ─── Context menu (right-click on seats / areas / canvas) ──────────────────
+  const ctxMenu = document.createElement("div");
+  ctxMenu.className = "smartseat-ctx";
+  ctxMenu.hidden = true;
+  host.appendChild(ctxMenu);
+  const hideCtx = () => { ctxMenu.hidden = true; };
+  window.addEventListener("pointerdown", (e) => { if (!ctxMenu.contains(e.target)) hideCtx(); }, true);
+  window.addEventListener("keydown", (e) => { if (e.key === "Escape") hideCtx(); });
+  svg.addEventListener("wheel", hideCtx, { passive: true });
+
+  const showCtx = (event, items) => {
+    ctxMenu.innerHTML = "";
+    items.forEach((it) => {
+      if (it === "-") {
+        const sep = document.createElement("div");
+        sep.className = "smartseat-ctx-sep";
+        ctxMenu.appendChild(sep);
+        return;
+      }
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = it.label;
+      if (it.disabled) b.disabled = true;
+      b.addEventListener("click", () => { hideCtx(); it.run(); });
+      ctxMenu.appendChild(b);
+    });
+    const hostRect = host.getBoundingClientRect();
+    ctxMenu.hidden = false;
+    ctxMenu.style.left = Math.min(event.clientX - hostRect.left, hostRect.width - 190) + "px";
+    ctxMenu.style.top = Math.min(event.clientY - hostRect.top, hostRect.height - items.length * 32 - 16) + "px";
+  };
+
+  svg.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    const svgPt = clientToSvg(event.clientX, event.clientY);
+    const seatId = event.target?.getAttribute?.("data-id");
+    const areaEl = event.target?.closest?.("[data-area-index]");
+
+    if (seatId) {
+      // Right-click outside the current selection re-targets it first.
+      if (!selected.has(seatId)) {
+        selected = new Set(groupAwareIds(seatId, event.altKey));
+        selectedArea = null;
+        draw();
+      }
+      showCtx(event, [
+        { label: "Duplicate", run: duplicateSelected },
+        { label: "Copy", run: copySelection },
+        { label: "Mirror horizontally", run: () => mirrorSelected("h") },
+        { label: "Mirror vertically", run: () => mirrorSelected("v") },
+        { label: "Group", run: groupSelected },
+        "-",
+        { label: "Delete", run: deleteSelected },
+      ]);
+      return;
+    }
+    if (areaEl) {
+      const idx = parseInt(areaEl.getAttribute("data-area-index"), 10);
+      selectedArea = idx;
+      selected = new Set();
+      draw();
+      setSidebarTab("edit");
+      showCtx(event, [
+        { label: "Delete area", run: () => deleteArea(idx) },
+      ]);
+      return;
+    }
+    showCtx(event, [
+      { label: "Paste here", disabled: !clipboard || !clipboard.length,
+        run: () => pasteClipboard({ x: clampX(snap(svgPt.x)), y: clampY(snap(svgPt.y)) }) },
+      { label: "Fit view", run: resetView },
+    ]);
   });
 
   // ─── Tool palette ──────────────────────────────────────────────────────────

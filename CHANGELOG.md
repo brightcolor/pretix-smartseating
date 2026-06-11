@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-06-10
+
+### Added
+- **Right-click context menu** on the plan: on seats — Duplicate, Copy, Mirror
+  (horizontal/vertical), Group, Delete; on areas — Delete area; on empty canvas
+  — "Paste here" (pastes the copied selection at the cursor) and Fit view.
+  Right-clicking outside the current selection re-targets it first.
+- **Rhythm snapping:** while dragging, the alignment guides also snap to the
+  *continuation of equal spacing* — e.g. rows 25 px apart make the position
+  25 px below the last row snap too. Great for adding rows on the same pitch.
+
 ## [0.11.1] - 2026-06-10
 
 ### Changed

@@ -102,7 +102,12 @@ zur Bühne hin gebogen.
 - **Rotations-Griff:** runder Griff oben bei Auswahl; ziehen dreht, **Shift** = 15°-Raster.
 - **Größe (Flächen):** acht Anfasser zum Skalieren.
 - **Ausrichten & Verteilen:** bei 2+ Sitzen im Edit-Reiter.
-- **Ausricht-Hilfslinien:** rasten beim Ziehen an Nachbar-x/y ein.
+- **Ausricht-Hilfslinien:** rasten beim Ziehen an Nachbar-x/y ein — und am
+  **gleichen Abstand weiter** (Reihen-Rhythmus: 25 px Abstand ⇒ auch 25 px unter der
+  letzten Reihe rastet es ein).
+- **Rechtsklick-Menü:** auf Sitzen (Duplizieren, Kopieren, Spiegeln, Gruppieren, Löschen),
+  auf Flächen (Fläche löschen) und auf leerer Fläche („Paste here" fügt die kopierte
+  Auswahl an der Mausposition ein, „Fit view").
 
 ## 10. Kategorien (Preiszonen) & Sitztypen
 Plan-Reiter → „Categories“: Name + Farbe anlegen. Sitze bekommen die Kategorie beim Erzeugen

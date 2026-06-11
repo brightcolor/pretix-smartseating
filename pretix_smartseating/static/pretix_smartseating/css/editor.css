@@ -362,6 +362,34 @@
 
 .smartseat-area { cursor: move; }
 
+/* Context menu (right-click) */
+#smartseat-editor { position: relative; }
+.smartseat-ctx {
+  position: absolute;
+  z-index: 60;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  padding: 5px;
+  background: #fff;
+  border: 1px solid #d7d9dd;
+  border-radius: 9px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+}
+.smartseat-ctx button {
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #1f2937;
+}
+.smartseat-ctx button:hover:not(:disabled) { background: #eef2ff; color: #4338ca; }
+.smartseat-ctx button:disabled { color: #9ca3af; cursor: default; }
+.smartseat-ctx-sep { height: 1px; background: #e5e7eb; margin: 4px 6px; }
+
 /* Seat number rendered on the seat circle */
 .smartseat-seat-num {
   font-size: 8px;
