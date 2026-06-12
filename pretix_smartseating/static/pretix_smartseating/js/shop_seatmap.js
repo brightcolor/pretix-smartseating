@@ -176,7 +176,10 @@
     function bestAvailable() {
       var n = parseInt(qty.value, 10) || 1;
       best.disabled = true; status.textContent = t("Suche nach den besten Plätzen…");
-      fetch(suggestUrl + "?quantity=" + n + "&mode=strict_adjacent",
+      // The seatmap URL may already carry "?subevent=<id>" (event series), so
+      // the extra params must not introduce a second "?".
+      var sep = suggestUrl.indexOf("?") === -1 ? "?" : "&";
+      fetch(suggestUrl + sep + "quantity=" + n + "&mode=strict_adjacent",
         { headers: { Accept: "application/json" }, credentials: "same-origin" })
         .then(function (r) { return r.json(); })
         .then(function (d) {
